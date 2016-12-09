@@ -1,0 +1,267 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (Win98; U) [Netscape]">
+   <title>version Info response</title>
+</head>
+<body>
+&nbsp;
+<table BORDER >
+<caption>sizes&nbsp;</caption>
+
+<tr>
+<td>0x0020&nbsp;</td>
+
+<td>32K&nbsp;</td>
+
+<td>volatile ram</td>
+</tr>
+
+<tr>
+<td>0x0040&nbsp;</td>
+
+<td>64K.&nbsp;</td>
+
+<td>video ram</td>
+</tr>
+
+<tr>
+<td>0x0080&nbsp;</td>
+
+<td>128K&nbsp;</td>
+
+<td>volatile ram</td>
+</tr>
+
+<tr>
+<td>0x0200&nbsp;</td>
+
+<td>512K&nbsp;</td>
+
+<td>flash</td>
+</tr>
+
+<tr>
+<td>0x0400&nbsp;</td>
+
+<td>1024K (1.0M)&nbsp;</td>
+
+<td>flash</td>
+</tr>
+
+<tr>
+<td>0x0600&nbsp;</td>
+
+<td>1536K (1.5M)&nbsp;</td>
+
+<td>flash</td>
+</tr>
+</table>
+
+
+<p>
+<table BORDER >
+<caption>msr configuration</caption>
+
+<tr>
+<td>0x00&nbsp;</td>
+
+<td>no msr installed</td>
+</tr>
+
+<tr>
+<td>0x01&nbsp;</td>
+
+<td>track 1 only</td>
+</tr>
+
+<tr>
+<td>0x02&nbsp;</td>
+
+<td>track 2 only</td>
+</tr>
+
+<tr>
+<td>0x04&nbsp;</td>
+
+<td>track 3 only</td>
+</tr>
+
+<tr>
+<td>0x03&nbsp;</td>
+
+<td>track 1 &amp; 2</td>
+</tr>
+
+<tr>
+<td>0x05&nbsp;</td>
+
+<td>track 1 &amp; 3</td>
+</tr>
+
+<tr>
+<td>0x06&nbsp;</td>
+
+<td>track 2 &amp; 3</td>
+</tr>
+</table>
+
+
+<p>
+<table border>
+<tr>
+<th>Information&nbsp;</th>
+
+<th>Length&nbsp;</th>
+
+<th>Type&nbsp;</th>
+
+<th>Description&nbsp;</th>
+</tr>
+
+<tr>
+<td>Product ID&nbsp;</td>
+
+<td>13&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>String identifying the product. Will always be "5992".&nbsp;</td>
+</tr>
+
+<tr>
+<td>Application Version&nbsp;</td>
+
+<td>14&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the application currently running in the 5992.Operating&nbsp;</td>
+</tr>
+
+<tr>
+<td>System Version&nbsp;</td>
+
+<td>11&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the operating system currently in the 5992.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Digitizer Version&nbsp;</td>
+
+<td>11&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the digitizer firmware.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Flash Size&nbsp;</td>
+
+<td>2&nbsp;</td>
+
+<td>Binary (LO HI)</td>
+
+<td>Amount of flash memory, in kilobytes, currently installed.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Video RAM Size&nbsp;</td>
+
+<td>2&nbsp;</td>
+
+<td>Binary (LO HI)</td>
+
+<td>Amount of video RAM, in kilobytes, currently installed.&nbsp;</td>
+</tr>
+
+<tr>
+<td>MSR Configuration</td>
+
+<td>1&nbsp;</td>
+
+<td>Binary</td>
+
+<td>Magnetic stripe reading hardware installed on the 5992.</td>
+</tr>
+
+<tr>
+<td>Terminal Serial Number</td>
+
+<td>21&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Unique serial number of 5992&nbsp;</td>
+</tr>
+
+<tr>
+<td>RAM Size&nbsp;</td>
+
+<td>2&nbsp;</td>
+
+<td>Binary (LO HI)</td>
+
+<td>Amount of volatile RAM, in kilobytes, currently installed.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Link Library Version</td>
+
+<td>8&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the library linked with the application currently in the
+5992.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Security Module Version</td>
+
+<td>8&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the security module code currently running in the 5992's
+security processor.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Downloaded Application Version</td>
+
+<td>8&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the file used to download the current application.
+<br>If the application is downloaded using the NCR style download, the
+version will be contained in the file used to download the application.
+<br>If the application is downloaded using CMDL, this version will be the
+same as the Application Version.&nbsp;</td>
+</tr>
+
+<tr>
+<td>Downloaded Parameter Version</td>
+
+<td>8&nbsp;</td>
+
+<td>ASCII&nbsp;</td>
+
+<td>Version of the file used to download the current parameter set.
+<br>If the parameter set is downloaded using the NCR style download, this
+version will be contained in the parameter file.&nbsp;
+<br>If the parameter set is downloaded using the CMDL, this version will
+be the version that is written as one of the parameters.&nbsp;</td>
+</tr>
+</table>
+
+<p>Unless specifically noted above, each ASCII field above will be left
+justified and NUL (0x00) filled.
+</body>
+</html>

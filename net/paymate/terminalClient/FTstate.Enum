@@ -1,0 +1,9 @@
+//$Id: FTstate.Enum,v 1.5 2001/10/15 22:40:27 andyh Exp $
+NoInfo
+Incomplete
+WaitAuth
+WaitSig
+SigOnWire
+DoneGood
+DoneBad
+ //$Id: FTstate.Enum,v 1.5 2001/10/15 22:40:27 andyh Exp $

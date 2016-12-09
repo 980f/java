@@ -1,0 +1,5 @@
+// LogFileFormatEnum.Enum
+// put these in the order that you want the columns
+nameCol
+pendingLinesCol
+statusCol

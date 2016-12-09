@@ -1,0 +1,4 @@
+// ServletType.Enum
+// this exists to distinguish messages coming from the admin servlet from those coming from the txn servlet, for optimization, etc.
+admin
+txn

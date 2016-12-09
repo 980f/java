@@ -1,0 +1,58 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.72 [en] (Win98; U) [Netscape]">
+</head>
+<body>
+cm3000 keypad+ display as a user interface
+<br>technical description
+<p>There is a question which contains a prompt and an answer. The keybaord
+handler has an input buffer which is separate from the question's answer.
+The input buffer can be preloaded or not preloaded. The input buffer can
+also be empty or not empty.
+<p>Questions are answered by sending them to an answer listener:
+<pre>public interface AnswerListener {
+&nbsp; public void onReply(Question beingAsked, int opcode);
+&nbsp; //opcode values:
+&nbsp; public final static int CANCELLED=-1; //escaped or such
+&nbsp; public final static int HELPME&nbsp;&nbsp; = 0; //tool tip desired
+&nbsp; public final static int SUBMITTED= 1; //enter w/ change
+&nbsp; public final static int ACCEPTED = 2; //enter on default
+&nbsp; }
+//$Id: AnswerListener.java,v ...
+
+</pre>
+
+<hr>pre-loading
+<p>the present value of an answer is preloaded into the data entry buffer
+whenever the prompt is displayed, which occurs when a quesiton is handed
+to the cm3000ui or when CLEAR is pressed and there is input data that is
+not preloaded.&nbsp;
+<hr>Enter key
+<p>The inputbuffer is compared to the question's incoming answer value.
+The question's answer then gets the new data but the AnswerListener gets
+a flag saying whether the data actually changed (SUBMITTED for data that
+changed, ACCEPTED when the data stays the same).&nbsp;
+<hr>CLEAR key
+<p>If the input buffer is not preloaded then display the prompt and preload
+the buffer
+<br>else we CANCEL the question.&nbsp;
+<hr>backspace
+<p>If there is data in the buffer (preload ignored) then we delete the
+trailing letter
+<br>Else we preload, without presenting the prompt.
+<p>This means that if you backspace one more time than there are letters
+you suddenly get the default value in your face. This is different than
+CLEAR so that we can choose which we prefer, which can include both behaviors.&nbsp;
+<hr>ALPHA key
+<p>If the input buffer is preloaded then usually the prompt is showing
+and pressing alpha replaces the prompt with the preload value
+<br>else the last character of the input buffer is shifted
+<br>unless the buffer is empty in which case we display an asinine string
+as a place holder for some other future feature.
+<h6>
+&copy; 2000 paymate.net</h6>
+
+</body>
+</html>

@@ -1,0 +1,1208 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en] (Win98; U) [Netscape]">
+   <title>PayMate.net - Account Administration</title>
+</head>
+<body >
+This was originally extracted from
+a Mainsail database via the paymate Db gateway.
+<br>Irrelevent columns were stripped and blank entries in "posactioncode"
+were changed to 'X'.
+<p>It has differences with respect to the mainsail spec in PDF form.
+<br>
+<br>
+<table BORDER >
+<tr >
+<th ALIGN=LEFT> responsecode </font>
+<br>[char (2/0)] </th>
+
+<th ALIGN=LEFT> actioncode
+<br>[char (1/0)] </th>
+
+<th ALIGN=LEFT> posactioncode
+<br>[char (1/0)] </th>
+
+<th ALIGN=LEFT> respdescription
+<br>[char (80/0)] </th>
+</tr>
+
+<tr >
+<td> 00</td>
+
+<td> A</td>
+
+<td> A</td>
+
+<td> Approved or completed successfully</td>
+</tr>
+
+<tr >
+<td> 01</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Contact Issuer</td>
+</tr>
+
+<tr >
+<td> 02</td>
+
+<td> L</td>
+
+<td> D</td>
+
+<td> Card Issuer's special condition</td>
+</tr>
+
+<tr >
+<td> 03</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Invalid merchant</td>
+</tr>
+
+<tr >
+<td> 04</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Pick-up Card</td>
+</tr>
+
+<tr >
+<td> 05</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Do not honor</td>
+</tr>
+
+<tr >
+<td> 06</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Error</td>
+</tr>
+
+<tr >
+<td> 08</td>
+
+<td> A</td>
+
+<td> I</td>
+
+<td> Honor with identification</td>
+</tr>
+
+<tr >
+<td> 10</td>
+
+<td> A</td>
+
+<td> I</td>
+
+<td> Approved for partial amount</td>
+</tr>
+
+<tr >
+<td> 12</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Invalid Transaction</td>
+</tr>
+
+<tr >
+<td> 13</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Invalid amount</td>
+</tr>
+
+<tr >
+<td> 14</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Invalid card number</td>
+</tr>
+
+<tr >
+<td> 15</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> No Such Issuer</td>
+</tr>
+
+<tr >
+<td> 19</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Reenter transaction</td>
+</tr>
+
+<tr >
+<td> 20</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Invalid Response</td>
+</tr>
+
+<tr >
+<td> 21</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Invalid Capture Flag</td>
+</tr>
+
+<tr >
+<td> 22</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Key Sync Error</td>
+</tr>
+
+<tr >
+<td> 23</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Unacceptable transaction fee</td>
+</tr>
+
+<tr >
+<td> 25</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Unable to locate record</td>
+</tr>
+
+<tr >
+<td> 30</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Format Error</td>
+</tr>
+
+<tr >
+<td> 32</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Batch Release Error</td>
+</tr>
+
+<tr >
+<td> 35</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Contact Acquirer</td>
+</tr>
+
+<tr >
+<td> 36</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Authorizer Error</td>
+</tr>
+
+<tr >
+<td> 38</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Allowable PIN retries exceeded</td>
+</tr>
+
+<tr >
+<td> 40</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Requested function not supported</td>
+</tr>
+
+<tr >
+<td> 41</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Lost card</td>
+</tr>
+
+<tr >
+<td> 42</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> No account</td>
+</tr>
+
+<tr >
+<td> 43</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Stolen card, pick-up</td>
+</tr>
+
+<tr >
+<td> 51</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Not sufficient funds</td>
+</tr>
+
+<tr >
+<td> 52</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> No checking account</td>
+</tr>
+
+<tr >
+<td> 53</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> No saving account</td>
+</tr>
+
+<tr >
+<td> 54</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Expired Card</td>
+</tr>
+
+<tr >
+<td> 55</td>
+
+<td> S</td>
+
+<td> R</td>
+
+<td> Retry - Invalid PIN</td>
+</tr>
+
+<tr >
+<td> 56</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> No Card record</td>
+</tr>
+
+<tr >
+<td> 57</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Trans not permitted to card
+holder</td>
+</tr>
+
+<tr >
+<td> 58</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Trans not permitted to terminal</td>
+</tr>
+
+<tr >
+<td> 59</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Suspect fraud</td>
+</tr>
+
+<tr >
+<td> 61</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Exceeds withdrawal amt</td>
+</tr>
+
+<tr >
+<td> 62</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Restricted card</td>
+</tr>
+
+<tr >
+<td> 65</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Exceeds withdrawal frequency
+limit</td>
+</tr>
+
+<tr >
+<td> 68</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Response received too late</td>
+</tr>
+
+<tr >
+<td> 76</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Unable to locate previous message</td>
+</tr>
+
+<tr >
+<td> 77</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Reversal Data inconsistent with
+Original Message</td>
+</tr>
+
+<tr >
+<td> 78</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Customer not eligible for POS
+- STAR</td>
+</tr>
+
+<tr >
+<td> 79</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Resubmittal limit exceeded</td>
+</tr>
+
+<tr >
+<td> 80</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Format error</td>
+</tr>
+
+<tr >
+<td> 81</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Expired card</td>
+</tr>
+
+<tr >
+<td> 82</td>
+
+<td> D</td>
+
+<td> F</td>
+
+<td> Invalid STAN</td>
+</tr>
+
+<tr >
+<td> 83</td>
+
+<td> A</td>
+
+<td> A</td>
+
+<td> Transaction has been voided</td>
+</tr>
+
+<tr >
+<td> 84</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Voucher expired</td>
+</tr>
+
+<tr >
+<td> 85</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Invalid voucher ID or authorization
+number</td>
+</tr>
+
+<tr >
+<td> 90</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Cutoff in progress</td>
+</tr>
+
+<tr >
+<td> 91</td>
+
+<td> N</td>
+
+<td> D</td>
+
+<td> Issuer/switch inoperative</td>
+</tr>
+
+<tr >
+<td> 92</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Bank Not Supported</td>
+</tr>
+
+<tr >
+<td> 93</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Transaction cannot be completed,
+violation of law</td>
+</tr>
+
+<tr >
+<td> 94</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Duplicate transmission</td>
+</tr>
+
+<tr >
+<td> 95</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Reconcile error</td>
+</tr>
+
+<tr >
+<td> 96</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> System malfunction</td>
+</tr>
+
+<tr >
+<td> M0</td>
+
+<td> S</td>
+
+<td> X</td>
+
+<td> Original transaction not found</td>
+</tr>
+
+<tr >
+<td> M1</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Invalid Check Type for Member</td>
+</tr>
+
+<tr >
+<td> M2</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Invalid original transaction</td>
+</tr>
+
+<tr >
+<td> M3</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Required ID not presented</td>
+</tr>
+
+<tr >
+<td> M4</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> ID not already on file</td>
+</tr>
+
+<tr >
+<td> MC</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Multiple customers found</td>
+</tr>
+
+<tr >
+<td> MD</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Multiple declines in transaction</td>
+</tr>
+
+<tr >
+<td> N0</td>
+
+<td> T</td>
+
+<td> D</td>
+
+<td> Host timeout response</td>
+</tr>
+
+<tr >
+<td> N1</td>
+
+<td> S</td>
+
+<td> D</td>
+
+<td> Trans not reversable</td>
+</tr>
+
+<tr >
+<td> N2</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Call for voice authorization</td>
+</tr>
+
+<tr >
+<td> P1</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Mandatory Field missing in response</td>
+</tr>
+
+<tr >
+<td> SU</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Switch Unavailable</td>
+</tr>
+
+<tr >
+<td> U0</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> One time check amount exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> U1</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> One time check amount exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> U2</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> One time cash back exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> U3</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> One time cash back exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> U4</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Number of checks per day exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> U5</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Number of checks per day exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> U6</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Total check amount per day exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> U7</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Total check amount per day exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> U8</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Total cash back per day exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> U9</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Total cash back per day exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> UA</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Number of stores per day exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> UB</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Number of stores per day exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> UC</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Number of checks during period
+exceeded (alert)</td>
+</tr>
+
+<tr >
+<td> UD</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Number of checks during period
+exceeded (decline)</td>
+</tr>
+
+<tr >
+<td> UE</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Total check amount during period
+exceeded (alert)</td>
+</tr>
+
+<tr >
+<td> UF</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Total check amount during period
+exceeded (decline)</td>
+</tr>
+
+<tr >
+<td> UG</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Total cash back during period
+exceeded (alert)</td>
+</tr>
+
+<tr >
+<td> UH</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Total cash back during period
+exceeded (decline)</td>
+</tr>
+
+<tr >
+<td> UI</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Number of stores during period
+exceeded (alert)</td>
+</tr>
+
+<tr >
+<td> UJ</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Number of stores during period
+exceeded (decline)</td>
+</tr>
+
+<tr >
+<td> UK</td>
+
+<td> L</td>
+
+<td> X</td>
+
+<td> Number of bad checks exceeded
+(alert)</td>
+</tr>
+
+<tr >
+<td> UL</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Number of bad checks exceeded
+(decline)</td>
+</tr>
+
+<tr >
+<td> UM</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> No cash back with bad checks</td>
+</tr>
+
+<tr >
+<td> V1</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Message Rejected By VISA</td>
+</tr>
+
+<tr >
+<td> V2</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> No Action Taken</td>
+</tr>
+
+<tr >
+<td> Z0</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Customers ACH account is not
+activated</td>
+</tr>
+
+<tr >
+<td> Z1</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Customers ACH account has been
+deactivated</td>
+</tr>
+
+<tr >
+<td> Z2</td>
+
+<td> D</td>
+
+<td> X</td>
+
+<td> Customer does not have an ACH
+member PIN</td>
+</tr>
+
+<tr >
+<td> Y1</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> GC account already exists</td>
+</tr>
+
+<tr >
+<td> Y2</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> GC account does not exist</td>
+</tr>
+
+<tr >
+<td> Y3</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> GC account is not active</td>
+</tr>
+
+<tr >
+<td> Y4</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> GC account has expired</td>
+</tr>
+
+<tr >
+<td> Y5</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Invalid vendor code on GC transaction</td>
+</tr>
+
+<tr >
+<td> Y6</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Insufficient funds for GC transaction</td>
+</tr>
+
+<tr >
+<td> Y7</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Single-use Gift Certificate
+previously redeemed</td>
+</tr>
+
+<tr >
+<td> F5</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Has Returned Check On File</td>
+</tr>
+
+<tr >
+<td> F6</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Has Checks At The Collector</td>
+</tr>
+
+<tr >
+<td> F7</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Stolen, Forged, Or Fraudulent
+Checks On File</td>
+</tr>
+
+<tr >
+<td> F8</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Returned Checks at 480</td>
+</tr>
+
+<tr >
+<td> F9</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Possible High Risk Account</td>
+</tr>
+
+<tr >
+<td> S0</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Unpaid Fees And/Or Checks</td>
+</tr>
+
+<tr >
+<td> S1</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Customer Has Refused To Pay
+Fee</td>
+</tr>
+
+<tr >
+<td> S6</td>
+
+<td> D</td>
+
+<td> D</td>
+
+<td> Unpaid Partial Payments</td>
+</tr>
+
+<tr >
+<td> D1</td>
+
+<td> D</td>
+
+<td> R</td>
+
+<td> Exceeds cash back limit</td>
+</tr>
+</table>
+<h6>&copy;Paymate.net
+<br>$Id: respcode-db.html,v 1.1 2000/12/02 04:04:34 andyh Exp $</h6>
+</body>
+</html>

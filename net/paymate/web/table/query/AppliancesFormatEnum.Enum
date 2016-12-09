@@ -1,0 +1,15 @@
+// AppliancesFormatEnum.Enum
+// put these in the order that you want the columns
+storeCol
+applianceIdCol
+lastLclTimeCol
+locallyUniqueIdCol
+diffTimeCol
+revisionCol
+backLog
+freeMemoryCol
+fmPercentCol
+totalMemoryCol
+activeCountCol
+activeAlarmsCountCol
+terminalsCol

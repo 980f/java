@@ -1,0 +1,6 @@
+// user permissions, may be combined in cases
+V // perform voids
+R // perform returns
+E // web admin of enterprise
+S // standard clerk permission (ability to perform sales)
+D // database administration (FOR US ONLY !!!!)

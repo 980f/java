@@ -1,0 +1,6 @@
+// $Id: ColumnJustification.Enum,v 1.2 2001/03/20 16:27:00 andyh Exp $
+// column justifications
+CENTERED
+JUSTIFIED
+PLAIN
+WINGED

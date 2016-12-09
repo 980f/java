@@ -1,0 +1,234 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Andy Heilveil">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en] (Win98; U) [Netscape]">
+   <title>msr track2 content</title>
+</head>
+<body>
+
+<h3>
+Track 2 Specification</h3>
+per <tt>Pulse</tt> documents
+<br>
+<hr WIDTH="100%">
+<br>&nbsp;
+<table BORDER >
+<caption><a NAME="Track 2 Layout"></a>Track 2 Layout</caption>
+
+<tr>
+<td>Field#</td>
+
+<td>Field Name</td>
+
+<td>length</td>
+
+<td>description</td>
+</tr>
+
+<tr>
+<td>1</td>
+
+<td>Start sentinel</td>
+
+<td>1</td>
+
+<td><i>stripped before jpos gets it</i></td>
+</tr>
+
+<tr>
+<td>2</td>
+
+<td>Primary Account Number</td>
+
+<td>16..19</td>
+
+<td>see <a href="#PAN Layout">PAN Layout</a></td>
+</tr>
+
+<tr>
+<td>3</td>
+
+<td>Field Separator</td>
+
+<td>1</td>
+
+<td>seems to be '='</td>
+</tr>
+
+<tr>
+<td>4</td>
+
+<td>Expiration Date</td>
+
+<td>4</td>
+
+<td>YYMM, no more than 20 years later than 'now', 4912==forever</td>
+</tr>
+
+<tr>
+<td>5</td>
+
+<td>Service Code</td>
+
+<td>3</td>
+
+<td>only three values are <a href="#Service Code">documented</a></td>
+</tr>
+
+<tr>
+<td>6</td>
+
+<td>Discretionary Data</td>
+
+<td>0..13</td>
+
+<td>any byte data whatsoever</td>
+</tr>
+
+<tr>
+<td>7</td>
+
+<td>End Sentinal</td>
+
+<td>1</td>
+
+<td><i>stripped before jpos gets it</i></td>
+</tr>
+
+<tr>
+<td>8</td>
+
+<td>LRC</td>
+
+<td>1</td>
+
+<td><i>Longitudinal Redudnacy Check=xor of all preceding bytes</i>
+<br><i>stripped before jpos gets it</i></td>
+</tr>
+
+<tr>
+<td>
+<br>&nbsp;</td>
+
+<td></td>
+
+<td>27..43</td>
+
+<td>total byte length range, subtract 3 for packet wrapper</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<br>&nbsp;
+<table BORDER >
+<caption><a NAME="PAN Layout"></a>PAN Layout</caption>
+
+<tr>
+<td>positions</td>
+
+<td>length</td>
+
+<td>name</td>
+
+<td>description</td>
+</tr>
+
+<tr>
+<td>1..6</td>
+
+<td>6</td>
+
+<td>IIN</td>
+
+<td>ISO 7813 Issuer Identification Number</td>
+</tr>
+
+<tr>
+<td>7..9</td>
+
+<td>3</td>
+
+<td>Institution code</td>
+
+<td>as in identifying a particular banking company</td>
+</tr>
+
+<tr>
+<td>10..18</td>
+
+<td>6..9</td>
+
+<td>Customer ID</td>
+
+<td>layout is per each bank.</td>
+</tr>
+
+<tr>
+<td>last</td>
+
+<td>1</td>
+
+<td>Luhn checksum</td>
+
+<td>funky almost cast-out-9's checksum.</td>
+</tr>
+</table>
+
+<p>
+<hr WIDTH="100%">
+<br>&nbsp;
+<table BORDER >
+<caption><a NAME="Service Code"></a>Service Code</caption>
+
+<tr>
+<th>ascii decimals</th>
+
+<th>restrictions</th>
+
+<th>PIN required?</th>
+
+<th>mode</th>
+</tr>
+
+<tr>
+<td>101</td>
+
+<td>None</td>
+
+<td>No</td>
+
+<td>Credit</td>
+</tr>
+
+<tr>
+<td>120</td>
+
+<td>None</td>
+
+<td>YES</td>
+
+<td>Debit</td>
+</tr>
+
+<tr>
+<td>141</td>
+
+<td>None</td>
+
+<td>No</td>
+
+<td>Debit</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<h6>
+&copy; Paymate 2001</h6>
+
+<h6>
+$Id: msrtrack2.html,v 1.1 2001/01/12 08:03:29 andyh Exp $</h6>
+
+</body>
+</html>

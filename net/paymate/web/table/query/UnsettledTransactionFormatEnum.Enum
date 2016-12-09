@@ -1,0 +1,13 @@
+// UnsettledTransactionFormatEnum.Enum
+// put these in the order that you want the columns
+TimeCol
+TermCol
+StanCol
+SiCol
+StatusCol
+ApprovalCol
+AcctNumCol
+ExpDateCol
+SaleCol
+ReturnCol
+SumCol

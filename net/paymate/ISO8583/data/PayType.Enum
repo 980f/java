@@ -1,0 +1,10 @@
+/* $Id: PayType.Enum,v 1.2 2001/11/17 00:38:33 andyh Exp $ */
+//the explicit unknown is used to distinguish the need to know from
+//code failures, which end up with the generic "invalid"
+Unknown
+Credit
+SVC
+Debit
+Check
+Cash
+//$Id: PayType.Enum,v 1.2 2001/11/17 00:38:33 andyh Exp $

@@ -1,0 +1,7 @@
+// DrawerClosingFormatEnum.Enum
+// put these in the order that you want the columns
+TimeCol
+StoreCol
+TermCol
+AssociateCol
+//SelectCol

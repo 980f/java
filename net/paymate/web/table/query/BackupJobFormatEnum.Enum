@@ -1,0 +1,17 @@
+// BackupJobFormatEnum.Enum
+// put these in the order that you want the columns
+NumberCol
+StartTimeCol
+TableNameCol
+StartedByCol
+PriorityCol
+SleepCol
+StatusCol
+DurationCol
+WidthCol
+RowCountCol
+BytesCol
+FileSizeCol
+PercentCol
+FilenameCol
+MessageCol

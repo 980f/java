@@ -1,0 +1,93 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.72 [en] (Win98; U) [Netscape]">
+</head>
+<body>
+The rules for enTouch artwork are as follows:
+<ol>
+<li>
+single bit plane</li>
+
+<li>
+exactly 320 pixels across, and we mean exactly.</li>
+
+<li>
+maximum 200 lines vertically</li>
+
+<li>
+if less than 200 lines they will run from the top of the screen downwards&nbsp;<br>
+<font size=-2>(note: seems like it should be 240, need to check the reality
+against the documents we have. It may be that there 240 lines of storage
+but only 200 show.)</font></li>
+
+<li>
+the active area of buttons are on the chracter grid which is 40 by 30 (8
+by 8 cells)</li>
+
+<li>
+dynamic content is non graphical, must be on the grid and comes in 4 fonts
+with three attributes:</li>
+
+<ol>
+<li>
+8X8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (kinda small)</li>
+
+<li>
+8X8 Bold (still smallish)</li>
+
+<li>
+8X16&nbsp;&nbsp;&nbsp; (double high, fairly wierd)</li>
+
+<li>
+16X16&nbsp; (most legible)</li>
+
+<li>
+underlined (often visually merges with the next text line)</li>
+
+<li>
+italic</li>
+
+<li>
+reversed (you will need a space character at the beginning of a reversed
+block to make the first char look ok)</li>
+</ol>
+
+<li>
+Vertical text will have to be negotiated with the engineers, each letter
+has to been sent as a separate text item, probably not much of an issue
+now that I think about it, a few hours work.</li>
+
+<li>
+buttons are outlined one pixel within the character cell bounds. You can
+NOT turn off the drawing of the rectangle. The rectangle is transparent.</li>
+
+<li>
+we can have "radio" buttons, ones that enforce only one at a time selected.</li>
+
+<li>
+there is a limit of 8 buttons on the screen at one time. This limit is applied
+to the sum of all types of buttons.
+
+<li>
+it can take 10 to 15 seconds the first time to put up a form that has
+graphics. paymate's rendition of a jpos driver shares common graphics,
+only uploading once.
+
+</li>
+</ol>
+
+<p><br>We would prefer to generate forms via lines of programming than
+to have them statically entered. This is to ensure easy and accurate coordination
+of static components and dynamic ones. As the program matures we will make
+it easy to sketch something and have a program convert it into a program.
+A form needs to be broken down into a graphic background, button locations,
+(dynamic) text locations with font info, and what the function of each
+button is to be.
+<br>&nbsp;
+<p>The text that follows is a revision marker for our version control system.
+Get used to seeing them on all of our documents.
+<br>$Id: ARTWORK.HTM,v 1.1 2000/11/21 02:56:15 andyh Exp $
+</body>
+</html>

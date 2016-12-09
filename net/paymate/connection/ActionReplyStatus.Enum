@@ -1,0 +1,33 @@
+/* $Id: ActionReplyStatus.Enum,v 1.22 2001/06/28 02:25:31 andyh Exp $ */
+// +++ factor into smaller set with extended text strings
+//types of POS ActionReplyStatuses
+Success
+CertifyFailed   //socket error
+ConnectFailed    //socket error
+NotInitiated      //socket error
+SocketTimedOut     //socket error
+SocketCantInit     //socket error
+UnknownException
+ObjectStreamingException   //socket error
+Unimplemented
+OutdatedProgram            //configuration error
+InvalidAppliance           //configuration error
+InvalidTerminal            //configuration error
+InvalidLogin               //configuration error
+InsufficientPriveleges     //configuration error
+GarbledRequest             //socket error
+UndefinedISOResponse       //auth error
+SuccessfullyFaked
+ErrorFaking
+IllegibleIsoMessageFormat
+GarbledReply               //socket error
+ServerError
+DatabaseQueryError         //configuration error???
+FailureSeeErrors
+UnableToCreateTransaction
+TxnNotFound
+HostTimedOut               //socket error
+UnavailableDueToTxnSystemMaintenance
+ReplyTimeout               //socket error
+TryAgainLater   //
+// $Id: ActionReplyStatus.Enum,v 1.22 2001/06/28 02:25:31 andyh Exp $

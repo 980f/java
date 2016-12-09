@@ -1,0 +1,13 @@
+/* $Id: TransactionType.Enum,v 1.2 2000/05/23 21:52:54 alien Exp $ */
+//field 135
+CK //Check
+CC //Check Conversion
+CR //Credit
+DB //Debit
+EB //EBT
+EC //ACH (electronic check)
+GC //Gift Certificate
+FA //Frequent Shopper Authorization
+FU //Frequent Shopper Update
+
+//$Id

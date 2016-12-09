@@ -1,0 +1,998 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en] (Win98; U) [Netscape]">
+   <title>PayMate.net - Account
+Administration</title>
+</head>
+<body>
+The following table lists those patterns
+that are used to validate driver's license data entry.
+<br>Each state may have a few patterns. Given the state its patterns are
+used to judge input. If any of the patterns is compatible with the input
+then the license number is considered valid.
+<br>&nbsp;
+<br>&nbsp;
+<table BORDER >
+<caption>legend for license validation table&nbsp;</caption>
+
+<tr>
+<th>Letter</th>
+
+<th>meaning</th>
+
+<th>technical detail</th>
+</tr>
+
+<tr>
+<td><b>A</b></td>
+
+<td><tt>alpha</tt></td>
+
+<td>A..Z</td>
+</tr>
+
+<tr>
+<td><b>N</b></td>
+
+<td><tt>numeric</tt></td>
+
+<td>0..9</td>
+</tr>
+
+<tr>
+<td><b>X</b></td>
+
+<td><tt>anything</tt></td>
+
+<td>64 legal chars</td>
+</tr>
+
+<tr>
+<td><b>S</b></td>
+
+<td><tt>symbol</tt></td>
+
+<td>0..9 plus some unknown punctuation marks</td>
+</tr>
+
+<tr>
+<td COLSPAN="3"><tt>Upper case means mandatory, lower case means optional</tt></td>
+</tr>
+</table>
+
+<table BORDER >
+<caption>drivers license validation formats</caption>
+
+<tr>
+<th ALIGN=LEFT>drivlicensest</th>
+
+<th ALIGN=LEFT>sequenceno</th>
+
+<th ALIGN=LEFT>drivlicensemask</th>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AK</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>Nnnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AL</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XXNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AS</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AR</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AR</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AZ</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AZ</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>AXNNNNnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>CA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>CO</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XXXXXnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>CT</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>CT</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>DC</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>DC</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>DE</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>Nnnnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>FL</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>GA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>GU</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>HI</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>IA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>IA</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>XXXXXXXxx</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>ID</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>ID</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>AANNNNNNA</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>IL</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>IL</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNNNNNNNA</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>IN</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>IN</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>KS</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNXNXN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>KS</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>XNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>KY</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>KY</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>LA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>LA</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MD</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>ME</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>ME</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNNNA</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MI</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MI</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MN</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MO</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNnnnnnnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MO</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNNNNNnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MS</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MT</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MT</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANXNNXXXN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MY</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MY</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>AXNNNNnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NC</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>Nnnnnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>ND</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NE</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NE</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NH</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNAAANNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NJ</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NM</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NM</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NV</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNNNNNNNNnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NV</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>AANNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NY</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNNNNNNNNnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NY</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>OH</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>AXNNNnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>OH</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>OK</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>OK</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>OR</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>Nnnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>PA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>PR</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>RI</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>SC</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNnnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>SD</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>SD</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNNnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>TN</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>TX</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>UT</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNxxxxxx</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>UT</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>VA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>VA</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>VI</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>VI</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>ANNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>VT</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNX</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>WA</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ASSSSSSXNXXX</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>WI</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>WV</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XXNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>WY</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNNn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>AB</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>BC</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>MB</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>AASSSASNNNXX</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NB</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>XXXXxxx</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NF</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NF</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>NNNNNnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NT</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNnnnnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NS</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>AASSSNNNNNNNnn</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>NS</td>
+
+<td ALIGN=LEFT>2</td>
+
+<td ALIGN=LEFT>AASSASNNNXX</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>ON</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>PE</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>PQ</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>ANNNNNNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>SK</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>NNNNNNNN</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT>YT</td>
+
+<td ALIGN=LEFT>1</td>
+
+<td ALIGN=LEFT>Nnnnnnnnnn</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<br>The following table lists those states whose driver's license should
+automatically be recognized by paymate terminals.
+<br>&nbsp;
+<table BORDER >
+<caption>AAMVA compliant states</caption>
+
+<tr>
+<td>VA</td>
+</tr>
+
+<tr>
+<td>NY</td>
+</tr>
+
+<tr>
+<td>MA</td>
+</tr>
+
+<tr>
+<td>MD</td>
+</tr>
+
+<tr>
+<td>NC</td>
+</tr>
+
+<tr>
+<td>SC</td>
+</tr>
+
+<tr>
+<td>CT</td>
+</tr>
+
+<tr>
+<td>LA</td>
+</tr>
+
+<tr>
+<td>MT</td>
+</tr>
+
+<tr>
+<td>NM</td>
+</tr>
+
+<tr>
+<td>FL</td>
+</tr>
+
+<tr>
+<td>DE</td>
+</tr>
+
+<tr>
+<td>ON</td>
+</tr>
+
+<tr>
+<td>NS</td>
+</tr>
+
+<tr>
+<td>CA</td>
+</tr>
+
+<tr>
+<td>TX</td>
+</tr>
+
+<tr>
+<td>NF</td>
+</tr>
+
+<tr>
+<td>NB</td>
+</tr>
+
+<tr>
+<td>IA</td>
+</tr>
+
+<tr>
+<td>GU</td>
+</tr>
+
+<tr>
+<td>CO</td>
+</tr>
+
+<tr>
+<td>AR</td>
+</tr>
+
+<tr>
+<td>KS</td>
+</tr>
+
+<tr>
+<td>OH</td>
+</tr>
+
+<tr>
+<td>VT</td>
+</tr>
+
+<tr>
+<td>PA</td>
+</tr>
+
+<tr>
+<td>AZ</td>
+</tr>
+
+<tr>
+<td>MY</td>
+</tr>
+
+<tr>
+<td>BC</td>
+</tr>
+
+<tr>
+<td>OR</td>
+</tr>
+
+<tr>
+<td>MO</td>
+</tr>
+
+<tr>
+<td>WI</td>
+</tr>
+
+<tr>
+<td>MI</td>
+</tr>
+
+<tr>
+<td>AL</td>
+</tr>
+
+<tr>
+<td>reserved</td>
+</tr>
+
+<tr>
+<td>IL</td>
+</tr>
+</table>
+
+</body>
+</html>

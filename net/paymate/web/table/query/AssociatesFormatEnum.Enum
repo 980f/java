@@ -1,0 +1,8 @@
+// AssociatesFormatEnum.Enum
+// put these in the order that you want the columns
+LoginnameCol
+LastNameCol
+FirstNameCol
+MICol
+EnterpriseACLCol
+ColorSchemeCol

@@ -1,0 +1,34 @@
+//$Id: ClerkItem.Enum,v 1.16 2001/07/14 23:12:30 andyh Exp $
+/*
+ an enumeration of each of the items that get displayed to the clerk
+ on the one-line-display
+ */
+BootingUp
+ClerkID
+ClerkPasscode
+SaleType
+TerminalOp
+PreApproval
+PaymentSelect
+CreditNumber
+BadCardNumber
+CreditExpiration
+BadExpiration
+CreditName
+CheckBank
+CheckAccount
+CheckNumber
+License
+MTA
+RefNumber
+SalePrice
+//Tendered
+NeedApproval  //from customer
+NeedSig
+WaitApproval  //from cardsystems
+ApprovalCode
+Problem
+OverrideCode
+SecondCopy   //for when sig capture fubars
+WaitAdmin //batch listings, future slow stuff
+//$Id: ClerkItem.Enum,v 1.16 2001/07/14 23:12:30 andyh Exp $

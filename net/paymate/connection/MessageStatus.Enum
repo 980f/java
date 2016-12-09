@@ -1,0 +1,6 @@
+// MessageStatus.Enum
+New       // just put into the queue, not handled by a socket thread yet
+Sending   // marked as "handled" but not written to the socket yet
+Sent      // written to the socket
+Received  // read from the socket, but not returned to the user
+Done      // returned to the user, although maybe not completely

@@ -1,0 +1,475 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.72 [en] (Win98; U) [Netscape]">
+</head>
+<body>
+
+<h2>
+Notes for doing signature printing.</h2>
+
+<p><br>hastily assembled from notes scattered througout andy's harddrive
+and mailbox.
+
+
+<br>I understand all of this even if the descriptions are vague to you.
+The only info I do not have in here is the format of the raster
+extracted from a canvas. You should be able to find that as well as I.
+
+
+<hr WIDTH="100%">
+<br>Notes from matt mello:
+<br>Here is some stuff I found on the internet while looking for something
+else. It should solve your graphics problem. GifEncoder is a product we
+don't really want. The com.sun.image.codec.jpeg.* stuff (JPEGImageEncoder,
+JPEGCodec) is in the jre's rt.jar. There should be similar stuff for PNG
+in 1.3, which should be used instead of GIF. I have not tested any of these.
+- Matt Old method from an old book of mine:
+<pre>{
+&nbsp;&nbsp;&nbsp; // create an unshown frame
+&nbsp;&nbsp;&nbsp; Frame frame = new Frame();
+&nbsp;&nbsp;&nbsp; frame.addNotify();
+&nbsp;&nbsp;&nbsp; // get graphics region
+&nbsp;&nbsp;&nbsp; Image image = frame.createImage(400, 60);
+&nbsp;&nbsp;&nbsp; g = image.getGraphics();
+&nbsp;&nbsp;&nbsp; // draw on it
+&nbsp;&nbsp;&nbsp; g.setFont(new Font("Serif", Font.ITALIC, 48));
+&nbsp;&nbsp;&nbsp; d.drawString("Hello World!", 10, 50);
+&nbsp;&nbsp;&nbsp; // encode it
+&nbsp;&nbsp;&nbsp; GifEncoder encoder = new GifEncoder(image, out);
+&nbsp;&nbsp;&nbsp; encoder.encode();
+}
+--------
+
+New method from the javasoft newsgroup archive search:
+
+There are a few general steps to saving a component's image as an image file. Oversimplified, they are:
+
+1) Create a BufferedImage of the same dimensions as the Component in question.
+2) Get the Graphics context of the Component and paint it to the BufferedImage's Graphics context.
+3) Encode the image to be saved in the appropriate format.
+
+Try the following, which makes use of the undocumented (but bundled with some JDK versions) com.sun.image.codec.jpg package. The createComponentImage() method encapsulates steps 1 and 2, above. The encodeImage() method encapsulates step 3. The rest is set-up and display. If all works according to plan, you should have a new .jpg file called ImageTest.jpg whose pixels mirror (though I've noticed some color loss) those in the Canvas:&nbsp;
+
+import com.sun.image.codec.jpeg.*;&nbsp;
+
+import java.awt.*;&nbsp;
+import java.awt.image.*;&nbsp;
+import java.io.*;&nbsp;
+
+class ImageUtils {&nbsp;
+&nbsp;&nbsp;&nbsp; private static JPEGImageEncoder encoder = null;
+&nbsp;&nbsp;&nbsp; private static FileOutputStream fileStream = null;
+&nbsp;&nbsp;&nbsp; public static BufferedImage createComponentImage(Component component) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BufferedImage image = (BufferedImage)component.createImage(component.getWidth(),component.getHeight());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphics graphics = image.getGraphics();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(graphics != null) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; component.paintAll(graphics);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return image;
+&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp; public static void encodeImage(BufferedImage image, File file) throws IOException {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; fileStream = new FileOutputStream(file);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JPEGEncodeParam encodeParam = JPEGCodec.getDefaultJPEGEncodeParam(image);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; encoder = JPEGCodec.createJPEGEncoder(fileStream);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; encoder.encode(image,encodeParam);
+&nbsp;&nbsp;&nbsp; }
+}&nbsp;
+
+class LineCanvas extends Canvas {&nbsp;
+&nbsp;&nbsp;&nbsp; public LineCanvas() {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; setSize(250,250);
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; public void paint(Graphics g) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.setColor(Color.black);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.fillRect(0,0,getSize().width, getSize().height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.setColor(Color.green);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawArc(100,100,50,50,0,100);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; g.drawArc(150,150,50,50,90,100);
+&nbsp;&nbsp;&nbsp; }
+}&nbsp;
+
+public class ImageMain {&nbsp;
+&nbsp;&nbsp;&nbsp; public static void main(String[] args) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Frame frame = new Frame();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Canvas imageCanvas = new LineCanvas();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.add(imageCanvas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.setSize(300,300);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; frame.setVisible(true);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File file = new File("ImageTest.jpg");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BufferedImage image = ImageUtils.createComponentImage(imageCanvas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ImageUtils.encodeImage(image,file);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch(Exception e) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp; }
+}
+
+
+<hr WIDTH="100%"></pre>
+From Andy:
+<ul>
+<li>
+Our version of public void paint(Grpahics g) is in net.paymate.jpos.awt.siggraph.java,
+which I haven't compiled after my last set of edits.</li>
+
+<li>
+class net.paymate.jpos.data.SigData encapsulates both the set of points
+and the dimension of the SIGNATURE box. I have never tested it for correctness
+but it does compile :) We would use its data, or data we would store in
+class OurForms and send to both the signature box AND the rendering routine,
+to set the frame's size.</li>
+
+<li>
+We could make a standard graphics file for storing on our server, so that
+it is easier to display elsewhere. If the signature data is much smaller
+than the file then we will just have to test the "siggraph" class for use
+in an applet.</li>
+
+<li>
+I am still digging up the re-rasterizing and line packing code. It was
+written to convert a canvas into a buffer of bytes to send to an enscribe.</li>
+</ul>
+
+<hr WIDTH="100%">
+<br>Older notes made by andy while reading the manual:
+<p>the enTouch doesn't clearly specify the dimension of the signature.
+We will presume that the pixels are square both on the enTouch and the
+printer. This means that once we know how many pixels are across the signature
+capture field we can map that to the printer's 420 dots.
+<br>When we find out how many pixels high the signature area is we can
+directly compute how many printer raster lines are appropriate to preserve
+aspect ratio.
+<br>To print most efficiently we make a 420/12 by number of raster lines
+array of booleans. We make a 420 by raster lines awt graphics canvas. We
+use awt's drawline to draw on its canvas. We get the bitmap and expand
+it into the 420/12 bit holders etc.
+<p>newer notes written viewing the older notes:
+<br>... I guess I never actually wrote the code, didn't have full details
+on the canvas data. We can dick with the 'Dimension scaling' in class siggraph
+to expand the vector data into a 420 pixel wide canvas. If we were to do
+1:1 entouch pixel to printer dot we would only be using up 3/4ths of the
+visual space. Since I don't trust that the aspect ratios will match between
+the three devices I suggest we give ourselves a configuration parameter
+pair for each of&nbsp; the screen image and the print image and pass these
+into siggraph.
+<p>On configuration data: At the moment I have ditched all externals files,
+but I am still mostly using 'Properties' (actually our util.EasyProperties
+which adds some error handling and hides the syntax of type casting.) for
+config values. I am just filling the Properties from code rather than from
+a file.&nbsp; So long as you also use Properties (or EasyProperties which
+extends it) we will be able to easily integrate whatever config data you
+come up with into the total terminal config.
+<p>FYI: I am generating ICF files from code rather than storing them permanently
+on disk. As soon as my version of the jpos stuff works we can take advantage
+of aditional functions I added to the drivers to take open InputStreams
+rather than filenames to do their work. We write the intended file data
+into a byte buffer, convert that into an InputStream then put that object
+into configuration storage, which is an array of named objects. None of
+that actually breaks the jpos api at all!
+<br>
+<hr>escape sequences and formatting.
+<p>Graphics for "printer 250" supposedly the same for the 612
+
+Each printer line is split into odd and even pixels. Odds are done in
+one pass, evens in the next. It seems that the numbering in their logic
+starts at 1 so I suspect that within real code we will send even
+numbered pixels then odd ones. This will be easy enough to fix if we get
+it wrong.
+
+
+
+<table BORDER >
+<tr>
+<td>enter graphics mode</td>
+
+<td>esc g</td>
+</tr>
+
+<tr>
+<td>graphics data one raster line at a time</td>
+
+<td>P1xx xxxx fill the bits left to right
+<br>P= parity if in 7 bit per char mode</td>
+</tr>
+
+<tr>
+<td VALIGN=TOP>print the line</td>
+
+<td>P010LORF
+<br>L= last line, automatically exit graphics mode
+<br>O= odds, which are to the left of evens, i.e. 1 based pixel labeling
+<br>R= red, else you get black
+<br>F= feed the line, which we will do at the end of each evens pass.</td>
+</tr>
+</table>
+
+<p>Always send enough data for 420/2 pixels (evens on one pass, odds on
+another), at 6 pixels per byte that is 35 bytes, plus a 36th (P010LORF)
+to print the line.
+
+<br>If we go through an intermediate array of 420 booleans then the
+algorithm is simplified. We could also map directly from an 8 bits per
+byte raster to the 6 of 12 nonsense with some fancy indexing. I believe
+that the fancy indexing will take up more real time then first copying
+into an array of booelans using simple indexing, then out of it using also
+simple indexing.   (hummm, 6 of 12, enScribe 612, might an enigneer be
+poking fun at a painful formatting specification?)
+
+<br>
+<hr WIDTH="100%">
+A copy of siggraph.java, already cvs'd as net.paymate.jpos.awt.siggraph.java:
+<pre>
+/* $Id : siggraph.java,v 1.1 2000/08/01 03:09:52 andyh Exp $ */
+package ivicm.app;
+
+/*
+ todos: compile it!
+        integrate with class net.paymate.jpos.data.SigData, which
+        stores the sig extremes as given to enTouch to help with faithfulness
+        of reproduction
+ */
+
+
+import java.awt.*;
+
+public class siggraph extends Panel {
+  protected Point []points;
+  protected final static int FirstPoint = 1; //from s.cole's example.
+  Dimension scaling= new Dimension(1.0,1.0);
+
+  //seems like the above should be zero, it may be that there was still
+  //a point's worth of comm frmaing when the data was extracted back then.
+  //we should try 0 and see what we get.
+
+  protected reflectY; //Y coordinate polarity inverted between
+
+  boolean preserveAspectRatio=true; //need to research whether java
+  //compensates for not square CRT pixels.
+
+  public siggraph(){
+    this.setLayout(new FlowLayout());
+    scaling= null;
+    points = null;
+  }
+
+  public Dimension preferredSize() {
+    return new Dimension(320, 100);  //+++need to coordinate with icf maker.
+    //alh added the sigCaptureBox size to the points data.
+  }
+
+  public void storeSignature(Point []pt){
+    points = pt;
+    repaint();
+  }
+
+  public void erase(){
+    points = null;
+  }
+
+  public Dimension fitToView(){ //get a scale factor to fit the drawing window
+    scaling= new Dimension(1.0,1.0); //reset
+    //+_+ s.cole uses preferred size, alh thinks we should use current size
+    Dimension panelSize=preferredSize();
+
+    reflectY= panelSize.height;
+
+    if (points != null){
+      int i=FirstPoint;
+      Point extreme = new Point(points[i]);
+
+      while(++i < points.length){
+        if (extreme.X < points[i].x){
+          extreme.X = points[i].x;
+        }
+        if (extreme.Y < points[i].y){
+          extreme.Y = points[i].y;
+        }
+      }
+
+      if (extreme.Y > panelSize.height || extreme.X > panelSize.width){
+        //float before divide to maximize accuracy.
+        scaling.X = ((float)panelSize.width /(float)extreme.X);
+        scaling.Y = ((float)panelSize.height /(float)extreme.Y);
+      }
+
+      if(preserveAspect){//presumes that both the entouch AND the CRT have
+        //square pixels. While the entouch does, the CRT's aspect could be
+        //0.8 or so. We need to research how to get the present ratio from
+        //the java grpahics support, or whether it is built in
+
+        if (scaling.X < scaling.Y){
+          scaling.Y = scaling.X;
+        } else {
+          scaling.X = scaling.Y;
+        }
+      }
+    }
+  }
+
+  public int mapX(float X){
+    return (int)(X*scaleX);
+  }
+
+  public int mapY(float Y){
+    //the digitizer origin is the lower left corner and the
+    //panel's is the upper left
+    return reflectY - (int)(Y*scaleY);
+  }
+
+  public void paint(Graphics g){ //called from awt, triggered as well by a repaint()
+    Point start;
+    Dimension panelSize=preferredSize();//+_+ current size?
+
+    if (points != null){
+      g.setColor(Color.black);
+
+      for (int i = FirstPoint; i < points.length-1; ){ //increment is inside loop
+        int x1 = 0, x2 = 0 , y1 = 0 , y2 = 0;
+        start= points[i++];
+        if (points[i].x != -1 && points[i].y != -1) {
+          g.drawLine(mapX(start.X),mapY(start.Y),mapX(points[i].x),mapY(points[i].y));
+        } else {//skip to next point as fresh start
+          ++i;
+        }
+      }
+    }
+  }
+}
+
+//$Id : siggraph.java,v 1.1 2000/08/01 03:09:52 andyh Exp $
+</pre>
+
+<Hr>
+<p>
+<hr>The next section is not needed now that matt dug up the Graphics&lt;->canvas
+realtionship, but might amuse you nonetheless. I leave it here in case
+we want to add vector defined graphics to the enScribe without going through
+awt first.
+<pre>package ego; //extended graphics objects (ported from memory from a C lib I wrote ages ago.)
+class Pen {
+&nbsp;&nbsp;&nbsp; protected boolean isUp;
+&nbsp;&nbsp;&nbsp; protected Point virtual; //nominal present pen location
+
+&nbsp;&nbsp;&nbsp; Point RelativeTo(Point elsewhere){ //from here to there as vector
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return Point(elswhere.x-virtual.x, elsewhere.y-virtual.y);
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; //these return false if the coord becomes illegal
+&nbsp;&nbsp;&nbsp; abstract boolean incrementX();
+&nbsp;&nbsp;&nbsp; abstract boolean incrementY();
+&nbsp;&nbsp;&nbsp; abstract boolean decrementX();
+&nbsp;&nbsp;&nbsp; abstract boolean decrementY();
+
+&nbsp;&nbsp;&nbsp; boolean setLocation(Point2D p){ //usually called from override
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; virtual.setLocation(p);
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; //these expedite use of the inc/dec/x/y st of functions
+&nbsp;&nbsp;&nbsp; boolean stepX(int pmz){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch(pmz){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case -1: return decrementX();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case&nbsp; 0: return false; //no error
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case&nbsp; 1: return incrementX();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; default: return true; //error
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; boolean stepY(int pmz){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch(pmz){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case -1: return decrementY();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case&nbsp; 0: return false; //no error
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; case&nbsp; 1: return incrementY();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; default: return true; //error
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; boolean step(int pmzX, int pmzY){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return stepX(pmzX) || stepY(pmzY);
+&nbsp;&nbsp;&nbsp; }
+
+}
+
+class Liner {
+&nbsp;&nbsp;&nbsp; Pen pen;
+&nbsp;&nbsp;&nbsp; Point delta;&nbsp;&nbsp; //distance rather than a coordinate</pre>
+
+<pre>&nbsp;&nbsp;&nbsp; public Liner(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; delta.x=coords.RelativeTo(virtual);</pre>
+
+<pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ...lotsa code missing
+&nbsp;&nbsp;&nbsp; }</pre>
+
+<pre>&nbsp;&nbsp;&nbsp; draw(){</pre>
+
+<pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ... a simple algorithm that I am currently using to</pre>
+
+<pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ... ratio the polling rates of check reader and keypad</pre>
+
+<pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ... which I will record here some day.</pre>
+
+<pre>&nbsp;&nbsp;&nbsp; }
+}
+
+
+
+package Scribe612;
+
+class Pen extends ego.Pen {
+&nbsp;&nbsp;&nbsp; int byteIndex;&nbsp; //(0..34),
+&nbsp;&nbsp;&nbsp; int bitIndex;&nbsp;&nbsp; //(5..0),
+&nbsp;&nbsp;&nbsp; int phase;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //(0..1)
+
+&nbsp;&nbsp;&nbsp; int y;
+
+&nbsp;&nbsp;&nbsp; boolean incrementX(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ++virtual.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(++phase){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; phase=0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(++bitIndex=6){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bitIndex=0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(++byteIndex=35){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; decrementX(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --virtual.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(--phase&lt;0){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; phase=1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(--bitIndex&lt;0){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bitIndex=5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(--byteIndex&lt;0){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true; //ERROR
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return false;
+&nbsp;&nbsp;&nbsp; }
+
+
+&nbsp;&nbsp;&nbsp; incrementY(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return ++y&lt;0; //+++ what about a positive limit?
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; decrementY(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return --y&lt;0;
+&nbsp;&nbsp;&nbsp; }
+
+&nbsp;&nbsp;&nbsp; boolean setLocation(Point p){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; super.setLocation(p);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return p.x>=0 &amp;&amp; p.y>=0;
+&nbsp;&nbsp;&nbsp; }
+
+}
+
+</pre>
+$Id: GRAFIX.HTM,v 1.3 2000/08/01 04:31:40 andyh Exp $
+</body>
+</html>

@@ -1,0 +1,16 @@
+//clerk functions, enumerated for cm3000 interface
+Sale
+
+Return
+Void
+ReEntry
+
+LastReceipt
+PrintDrawer
+CloseDrawer
+
+ChangeUser
+PrintCoupon
+reserved
+
+//$Id: Functions.Enum,v 1.11 2001/03/30 09:05:32 andyh Exp $

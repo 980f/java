@@ -1,0 +1,45 @@
+// $Id: DBTypes.Enum,v 1.1 2001/01/25 18:59:10 mattm Exp $
+// these are all possible data types from the different kinds of databases
+// have to upper them all, and only use the first word
+DEC
+DECIMAL
+INT
+INTEGER
+SMALLINT
+BIGINT
+DOUBLE
+FLOAT
+TINYINT
+REAL
+NUMERIC
+TIME
+TIMESTAMP
+DATE
+DATETIME
+//DATETIMEHOURTOSECOND //settlement_inst.settleendtime
+//DATETIMEMONTHTODAY   //ach_entries.transactiondate
+//DATETIMEYEARTODAY
+//DATETIMEYEARTOFRACTION5
+//DATETIMEYEARTOMINUTE
+//DATETIMEYEARTOSECOND
+BYTE
+CHAR
+SERIAL
+TEXT
+VARCHAR
+ARRAY
+BINARY
+BIT
+BLOB
+CLOB
+DISTINCT
+JAVA
+LONGVARBINARY
+LONGVARCHAR
+NULL
+OTHER
+REF
+STRUCT
+VARBINARY
+
+// $Id: DBTypes.Enum,v 1.1 2001/01/25 18:59:10 mattm Exp $

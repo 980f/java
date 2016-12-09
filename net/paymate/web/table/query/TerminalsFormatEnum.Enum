@@ -1,0 +1,15 @@
+// TerminalsFormatEnum.Enum
+// put these in the order that you want the columns
+//EnterpriseNameCol
+//StoreNameCol
+TerminalNameCol
+ModelCodeCol // temporary?
+LastCloseTimeCol
+//TtlCountCol
+//TtlAmountCol
+//DeclCountCol
+//DeclAmountCol
+//VoidCountCol
+//VoidAmountCol
+ApprCountCol
+ApprAmountCol

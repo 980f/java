@@ -1,0 +1,15 @@
+ /**
+ * Title:        $Source: /cvs/src/net/paymate/terminalClient/SigningOption.Enum,v $
+ * Description:  "Enumeration list for class SigningOption"
+ * Copyright:    2000 PayMate.net
+ * Company:      paymate
+ * @author       paymate
+ * @version      $Id: SigningOption.Enum,v 1.1 2001/10/10 22:48:03 andyh Exp $
+ */
+
+DoneSigning
+SignPaper
+VoidTransaction
+
+
+ //$Id: SigningOption.Enum,v 1.1 2001/10/10 22:48:03 andyh Exp $

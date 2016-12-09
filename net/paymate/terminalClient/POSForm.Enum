@@ -1,0 +1,26 @@
+/* $Id: POSForm.Enum,v 1.16 2001/03/08 05:58:07 andyh Exp $ */
+/* official form names! cannot change without redoing form definitions */
+FubarForm         //missing form!
+NotInService      //not logged in to server
+ClerkLogin        //no clerk
+IdleAd            //advert with swipe and coupon
+GetPayment        //amount + prod for payment type
+SwipeAgain        //synonym for above, in case we want to modify it
+
+WaitClerkCredit
+WaitClerkDebit
+WaitClerkCheck
+
+WaitPatronCredit
+WaitPatronDebit
+WaitPatronCheck
+
+WaitApproval
+WaitCompletion
+
+SeeClerk
+
+SignCard
+NeedID
+
+//$Id: POSForm.Enum,v 1.16 2001/03/08 05:58:07 andyh Exp $

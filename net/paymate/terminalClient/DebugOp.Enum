@@ -1,0 +1,11 @@
+/* debug operations of the clerk gui */
+
+ Refresh        //the screens of all sorts
+ ForceLoggedIn  //fudge the terminal login
+ ForceClerkIn   //fudge a clerk login
+ ForceSignature //proceed as if really signed
+ SimulateOn     //start local auth loopback
+ SimulateOff    //undo the above
+ TranSpamOn     //start whamming the server as fast as we can.
+ TranSpamOff    //stop that !
+ //$Id: DebugOp.Enum,v 1.4 2000/11/22 02:34:28 andyh Exp $

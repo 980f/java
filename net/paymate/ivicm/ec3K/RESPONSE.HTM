@@ -1,0 +1,200 @@
+<html>
+THe following was written against the original too-slow-to-use
+cm3000 application+jpos drivers.
+It should be retained until they have taken over our source code.
+
+
+
+summary:
+all received packets are of a common format readily parsable on a per
+character basis. Nothing presently guarantees phasing of packet.
+On CRC error the user somehow has to restart the servie hoping the
+cm3000 will rephase.
+
+maximum reception is 231 characters.
+
+new architecture:
+each "send command" passes a reference to an ec3kCommander.
+upon completion of a non-erroneous packet the ec3kCommander is called with a
+pointer into the buffer, which has comm input events disabled.
+before calling the ec3kCommander the receive buffer is set to ignore input.
+the "send command" sets the input buffer to accept characters and parse
+packet boundaries.
+
+Each existing send/receive thingy needs to be broken into multiple inner
+classes. Each command is sent from a different inner class that
+represents an ec3kCommander.
+
+The ec3kCommander is allowed to issue another command during its
+response! The above should allow that to happen, don't break it.
+
+We will not bother to encapsulate the command packet or improve the
+parsing. We will eliminate the packet error checking from all
+receivbers.
+
+One of the most popular e3ckCommander's will be the "post this note
+with a receiver error".
+
+Each command sent will have a timeout. The timeout has a callback that
+sends an error and sends the next pending command.
+
+There is a "next command" function that decides bewteen sending a stored
+displayTextAt command or one of the two polling commmands.
+
+
+
+<hr>
+78
+Java for Retail POS
+ErrorEvent
+Interface jpos.events.ErrorListener
+Method errorOccurred (ErrorEvent e);
+Description Notifies the application that an error has been detected and a suitable response is
+necessary to process the error condition.
+Properties
+This event contains the following properties:
+Property Type Description
+ErrorCode int Error Code causing the error event. See the list of
+ErrorCodes on page 16. Same as for exceptions!
+
+ErrorCodeExtended int Extended Error Code causing the error event. These
+values are device category specific.
+
+ErrorLocus int Location of the error. See values below.
+
+ErrorResponse int Error response, whose default value may be overridden
+by the application (i.e., this property is settable). See
+values below.
+
+The ErrorLocus parameter has one of the following values:
+Value Meaning
+JPOS_EL_OUTPUT Error occurred while processing asynchronous output.
+JPOS_EL_INPUT Error occurred while gathering or processing event-driven
+input. No input data is available.
+JPOS_EL_INPUT_DATA
+Error occurred while gathering or processing event-driven
+input, and some previously buffered data is
+available.
+
+The application's error event listener can set the ErrorResponse property to one of
+the following values:
+Value Meaning
+JPOS_ER_RETRY Retry the asynchronous output. The error state is exited.
+May be valid only when locus is JPOS_EL_INPUT.
+Default when locus is JPOS_EL_OUTPUT.
+JPOS_ER_CLEAR Clear the asynchronous output or buffered input data.
+The error state is exited. Default when locus is
+JPOS_EL_INPUT.
+
+JPOS_ER_CONTINUEINPUT
+Acknowledges the error and directs the Device to
+continue input processing. The Device remains in the
+error state and will deliver additional DataEvents as
+directed by the DataEventEnabled property. When all
+input has been delivered and DataEventEnabled is
+again set to true, then another ErrorEvent is delivered
+with locus JPOS_EL_INPUT.
+Use only when locus is JPOS_EL_INPUT_DATA.
+Default when locus is JPOS_EL_INPUT_DATA.
+Remarks This event is enqueued when an error is detected and the Device's State transitions
+into the error state. This event is not delivered until DataEventEnabled is true,
+so that proper application sequencing occurs.
+See Also "Device Input Model" on page 22, "Device Input Model" on page 22, "Device
+States" on page 30
+
+
+command packet:
+0:ctrl B
+1:command code
+2:remaining length of message
+rest of message
+CRC byte
+
+response packets of ec3k:
+
+byte 0=??
+byte 1=??
+byte 2=status, 0 is good!
+byte 3=length of variable part of packet
+variable length
+crc byte.
+
+<p>last byte is a crc byte, however the CRC is a joke for ec3k,
+always equal to '3' preventing the standard routine of CRCing the whole object
+and getting a zero if all is ok.
+
+
+
+<br>micr service
+public boolean bWaitOnCheck()
+      oCommPort.vSendMsg((byte)33, null, 0);
+
+public void beginInsertion(int timeout)
+      oCommPort.vSendMsg((byte)32, null, 0);
+
+the timeout should give us an error event if timing completes.
+
+
+public void endInsertion()
+      oCommPort.vSendMsg((byte)35, null, 0);
+
+private void vGetParsedCheckData()
+      oCommPort.vSendMsg((byte)34, null, 0);
+
+
+
+<br>serconn itself:
+  public void pingPort()
+try twice:
+        vSendMsg((byte)16, null, 0);
+
+
+
+<br>poskeyboard
+  private boolean bWaitOnKey()
+      oCommPort.vSendMsg((byte)51, null, 0);
+      if(abyte0[2] == -128) //nothing in buffer
+      iPOSKeyData = abyte0[4] & 0xff;
+
+  private void vToggleKeyboard(boolean enableit)
+      oCommPort.vSendMsg(flag ? (byte)48 : (byte)49, null, 0);
+      if(abyte0[2] != 0 && abyte0[2] != 6)
+
+      if(setting to false)
+        oCommPort.vSendMsg((byte)50, null, 0);
+      ignore status.
+
+<br>line display
+  physical limit of 40 characters somewhere.
+
+  public void clearText()
+          oCommPort.vSendMsg((byte)17, null, 0);
+
+  public void displayText(String s, int i)
+      abyte0[0] = (byte)iCursorColumn;
+      abyte0[1] = (byte)iCursorRow;
+      #abyte0[k + 2] = abyte1[k];
+      oCommPort.vSendMsg((byte)20, abyte0, abyte0.length);
+
+  displayTextAt fucking repeats displayText or vice versa!!!
+
+  public void refreshWindow(int i) likewise should have used displayTextAt
+
+  public void scrollText(int i, int j)
+        abyte0[l++] = 2; //start of message
+        abyte0[l++] = 21;//command 21
+        abyte0[l++] = 0;  //marqueeformat
+        abyte0[l++] = 0;  //repeatwait
+         #abyte0[l++] = abyte1[j1];   //text
+        abyte0[l] = 10;//newline
+
+        oCommPort.vSendMsg(abyte0);
+
+        abyte0[0] = (byte)(i - 1);
+        abyte0[1] = (byte)j;
+        abyte0[2] = (byte)iMarqueeFormat;
+        abyte0[3] = (byte)iMarqueeRepeatWait;
+        oCommPort.vSendMsg((byte)21, abyte0, 4);
+
+
+</html>

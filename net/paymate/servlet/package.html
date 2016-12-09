@@ -1,0 +1,75 @@
+<BODY BGCOLOR=white><PRE>
+Date: Tue, 29 Aug 2000 13:17:03 -0500
+To: alien@spaceship.com, andy@paymate.net, allan@paymate.net
+From: Bill Thompson &lt;bill_thompson@paymate.net
+Subject: Re: More on session timeouts
+
+I believe this is a rational plan.
+
+Regards,
+Bill
+
+<HR>
+At 9:45 AM -0800 8/29/00, Matthew Mello wrote:
+
+Then this is the spec I will use until I get further notice:
+
+Sessions begun from our client application will not be monitored for
+inactivity by the server.  However, the client application will be required
+to logout+in on a roughly 24-hour period.  This means that after a terminal
+has been logged in for 24 hours, it will be automatically logged out.
+
+This ensures that we do certain kinds of cleanup at the server side, and also
+ensures that stale sessions do not remain alive forever.  This also means
+that we do NOT have to spam the server with "I'm alive" messages all the
+time.
+
+Sessions begun from a browser will be monitored for inactivity and
+disconnected after either 5 minutes of inactivy or after two hours of
+connectivity, with activity.
+
+Any problems with that?
+
+
+<HR>
+On Tue, 29 Aug 2000 11:57:46 -0500 "Andy Heilveil" wrote:
+
+ I got told emphatically NO when I suggested we would log out the clerk
+ after perhap s15 minutes of no activity, we want transactions
+ to be instanteous even when the terminal has been idle, and them not to
+ have to "unlock" the terminal with extra keystrokes. We'll
+ have to try the feel of this to know for sure what we should do.
+
+ I can locally make them reenter a password while separately keeping the
+ server link hot to go. As long as they don't have to
+ re-enter their ID code as well that should not be so bad. I see this all
+ the time at real cash register-checkout stands.
+
+ The terminal can be stroking the server every now and then to keep the
+ session alive and pick up any configuration changes, but we
+ don't want that spamming any permanent server log.
+ When debugging a problem over the phone it would be nice to easily get to
+ the time of last contact and what that contact was.
+
+
+
+<HR>
+ ----- Original Message -----
+ From: "Matthew Mello" &lt;alien@spaceship.com
+ To: &lt;andy@paymate.net; &lt;allan@paymate.net; &lt;bill@paymate.net
+ Sent: Tuesday, August 29, 2000 11:38 AM
+ Subject: More on session timeouts
+
+
+ | So, do we want to hold the client application sessions to the same rules as
+ | the web sessions?	Do we ever want to force a reconnect by the client
+ | application due to timeouts?  It is very easy to do on the server.
+ |
+ | --
+ | Matthew Mello
+ | Phone: 512-674-4445
+ | Cell:  512-413-7266
+ |
+
+</PRE>
+</BODY>

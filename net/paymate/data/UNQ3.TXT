@@ -1,0 +1,107 @@
+21 AZ //Arizona
+
+22 AB //Alberta
+22 BC //British Columbia
+22 CA //California
+
+25 AK //Alaska
+25 AL. //Alabama
+
+26 CO //Colorado
+
+27 AR //Arkansas
+27 AS. //American Somoa
+
+28 CT //Connecticut
+
+32 DC //District Of Columbia
+
+33 DE //Delaware
+
+35 FL//Florida
+
+42 GA//Georgia
+42 IA//Iowa
+
+43 ID//Idaho
+
+44 HI//Hawaii
+
+45 IL//Illinois
+
+46 IN//Indiana
+
+48 GU//Guam
+
+52 LA//Louisiana
+
+57 KS//Kansas
+
+59 KY//Kentucky
+
+62 MA//Massachusetts
+62 MB //Manitoba
+62 NB//New Brunswick
+62 NC //North Carolina
+
+63 MD//Maryland
+63 ME //Maine
+63 ND//North Dakota
+63 NE //Nebraska
+63 NF //Newfoundland
+
+64 MI//Michigan
+64 NH//New Hampshire
+64 OH//Ohio
+
+65 NJ//New Jersey
+65 OK//Oklahoma
+
+66 MN//Minnesota
+66 MO //Missouri
+66 NM//New Mexico
+66 ON//Ontario
+
+67 MS//Mississippi
+67 NS//Nova Scotia
+67 OR//Oregon
+
+68 MT//Montana
+68 NT//NW Territory
+68 NV //Nevada
+
+69 MY//Military ID
+69 NY//New York
+71 PQ//Quebec
+
+72 PA//Pennsylvania
+72 SC//South Carolina
+
+73 PE//Prince Edward Island
+73 SD//South Dakota
+
+74 RI//Rhode Island
+
+75 SK//Saskatchewan
+
+77 PR//Puerto Rico
+
+82 VA//Virgina
+
+84 VI//Virgin Islands
+
+86 TN//Tennessee
+
+88 UT//Utah
+88 VT//Vermont
+
+89 TX//Texas
+
+92 WA//Washington
+
+94 WI//Wisconsin
+
+98 WV//West Virginia
+98 YT//Yukon Territory
+
+99 WY//Wyoming

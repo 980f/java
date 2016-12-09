@@ -1,0 +1,9 @@
+/* $Id: EntrySource.Enum,v 1.1 2000/05/14 08:50:00 alien Exp $ */
+ Unknown  //placed here to make the remainder coincide with mainsail spec.
+ KeyedIn
+ Swiped
+ BarCode
+ MICRed
+
+ 
+ //$Id: EntrySource.Enum,v 1.1 2000/05/14 08:50:00 alien Exp $

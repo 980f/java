@@ -1,0 +1,21 @@
+/* $Id: ButtonTag.Enum,v 1.7 2000/11/17 06:50:53 andyh Exp $ */
+/*
+by making ButtonTags enumerate all of the buttons across all of the forms
+the button event responder does NOT need to know form context, it is implied
+by the fact that the button event is in the current button list.
+*/
+
+Reserved0         //possibly magic value, to be avoided
+NullButton        //for cosmetic buttons (placeholders)
+ClearForm         //is internally implemented by enTouch
+CustomerAmountOk  //approval of charge
+Signed            //signature entered
+CustomerCancels   //what it says
+DoCheck           //show store info for check writers.
+DoCredit  //to cancel check screen
+DoDebit   //to cancel check screen
+DoCash    //to cancel check or credit tranny
+DriversLicense //for ID
+OtherCard      //for ID
+CouponDesired     //print coupon associated with advert
+//$Id: ButtonTag.Enum,v 1.7 2000/11/17 06:50:53 andyh Exp $

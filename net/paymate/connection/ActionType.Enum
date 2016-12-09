@@ -1,0 +1,24 @@
+/* $Id: ActionType.Enum,v 1.17 2001/05/30 02:43:21 mattm Exp $ */
+//<caption>Action Types</caption>
+unknown
+admin
+stoodin
+connection
+update
+clerkLogin
+message
+tolog   //deprecated
+toclerk        //deprecated
+toprinter       //deprecated
+financial
+check
+card
+credit
+debit
+adminWeb // this one is for administrative web logins +++ maybe do differently later
+batch
+reversal
+receiptStore
+receiptGet
+//TxnRecordQuery
+/$Id: ActionType.Enum,v 1.17 2001/05/30 02:43:21 mattm Exp $

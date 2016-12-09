@@ -1,0 +1,190 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.75 [en] (Windows NT 5.0; U) [Netscape]">
+   <title>Paymate Coding Conventions</title>
+</head>
+<body>
+
+<h2>
+Style Guide for Paymate.Net</h2>
+
+<hr WIDTH="100%">
+<br>First read the java style guide at:&nbsp; <a href="CodeConvTOC.doc.html">http://java.sun.com/docs/codeconv/html/CodeConvTOC.doc.html</a>
+<ul>
+<li>
+3.1.1: we (will) have a program for inserting a standard header. All theory
+of operation type comments should be at the end of the file so that people
+doing text searches don't have to wade through hits in commentary to get
+to a piece of real code.</li>
+
+<li>
+4.2: we have a dumb as molasses reindenter so don't waste much time indenting
+manually. The present indenter only follows curly braces so when you break
+an argument list over many lines put //{ and //} at appropriate places
+to indent the list.</li>
+
+<li>
+Empty braces are ugly when re-indenting code. They are also just plain
+ugly. Spread them out like normal blocks and put a comment inbetween as
+to WHY there is no code there.</li>
+
+<li>
+<font size=-2>There is a public domain program <b>indent</b> referred to
+by sun. It had some quirks last time I tried it, but is probably worth
+picking up and taming for our use.</font></li>
+
+<li>
+7.2: EMPHATICALLY follow the rule for the use of braces with all <b>if</b>'s
+<b>for</b>'s
+<b>while</b>'s etc. I have found many bugs in code where people used indentation
+alone for single statement <b>if</b>'s, then indented a second statement
+intending it to also be conditional. Without the braces of course the second
+statement is not conditional.</li>
+
+<li>
+9 Naming conventions:</li>
+
+<ul>
+<li>
+While acronyms should generally be avoided due to their crypticness, each
+project can have a set of frequently used acronyms, such as POS in our
+case at hand.</li>
+
+<li>
+"Methods should be verbs". Quite wrong! Only methods that modify the content
+of an object should be verbs. Linguistically the "getAttribute" naming
+convention is horrible. It has been around so long that we use it anyway,
+at least for items that can be both gotten and set. Methods that return
+attributes rather than the results of computation should be named for that
+attribute which is normally an adjective. Methods that return components
+(all objects but sometimes native types as well) are nouns.</li>
+
+<li>
+"my" is easier to type than "m_". For some of us underscores are hard to
+see and the apparent blank space is jarring to our perception, looks like
+an operator is missing.</li>
+
+<li>
+The all caps rule for class constants misses one of the points of encapsulation.
+It shouldn't necessarily be obvious or important that a symbol is a class
+constant. In many cases I have stuck in a final static int just cause I
+haven't come up with a source for the value yet. Since it may someday be
+variable I name it NOW as if it were. Constants that are decreed to be
+such by natural law, like 'pi' or 'e', can be capitolized to help indicate
+that they truly must be constants.</li>
+
+<li>
+10.3: make symbols for embedded numeric values time permitting, but til
+then a comment on the value is usually good enough.</li>
+</ul>
+</ul>
+
+<hr WIDTH="100%">
+<h3>
+Added conventions</h3>
+
+<ul>
+<li>
+while strange at first the use of curly braces with case clauses aids the
+indenter, which in turn aids legibilty.</li>
+
+<br>switch(index){
+<br>&nbsp; case first:{
+<br>&nbsp;&nbsp;&nbsp; //important to do if the case blocks are lengthy
+<br>&nbsp; } break;
+<br>&nbsp; case last:{
+<br>&nbsp;&nbsp;&nbsp; //but not all that hard to do even if they are not
+<br>&nbsp; } break;
+<br>&nbsp; default : {
+<br>&nbsp;&nbsp;&nbsp; //and defaults are just as worthy of a break statement
+as other cases.
+<br>&nbsp; } break;
+<br>}
+<li>
+A set of case statements that naturally only has one statement per case
+can be packed in tight:</li>
+
+<br>switch(index){
+<br>&nbsp; case first: return 1;
+<br>&nbsp; case last:&nbsp; return 2;
+<br>&nbsp; default :&nbsp;&nbsp; return -1;
+<br>}
+<li>
+10.5.4: special comment tags:</li>
+
+<ul>
+<li>
+<b>+++</b> means code is missing here</li>
+
+<li>
+<b>---</b> means this coding is ugly and needs to be reworked or removed</li>
+
+<li>
+<b>+_+</b> means the code is suspicious, such as apparent violations of
+a specification. It differs from <b>---</b> in that the code may be well
+structured, it is the purpose of the code that is disturbing.</li>
+
+<li>
+<b>??? </b>"will somebody please explain this", code whose execution is
+hard to follow, for which a stated purpose would help guide the reader.</li>
+
+<li>
+@@@ means that this code is currently being edited (these should all be
+gone before a release).</li>
+</ul>
+
+<li>
+Member access:</li>
+
+<ul>
+<li>
+When a member should be accessible by any classes in other packages, use
+public.</li>
+
+<li>
+When a member should NOT be seen or used by ANY subclasses, use private.</li>
+
+<li>
+Otherwise, use /*package*/.</li>
+
+<li>
+When a member needs to be seen by extended classes in other packages ONLY
+(unfortunately along with classes in its package), use protected.</li>
+</ul>
+</ul>
+
+<hr WIDTH="100%">
+<h3>
+Things to violate with respect to Sun's document</h3>
+These items are optional. Use them when they improve the appearance of
+the code to you. Don't get too pissed if an automated indenter undoes what
+you type in.
+<ul>
+<li>
+8.1: separate sections using a string visual separator instead of just
+an extra blank line. I.e. between constructors and regular methods you
+can stick in //////////////////////////////////////////////////////</li>
+
+<br>This is especially useful for larger classes, not really needed for
+classes under a 100 lines of code.
+<li>
+8.2: blank spaces around parenthesized arguments to keywords, versus none
+for method declaration and invocation: hardly worth the extra keystrokes.
+Colorizing editors make this moot.</li>
+
+<li>
+blank spaces around binary operators is nice but no big deal.</li>
+
+<li>
+it is OK to put an <b>else</b> on the line following the '}' rather than
+cuddled up to it.</li>
+
+<li>
+it is OK to put <b>catch</b> and <b>finally</b> on the line following the
+'}' rather than cuddled up to it.</li>
+</ul>
+
+</body>
+</html>

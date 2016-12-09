@@ -1,0 +1,280 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.72 [en] (Win98; U) [Netscape]">
+</head>
+<body>
+
+<h3>
+MICRCTRL stream</h3>
+Use READ #MICRCTRL, string-variable to get status information about the
+check.
+<br>The status information is in the form of a string of characters.
+<br>The n's below are ordinals, not cardinals i.e. 1 is the first character.
+<table BORDER >
+<tr>
+<th>1 based</th>
+
+<th>Definition&nbsp;</th>
+
+<th>Value (ascii character)&nbsp;</th>
+
+<th>Description&nbsp;</th>
+
+<th>0 based</th>
+</tr>
+
+<tr>
+<td>1</td>
+
+<td>Accuracy&nbsp;</td>
+
+<td ROWSPAN="8">0
+<br>1
+<br>2</td>
+
+<td ROWSPAN="8">no unrecognized symbols&nbsp;
+<br>at least 1 unrecognized symbol
+<br>not present</td>
+
+<td>0</td>
+</tr>
+
+<tr>
+<td>2</td>
+
+<td>Aux OnUs (axon) field&nbsp;</td>
+
+<td>1</td>
+</tr>
+
+<tr>
+<td>3</td>
+
+<td>OnUs field&nbsp;</td>
+
+<td>2</td>
+</tr>
+
+<tr>
+<td>4</td>
+
+<td>EPC field&nbsp;</td>
+
+<td>3</td>
+</tr>
+
+<tr>
+<td>5</td>
+
+<td>ABA (transit) number&nbsp;</td>
+
+<td>4</td>
+</tr>
+
+<tr>
+<td>6</td>
+
+<td>ACCOUNT number&nbsp;</td>
+
+<td>5</td>
+</tr>
+
+<tr>
+<td>7</td>
+
+<td>Check sequence number&nbsp;</td>
+
+<td>6</td>
+</tr>
+
+<tr>
+<td>8</td>
+
+<td>TPC field&nbsp;</td>
+
+<td>7</td>
+</tr>
+
+<tr>
+<td>9&nbsp;</td>
+
+<td>Amount field&nbsp;</td>
+
+<td>0
+<br>1
+<br>2</td>
+
+<td>Valid
+<br>Invalid
+<br>Unknown (not present)</td>
+
+<td>8</td>
+</tr>
+
+<tr>
+<td>10</td>
+
+<td>Font&nbsp;</td>
+
+<td>E
+<br>C
+<br>?</td>
+
+<td>E13B
+<br>CMC7
+<br>Unknown</td>
+
+<td>9</td>
+</tr>
+
+<tr>
+<td>11</td>
+
+<td>format&nbsp;</td>
+
+<td>0
+<br>1
+<br>2
+<br>9</td>
+
+<td>US or old US check
+<br>Canadian check
+<br>Mexican check&nbsp;
+<br>unknown format</td>
+
+<td>10</td>
+</tr>
+
+<tr>
+<td>12</td>
+
+<td>ABA check digit&nbsp;</td>
+
+<td>0
+<br>1
+<br>?&nbsp;</td>
+
+<td>transit is valid
+<br>transit invalid
+<br>transit unknown (no ABA field)</td>
+
+<td>11</td>
+</tr>
+
+<tr>
+<td>13</td>
+
+<td>check type&nbsp;</td>
+
+<td>P
+<br>B
+<br>?&nbsp;</td>
+
+<td>personal check
+<br>business check
+<br>CMC7 check or when the format is unknown</td>
+
+<td>12</td>
+</tr>
+
+<tr>
+<td>14</td>
+
+<td>MICR signal level&nbsp;</td>
+
+<td>0 - 9&nbsp;</td>
+
+<td>Signal level 20% to 200%
+<br>20%*(digit+1)
+<br>0 = 20%,1 = 40%, and so on</td>
+
+<td>13</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<br>&nbsp;
+<table BORDER >
+<caption>Raw Track symbols, other than digits</caption>
+
+<tr>
+<th>tag</th>
+
+<th>meaning</th>
+</tr>
+
+<tr>
+<td>t</td>
+
+<td>transit marker</td>
+</tr>
+
+<tr>
+<td>o</td>
+
+<td>On Us marker</td>
+</tr>
+
+<tr>
+<td>a</td>
+
+<td>amount marker</td>
+</tr>
+
+<tr>
+<td>-</td>
+
+<td>dash separates the two numbers of the transit field when no check digit
+is used</td>
+</tr>
+
+<tr>
+<td>?</td>
+
+<td>unknown character, MICR read error</td>
+</tr>
+</table>
+
+<p>
+<hr WIDTH="100%">
+<br>ansi x9.13 facts:
+<ul>
+<li>
+Amount field is 10 digits bracketed by account symbols.</li>
+
+<li>
+OnUs is logical positions 13 through 32, maximum 19 characters to deal
+with printing tolerance, usually a blank in position 13.</li>
+
+<li>
+there can be two OnUs symbols in the above section, but expect that to
+fail</li>
+
+<li>
+The OnUs is to the right of an account number.</li>
+
+<li>
+There may be dash symbols in the OnUs field.</li>
+
+<li>
+The transit/routing field is positions 33 to 43, including the surrounding
+transit markers</li>
+
+<li>
+the routing field is either 8+check digit or two groups of 4 separated
+with dash.</li>
+
+<li>
+The one digit EPC field is present if there is a digit between the Auxiliary
+OnUs and the transit field. It is in position 44 or 45.</li>
+
+<li>
+An Aux OnUs field must be bracketed by OnUs symbols and be to the left
+of the EPC and routing fields.</li>
+</ul>
+
+<hr WIDTH="100%">
+</body>
+</html>

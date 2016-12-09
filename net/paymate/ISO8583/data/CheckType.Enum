@@ -1,0 +1,13 @@
+/* $Id: CheckType.Enum,v 1.2 2000/05/14 08:49:50 alien Exp $ */
+/* 150 Check Type
+Attributes: n 1
+Description: A single-digit code indicating the type of check tendered in the transaction.
+*/
+
+Personal
+Payroll
+Government
+ThirdParty
+Business
+
+//$Id: CheckType.Enum,v 1.2 2000/05/14 08:49:50 alien Exp $

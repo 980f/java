@@ -1,0 +1,167 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="Author" content="Andy Heilveil">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (Win98; U) [Netscape]">
+   <title>ET1K issues</title>
+</head>
+<body>
+
+<h6>
+&copy; Paymate.Net 2001 Proprietary and Confidential Material</h6>
+
+<h6>
+$Id: review.html,v 1.1 2001/06/06 03:35:18 andyh Exp $
+<hr WIDTH="100%"></h6>
+
+<h3>
+enTouch interface issues</h3>
+
+<h4>
+Attributes of the interface</h4>
+
+<ol>
+<li>
+Polled mode</li>
+
+<br>The enTouch never originates a communication, it must be asked if it
+has anything for the host. Therefore communications to it are back-to-back
+continuous. As is pertinent to the given form we cycle through "do you
+have card info?", "has a button been pressed?", and if neither of those
+is relevent then "are you there?".
+<li>
+Packetized communications</li>
+
+<br>Each command sent to the enTouch starts with a '05', then the length,
+then the binary content of the particular message, then a LRC character.
+Each reply except for an "are you there" reply (actually called by them
+an echo command) starts with a '00' followed by the message length, command
+code, status code, possible more data such as card info, LRC character.
+<li>
+Automatic baud rate detection</li>
+
+<br>The first byte that the enTouch receives after it has done its power-on
+self-inspection is used by it to set its baud rate. It expects a '05' and
+uses the waveform of that character to compute the baud rate. We need to
+defeat that to have a chanc eof reconnecting to it after it spontaneously
+power cycles (i.e. cycles without the host being informed in advance).
+At present we only know how to do this manually. We can get them from the
+factory already set to a fixed baud rate. If we had a working uploading
+program we could force all sorts of stuff into them upon receipt, and with
+a technical specification for downloading them we could set the parameters
+<i>in the field</i> instead of relying upon human based preparation procedures.
+<li>
+Binary data stream</li>
+
+<br>Data sent is binary encoded. This is relevent because it means that
+the data part of a message can contain ANY values, including those used
+for automatic baud rate detection and start of packet.
+<br>All other binary protocols I have ever read about, much less directly
+encountered, either DON'T ALLOW THIS, or have a special signal outside
+of the byte stream to reset the terminal, such as a "break". Most binary
+protocols have an 'escape mechanism' that translates any embedded data
+that looks like a framing character to a character sequence that can be
+reconverted to the original data after the framing is stripped by the packet
+receiver. There is nothing in the documents we have received suggesting
+that there is any form of protocol reset, and a specific request to Jim
+Roberts asking about some possible undocumented restart facility went unanswered.</ol>
+
+<h4>
+Problems that might occur</h4>
+
+<ol>
+<li>
+power cycle</li>
+
+<br>The next successful communication will tell us that a power cycle occured.
+At that time we could choose to resend initialization commands. Unfortunately
+while autobaud is enabled data that we are sending (when we haven't yet
+figured out that the unit died) might get misinterpreted as baud rate setting
+info locking the enTouch into an unknown baud rate.
+<br><font size=-2>As an aside, we send our forms (especially graphics)
+every time our program starts as we cannot determine what forms are saved
+on the unit. Perhaps we could add a maintenance function that even clerks
+can invoke to "download CAT". This would reduce wear on the flash memory,
+speed up the bootup process, which would simplify responding to this event.</font>
+<li>
+cable disconnect</li>
+
+<br>We can only detect the shell coming off the back of the unit (via loss
+of handshake loopback) and maybe not even that when we start using a multi-port
+card. We cannot directly detect problems at the terminal or RCB. A cable
+loss from the RCB is usually going to result in a power cycle.
+<li>
+bad packet sent</li>
+
+<br>The enTouch will not respond to a bad packet until a good one follows
+it. The good one gets a reply that there was a bad packet received. This
+is empirical info, the manual does not talk about error processing. (confirmed
+via email)
+<li>
+bad packet received</li>
+
+<br>The received packet can be malformed. A received packet can have a
+status code that implies that the command just sent (or sometimes the one
+before that) wasn't received properly at the unit. If I do a "<a href="#Resend last response command">resend
+last response</a>" when a command times out then we lose the ambiguity
+of which command might be the one that failed. Like the enTouch itself
+we cannot respond to a bad incoming packet until the expected number of
+bytes has been received else we might misinterpret the incoming data as
+an attempt to start the next reply. This is due to the bad design of the
+protocol, the part about the "start of frame" possibly appearing in the
+middle of data.
+<li>
+our program sends an ABORT command</li>
+
+<br>If we send one of these without following it up with all sorts of configuring
+commands then the terminal goes blank and stays blank. I mention this so
+that I remember to check our code for sending it. I think we do with each
+form change that we invoke. If the following form change commands fail
+then the terminal would stay blank.</ol>
+Features of the ET1K that I have never invoked:
+<ol>
+<li>
+<a NAME="Resend last response command"></a>"Resend last response" command</li>
+
+<br>[done, didn't need to do the massive rework as a 'resend' when the
+entouch has just started yields a distinctive response]<strike>To use this
+I would want to do rework on my reply processor to make it "reply-per-command
+<b>type"</b>, rather then the present "reply to the point where the command
+was sent". Now that I have a global view of our usage of the device, this
+per-type approach would be a beneficial change to program HOWEVER it will
+take time on the order of a day to implement. In java terms I change the
+jpos service to not just have "event listeners" but to have a "CardListener"
+and a "SignatureListener" and a "ButtonListener" and a "PIN listener" and
+a "HorridThingHappenedListener", the latter including such things as "device
+seems to have spontaneously powered on" and "device has timed out and first
+retry failed".</strike>
+<li>
+<a NAME="Reset terminal command"></a>"Reset terminal" command.</li>
+
+<br>From the manual:
+<br><tt>Function code 09 causes the Signature Capture Peripheral to reset
+itself.</tt>
+<br><tt>The effect of this command on the peripheral is the same as if
+the unit were powered off and then back on. It can be issued, for example,
+by the host application as part of its start-of-day procedure. Function
+code 09 can also be issued when the unit is not functioning properly. All
+software in the peripheral is reinitialized when the unit is reset, which
+may help in eliminating a problem in the software. Note that the peripheral
+sends the host a response message before it resets itself. Upon reset,
+the NCR 5992 Signature Capture Peripheral takes approximately 7 seconds
+to perform internal diagnostics, initialize its software, and clear the
+screen before it is ready to process host messages.</tt>
+<br>This is fairly ludicrous. Given the failure modes we seem to encounter
+you can't reliably send messages...there must be more horrible things that
+can happen with a unit, to justify this command's existence.</ol>
+
+<hr WIDTH="100%">
+<h6>
+&copy; Paymate.Net 2001 Proprietary and Confidential Material</h6>
+
+<h6>
+$Id: review.html,v 1.1 2001/06/06 03:35:18 andyh Exp $</h6>
+
+</body>
+</html>

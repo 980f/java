@@ -1,0 +1,26 @@
+// terminalCommands
+Identify    // 0 clears the data values
+Reconnect   // 1 reconnects to the server
+Shutdown    //2 shutsdown the program
+Shout       //3
+Quiet       //4
+Reload      //5 update just java
+Reinstall   //6 update all
+Pond        // 7 
+Poff        // 8 
+GoOnline    // 9
+//below here is not available via clerk interface
+GoOffline
+form        //displays a form on the entouch
+Clear       //
+debug       // does one of the debug operations
+login       // logs in a clerk
+logLevel    // setting and displaying (dumps) the log levels
+function    // performs a function from the clerk ui
+history      // displays the last N transactions, as saved in the ActionList, to this (and to the log?)
+stats        // displays statistics about this runing program (how many txns, avg time, etc)
+sendSignature // not sure
+sendTxn     // sends a transaction using stored values, then does a dump when it finishes
+setAsk      // displays a prompt on the clerk ui
+set         // for setting data members of the PosTerminal
+Alarms      //trigger then dump

@@ -1,0 +1,164 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (Win98; U) [Netscape]">
+   <title>driverImp</title>
+</head>
+<body>
+
+<h6>
+&copy; Paymate.Net 2001 Proprietary and Confidential Material</h6>
+
+<h6>
+$Id: driverImp.html,v 1.1 2001/09/27 00:02:59 andyh Exp $</h6>
+
+<hr>
+<br>Thread analysis of enTouch driver
+<br>&nbsp;
+<br>&nbsp;
+<ul>
+<li>
+queue means the thread first puts a command in the queue, then SOME command
+from the queue should be issued if the enTouch link is not busy</li>
+
+<li>
+retry means a 05.04.06.07 is issued to get the enTouch to resend its last
+response</li>
+
+<li>
+restart means to send something (usually from queue) regardless of possible
+state of enTouch link.</li>
+</ul>
+
+<table BORDER >
+<tr>
+<td>thread</td>
+
+<td>entrypoint</td>
+
+<td></td>
+
+<td>when</td>
+
+<td>comment</td>
+</tr>
+
+<tr>
+<td>configuration</td>
+
+<td>Connect(SerialConnection sc)</td>
+
+<td></td>
+
+<td>appliance gets connectionReply</td>
+
+<td>boot-up, appliance gets response from our server</td>
+</tr>
+
+<tr>
+<td>clerk i/f serial</td>
+
+<td>QueueCommand</td>
+
+<td></td>
+
+<td>PosTerminal responds to clerk input</td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>connectionReply</td>
+
+<td>QueueCommand</td>
+
+<td></td>
+
+<td>PosTerminal responds to server response</td>
+
+<td>terminal gets response from our server</td>
+</tr>
+
+<tr>
+<td>et1k i/f serial</td>
+
+<td>serialEvent</td>
+
+<td></td>
+
+<td>comm driver, every byte rec'vd</td>
+
+<td>cmd next block of multi-block command, or response to received command
+specific error code</td>
+</tr>
+
+<tr>
+<td>et1k timeout</td>
+
+<td>onTimeout</td>
+
+<td></td>
+
+<td>timeout is started when data first sent, then reset with each char
+received.</td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>ip terminal&nbsp;</td>
+
+<td>QueueCommand</td>
+
+<td></td>
+
+<td>PosTerminal responds to ipterm socket</td>
+
+<td>only invoked by developers</td>
+</tr>
+
+<tr>
+<td><i>periodic polls</i></td>
+
+<td>QueueCommand</td>
+
+<td></td>
+
+<td></td>
+
+<td><i>not yet implemented </i>some alarm causes a command to be sent.</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<br>polled commands
+<p>CardSwipes,PINS and ButtonPresses must be polled. The enTouch NEVER
+sends serial data except in response to a command. Our abstract Forms contain
+buttons and a swipe enable. When the form is sent to the entouch if it
+has buttons then button polling is turned on, if swipe is enabled then
+polling for MSR data is enabled. When pinEntry is requested we first cancel
+any polling.
+<p>However when a form does not have buttons or permit swipes then if it
+becomes disconnected we don't know about it. When it is reconnected we
+still don't know about it until we try to talk to it. Once we talk to it
+and find that its power was off we must send many commands, such as a full
+download of all graphics, in case it is a unit that has not been used by
+the present version of the application. If it did not power cycle then
+we have no problems and are running again.
+<p>For the above reason I have in the past chosen to always be talking
+to the entouch so that I get early warning of a power cycle and can hopefully
+have it redownloaded much sooner. With multiple-terminals we wish to reduce
+the burden the enTouch presents to the system and while making those changes
+this ability to detect reconnects when they happen regardless of what form
+is active will be lost for awhile.
+<p>
+<hr>
+<h6>
+&copy; Paymate.Net 2001 Proprietary and Confidential Material</h6>
+
+<h6>
+$Source: /cvs/src/net/paymate/ivicm/et1K/driverImp.html,v $</h6>
+
+</body>
+</html>

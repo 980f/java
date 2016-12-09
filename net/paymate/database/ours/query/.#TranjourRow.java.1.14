@@ -1,0 +1,283 @@
+/**
+* Title:        Tranjour<p>
+* Description:  Data structure capable of holding the data from the tranjour table<p>
+* Copyright:    2000<p>
+* Company:      PayMate.net<p>
+* @author       PayMate.net
+* @version      $Id: TranjourRow.java,v 1.14 2001/07/20 05:10:41 mattm Exp $
+*/
+package net.paymate.database.ours.query;
+import  net.paymate.ISO8583.factory.Field;
+import  java.sql.*;
+import  net.paymate.database.*;
+import net.paymate.database.ours.*;
+import  net.paymate.util.*;
+import  net.paymate.awtx.*;
+import  net.paymate.ISO8583.data.*;
+import  net.paymate.jpos.data.*;
+
+
+public class TranjourRow extends Query {
+
+  private static final ErrorLogStream dbg = new ErrorLogStream(TranjourRow.class.getName(), ErrorLogStream.WARNING);
+  static final String tranmoney="#0.00"; //has decimal point but no dollar sign
+
+  private TranjourRow(boolean runningCloudscape) {
+    this(null, runningCloudscape);
+    //all fields are init'ed to ""
+  }
+
+  private TranjourRow(Statement stmt, boolean runningCloudscape) {
+    super(stmt, runningCloudscape);
+  }
+
+  /**
+   * Makes a tranjour that can NOT scroll (just a snapshot of a single record).
+   */
+  public static final TranjourRow NewOne(ResultSet rs, boolean runningCloudscape) {
+    TranjourRow tj = new TranjourRow(runningCloudscape);
+    tj.fromResultSet(rs);
+    return tj;
+  }
+
+  /**
+   * Makes a tranjour that CAN scroll.
+   */
+  public static final TranjourRow NewSet(Statement stmt, boolean runningCloudscape) {
+    return new TranjourRow(stmt, runningCloudscape);
+  }
+
+  public java.util.Date refTime(){
+    return MainsailDB.tranUTC(transtarttime);//utc#
+  }
+
+  public RealMoney rawamount(){//ignores trantype, hence always positive
+    return new RealMoney(transactionamount);
+  }
+
+  ProcessingCode proccode;
+
+  public boolean isReturn(){
+    proccode=ProcessingCode.Parse(processingcode);
+    return  proccode.isaReturn();
+  }
+
+  public boolean wasStoodin(){
+    // the second condition makes sure that values of ' ' (space) are considered trivial
+    return  Safe.NonTrivial(modifydatetime) && Safe.NonTrivial(modifydatetime.trim());
+  }
+
+  public LedgerValue netamount(){//using trantype, positive for sale, negative for refund
+    LedgerValue newone=new LedgerValue(tranmoney);
+    newone.parse(transactionamount);
+    newone.changeSignIf(isReturn());
+    return newone;
+  }
+
+  public MSRData card(){
+    MSRData newone=new MSRData();
+    newone.accountNumber= new CardNumber(cardholderaccount);
+    newone.expirationDate= new ExpirationDate(expirationdate);
+    return newone;
+  }
+
+  /**
+   * @deprecate should fetch card then do things with it.
+   */
+  public ExpirationDate expiry(){
+    return new ExpirationDate(expirationdate);
+  }
+
+  public String cardType(){
+    return Safe.fill(paymenttypecode, '_', 2, true /*left*/);
+  }
+
+  public String cardGreeked(){
+    return cardType() + card().accountNumber.Greeked("...");
+  }
+
+  public TransactionID tid(){
+    return TransactionID.New(transtarttime,systemtraceauditno,cardacceptorid);
+  }
+
+  public ResponseCode response(){
+    return new ResponseCode(responsecode);
+  }
+
+/**
+ * @return true if NOT voided,declined, etc.
+ */
+  public boolean isGood(){
+    return response().isApproved();
+  }
+//////////////////////
+  // +++ enhance this to handle different data types (etc)
+  public String cardacceptorid = "";
+  public String cardacceptortermid = "";
+  public String transmissiontime = "";
+  public String transgtrid = "";
+  public String cardholderaccount = "";
+  public String employeenumber = "";
+  public String messagetype = "";
+  public String processingcode = "";
+  public String systemtraceauditno = "";
+  public String transactionamount = "";
+  public String cashbackamount = "";
+  public String transactiondate = "";
+  public String transactiontime = "";
+  public String settlementdate = "";
+  public String authidresponse = "";
+  public String posentrymode = "";
+  public String posconditioncode = "";
+  public String postracedata = "";
+  public String retrievalrefno = "";
+  public String voidtransaction = "";
+  public String recinstidcode = "";
+  public String acquireridcode = "";
+  public String track1data = "";
+  public String track2data = "";
+  public String responsecode = "";
+  public String expirationdate = "";
+  public String transtarttime = "";
+  public String tranendtime = "";
+  public String authendtime = "";
+  public String authstarttime = "";
+  public String paymenttypecode = "";
+  public String transactiontype = "";
+  public String eventnumber = "";
+  public String originalstan = "";
+  public String logtodisktimer = "";
+  public String batchnumber = "";
+  public String servername = "";
+  public String actioncode = "";
+  public String demomodeindicator = "";
+  public String authorizername = "";
+  public String laterespindicator = "";
+  public String timeoutindicator = "";
+  public String reversalindicator = "";
+  public String altidtype = "";
+  public String vouchernumber = "";
+  public String checktype = "";
+  public String hostresponsecode = "";
+  public String hostprocessingcode = "";
+  public String hostsettlementdate = "";
+  public String hosttracedata = "";
+  public String settleinstid = "";
+  public String settlementfile = "";
+  public String modifyemployee = "";
+  public String modifydatetime = "";
+  public String switchdatetime = "";
+  public String reversaltype = "";
+
+
+  public String ISO(int isobit){
+    switch (isobit){
+      default: return null;
+      case Field.PrimaryAccountNumber                : return cardholderaccount ;
+      case Field.ProcessingCode                      : return processingcode ;
+      case Field.TransactionAmount                   : return transactionamount ;
+      case Field.TransmissionDateTime                : return transmissiontime ;
+      case Field.SystemTraceAuditNumber              : return systemtraceauditno ;
+      case Field.LocalTransactionTime                : return transactiontime ;
+      case Field.LocalTransactionDate                : return transactiondate ;
+      case Field.ExpirationDate                      : return expirationdate ;
+      case Field.SettlementDate                      : return settlementdate ;
+      case Field.PointOfServiceEntryMode             : return posentrymode ;
+      case Field.PointOfServiceConditionCode         : return posconditioncode ;
+      case Field.Track2Data                          : return track2data ;
+      case Field.RetrievalReferenceNumber            : return retrievalrefno ;
+      case Field.AuthorizationIdentificationResponse : return authidresponse ;
+      case Field.ResponseCode                        : return responsecode ;
+      case Field.CardAcceptorTerminalIdentification  : return cardacceptortermid ;
+      case Field.CardAcceptorIdentificationCode      : return cardacceptorid ;
+      case Field.Track1Data                          : return track1data ;
+      case Field.ReceivingInstitutionIDCode          : return recinstidcode ;
+      case Field.TransStartTime                      : return transtarttime ;
+      case Field.TransEndTime                        : return tranendtime ;
+      case Field.AuthorizationStartTime              : return authstarttime ;
+      case Field.AuthorizationEndTime                : return authendtime ;
+      case Field.PaymentTypeCode                     : return paymenttypecode ;
+      case Field.TransactionType                     : return transactiontype ;
+      case Field.EventNumber                         : return eventnumber ;
+      case Field.ServerName                          : return servername ;
+      case Field.OriginalSTAN                        : return originalstan ;
+      case Field.LogToDiskTimer                      : return logtodisktimer ;
+      case Field.BatchNumber                         : return batchnumber ;
+      case Field.ActionCode                          : return actioncode ;
+      case Field.DemoModeIndicator                   : return demomodeindicator ;
+      case Field.TransGTRID                          : return transgtrid ;
+      case Field.CashbackAmount                      : return cashbackamount ;
+      case Field.EmployeeNumber                      : return employeenumber ;
+      case Field.TimeOutIndicator                    : return timeoutindicator ;
+      case Field.LateResponseIndicator               : return laterespindicator ;
+      case Field.AuthorizerName                      : return authorizername ;
+      case Field.HostSettlementDate                  : return hostsettlementdate ;
+      case Field.HostProcessingCode                  : return hostprocessingcode ;
+      case Field.SettleInstID                        : return settleinstid ;
+      case Field.HostResponseCode                    : return hostresponsecode ;
+    }
+  }
+
+  public static final TranjourRow forTesting(){
+    TranjourRow tester=new TranjourRow(false);
+    tester.cardacceptorid = "%storeKey%";
+    tester.cardacceptortermid = "%LAME001%";
+    tester.transmissiontime = "mmddhhmmss";
+    tester.transgtrid = "123";
+    tester.cardholderaccount = "4200000000000000";
+    tester.employeenumber = "TRANJOURTST";
+    tester.messagetype = "0200";
+    tester.processingcode = "003000";
+    tester.systemtraceauditno = "12345";
+    tester.transactionamount = "54321";
+    tester.cashbackamount = "0";
+    tester.transactiondate = "2001mmdd";
+    tester.transactiontime = "%hhmmss%";
+    tester.settlementdate = "";
+    tester.authidresponse = "%0auth0%";
+    tester.posentrymode = "";
+    tester.posconditioncode = "";
+    tester.postracedata = "";
+    tester.retrievalrefno = "";
+    tester.voidtransaction = "N";
+    tester.recinstidcode = "";
+    tester.acquireridcode = "";
+    tester.track1data = "";
+    tester.track2data = "";
+    tester.responsecode = "";
+    tester.expirationdate = "0504";
+    tester.transtarttime = "2001mmddhhmmss";//- alh:removed millis
+    tester.tranendtime =   "2001mmddhhmmss";
+    tester.authendtime = "";
+    tester.authstarttime = "";
+    tester.paymenttypecode = "";
+    tester.transactiontype = "";
+    tester.eventnumber = "";
+    tester.originalstan = "";
+    tester.logtodisktimer = "";
+    tester.batchnumber = "";
+    tester.servername = "";
+    tester.actioncode = "";
+    tester.demomodeindicator = "";
+    tester.authorizername = "";
+    tester.laterespindicator = "";
+    tester.timeoutindicator = "";
+    tester.reversalindicator = "";
+    tester.altidtype = "";
+    tester.vouchernumber = "";
+    tester.checktype = "";
+    tester.hostresponsecode = "";
+    tester.hostprocessingcode = "";
+    tester.hostsettlementdate = "";
+    tester.hosttracedata = "";
+    tester.settleinstid = "";
+    tester.settlementfile = "";
+    tester.modifyemployee = "";
+    tester.modifydatetime = "";
+    tester.switchdatetime = "";
+    tester.reversaltype = "";
+    return tester;
+  }
+
+}
+//$Id: TranjourRow.java,v 1.14 2001/07/20 05:10:41 mattm Exp $

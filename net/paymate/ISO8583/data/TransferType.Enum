@@ -1,0 +1,8 @@
+/* $Id: TransferType.Enum,v 1.2 2001/03/08 05:51:54 andyh Exp $ */
+//types of POS transactions
+Unknown
+Sale
+Return
+Reversal
+ReEntry
+// $Id: TransferType.Enum,v 1.2 2001/03/08 05:51:54 andyh Exp $

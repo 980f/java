@@ -1,0 +1,12 @@
+//$Id: PaySelect.Enum,v 1.1 2000/10/25 02:17:23 andyh Exp $
+Cancel
+
+ManualCard
+ManualCheck
+//TravelersCheck
+
+//GiftCertificate
+//Coupon
+//Cash
+
+//$Id: PaySelect.Enum,v 1.1 2000/10/25 02:17:23 andyh Exp $
