@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/authorizer" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/awtx" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/awtx/png" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/awtx/print" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/builders" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/connection" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/data" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/database" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/database/ours" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/database/ours/query" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/database/ours/table" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ISO8583" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ivicm" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ISO8583/data" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ISO8583/factory" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ivicm/comm" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ivicm/ec3K" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/ivicm/et1K" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/jpos" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/jpos/awt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/jpos/common" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/jpos/data" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/jpos/Terminal" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/net" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/serial" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/servlet" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/terminalClient" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/terminalClient/IviForm" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/util" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/util/cmdline" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/util/timer" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/web" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/web/color" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/web/page" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/web/table" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/net/paymate/web/table/query" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
