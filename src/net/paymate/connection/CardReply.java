@@ -11,7 +11,7 @@ package net.paymate.connection;
 public class CardReply extends FinancialReply {
   //common part of credit and debit
   public ActionType Type(){
-    return new ActionType(ActionType.card);
+    return new ActionType(ActionType.unknown);
   }
 
   public CardReply(){

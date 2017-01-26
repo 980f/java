@@ -12,8 +12,8 @@ public class EntrySource extends TrueEnum {
   public final static int MICRed =4;
 
   public int numValues(){ return 5; }
-  private static final TextList myText = TrueEnum.nameVector(EntrySource.class);
-  protected final TextList getMyText() {
+  private static final String[] myText = TrueEnum.nameVector(EntrySource.class);
+  protected final String[] getMyText() {
     return myText;
   }
   public static final EntrySource Prop=new EntrySource();

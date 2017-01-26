@@ -3,6 +3,7 @@ package net.paymate.ISO8583.data;
 
 import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
+import net.paymate.web.page.accounting.TxnListingPage;
 
 public class PayType extends TrueEnum {
   public final static int Unknown=0;
@@ -13,8 +14,8 @@ public class PayType extends TrueEnum {
   public final static int Cash   =5;
 
   public int numValues(){ return 6; }
-  private static final TextList myText = TrueEnum.nameVector(PayType.class);
-  protected final TextList getMyText() {
+  private static final String[]myText = TrueEnum.nameVector(PayType.class);
+  protected final String[] getMyText() {
     return myText;
   }
   public static final PayType Prop=new PayType();

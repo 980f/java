@@ -23,8 +23,8 @@ public class ContentType extends TrueEnum {
   public final static int unknown   =15;
 
   public int numValues(){ return 16; }
-  private static final TextList myText = TrueEnum.nameVector(ContentType.class);
-  protected final TextList getMyText() {
+  private static final String[] myText = TrueEnum.nameVector(ContentType.class);
+  protected final String[] getMyText() {
     return myText;
   }
   public static final ContentType Prop=new ContentType();

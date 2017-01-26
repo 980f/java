@@ -1,4 +1,5 @@
 package net.paymate.connection;
+//stale code? should be a payment type nt an action type
 /**
 * Title:        $Source: /cvs/src/net/paymate/connection/CheckReply.java,v $
 * Description:
@@ -12,7 +13,7 @@ import net.paymate.util.*;
 
 public class CheckReply extends FinancialReply implements isEasy {
   public ActionType Type(){
-    return new ActionType(ActionType.check);
+    return new ActionType(ActionType.unknown);
   }
 
   public CheckReply(){

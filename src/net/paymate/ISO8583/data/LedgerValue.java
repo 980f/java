@@ -155,7 +155,7 @@ import java.text.*;
       //as speced by sun:
       throw new ClassCastException();
     }
-    return net.paymate.jpos.awt.Math.signum(this.Value() - rhs);
+    return net.paymate.lang.MathX.signum(this.Value() - rhs);
   }
 
 
