@@ -51,7 +51,7 @@ class EasyProperties extends Properties {
    * if property is trivial replace with given
    * @return always true
    */
-  public boolean assert(String key, String defawlt){
+  public boolean assure(String key, String defawlt){
     if(!Safe.NonTrivial(getString(key))){
       setProperty(key,defawlt);
       //return false; //new setting is used
@@ -65,7 +65,7 @@ class EasyProperties extends Properties {
   }
 
   public EasyProperties assertBoolean(String key, boolean newValue){
-    assert(key,Bool.toString(newValue));
+    assure(key,Bool.toString(newValue));
     return this;
   }
 
@@ -90,7 +90,7 @@ class EasyProperties extends Properties {
   }
 
   public EasyProperties assertInt(String key, int newValue){
-    assert(key,Integer.toString(newValue));
+    assure(key,Integer.toString(newValue));
     return this;
   }
 
@@ -114,7 +114,7 @@ class EasyProperties extends Properties {
   }
 
   public EasyProperties assertLong(String key, long newValue){
-    assert(key,Long.toString(newValue));
+    assure(key,Long.toString(newValue));
     return this;
   }
 

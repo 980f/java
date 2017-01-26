@@ -77,22 +77,22 @@ public class HttpSessionTableGen extends TableGen {
 class HttpSessionRowEnumeration implements RowEnumeration {
 
   HttpSessionContext context = null;
-  Enumeration enum = null;
+  Enumeration ennum = null;
   private int curRow = -1;
 
   public HttpSessionRowEnumeration(HttpSessionContext context) {
     this.context = context;
-    enum = context.getIds();
+    ennum = context.getIds();
   }
 
   public boolean hasMoreRows() {
-    return enum.hasMoreElements();
+    return ennum.hasMoreElements();
   }
 
   public TableGenRow nextRow() {
     TableGenRow row = null;
-    if(enum.hasMoreElements()) {
-      String id = (String) enum.nextElement();
+    if(ennum.hasMoreElements()) {
+      String id = (String) ennum.nextElement();
       HttpSession temp = context.getSession(id);
       row = new HttpSessionTableGenRow(temp);
       curRow++;

@@ -73,8 +73,8 @@ public class UserSession implements HttpSessionBindingListener, AtExit {
     shutdown = true;
     // unbind all that aren't GODS
     HttpSessionContext context = session.getSessionContext();
-    for(Enumeration enum = context.getIds(); enum.hasMoreElements(); ) {
-      String id = (String)enum.nextElement();
+    for(Enumeration ennum = context.getIds(); ennum.hasMoreElements(); ) {
+      String id = (String)ennum.nextElement();
       session = context.getSession(id);
       if(session != null) {
         UserSession user = extractUserSession(session);
@@ -596,8 +596,8 @@ public class UserSession implements HttpSessionBindingListener, AtExit {
 
 //      if(want to see debug) {
       String paramnames = "";
-      for(Enumeration enum = req.getParameterNames(); enum.hasMoreElements();) {
-        String paramname = (String)enum.nextElement();
+      for(Enumeration ennum = req.getParameterNames(); ennum.hasMoreElements();) {
+        String paramname = (String)ennum.nextElement();
         if(paramname != null) {
           paramnames += paramname + "=";
           String [] values = req.getParameterValues(paramname);

@@ -461,8 +461,8 @@ public class QueryString {
     TextList fields = new TextList(70);
     TextList values = new TextList(70);
     if(toInsert != null) {
-      for(Enumeration enum = toInsert.propertyNames(); enum.hasMoreElements();) {
-        String name = (String)enum.nextElement();
+      for(Enumeration ennum = toInsert.propertyNames(); ennum.hasMoreElements();) {
+        String name = (String)ennum.nextElement();
         fields.add(name);
         values.add(toInsert.getProperty(name));
       }

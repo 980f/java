@@ -41,9 +41,9 @@ public abstract class TableGen extends GenericDBTableElement {
   }
   private String sessionid = "";
   public static final void cleanup(String sessionid) {
-    for(Enumeration enum = queries.elements(); enum.hasMoreElements();) {
+    for(Enumeration ennum = queries.elements(); ennum.hasMoreElements();) {
       try {
-        Object o = enum.nextElement();
+        Object o = ennum.nextElement();
         if((o != null) && (o instanceof TableGen)) { // should always be
           TableGen tg = (TableGen)o;
           if(tg.sessionid.equals(sessionid)) {
@@ -52,23 +52,23 @@ public abstract class TableGen extends GenericDBTableElement {
         }
       } catch (Exception e) {
         dbg.Caught(e);
-        enum = queries.elements(); // try again
+        ennum = queries.elements(); // try again
       }
     }
   }
 
   public static final TextList getUnclosedStatements() {
     TextList tl = new TextList();
-    for(Enumeration enum = queries.elements(); enum.hasMoreElements();) {
+    for(Enumeration ennum = queries.elements(); ennum.hasMoreElements();) {
       try {
-        Object o = enum.nextElement();
+        Object o = ennum.nextElement();
         if((o != null) && (o instanceof TableGen)) { // should always be
           TableGen tg = (TableGen)o;
           tl.add(tg.sessionid+"/"+tg.title);
         }
       } catch (Exception e) {
         dbg.Caught(e);
-        enum = queries.elements(); // try again
+        ennum = queries.elements(); // try again
       }
     }
     return tl;

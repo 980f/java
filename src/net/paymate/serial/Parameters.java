@@ -29,10 +29,10 @@ public class Parameters implements isEasy {
     return this;
   }
 
-  public int parseFlow(String enum){
-    if(Safe.NonTrivial(enum)){
-      if(enum.equalsIgnoreCase("hard")) return SerialPort.FLOWCONTROL_RTSCTS_OUT+SerialPort.FLOWCONTROL_RTSCTS_IN;
-      if(enum.equalsIgnoreCase("soft")) return SerialPort.FLOWCONTROL_XONXOFF_OUT+SerialPort.FLOWCONTROL_XONXOFF_IN;
+  public int parseFlow(String ennum){
+    if(Safe.NonTrivial(ennum)){
+      if(ennum.equalsIgnoreCase("hard")) return SerialPort.FLOWCONTROL_RTSCTS_OUT+SerialPort.FLOWCONTROL_RTSCTS_IN;
+      if(ennum.equalsIgnoreCase("soft")) return SerialPort.FLOWCONTROL_XONXOFF_OUT+SerialPort.FLOWCONTROL_XONXOFF_IN;
     }
     return SerialPort.FLOWCONTROL_NONE;
   }

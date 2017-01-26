@@ -58,7 +58,7 @@ public class Configure {
 //      dbg.VERBOSE(ezp.toString("MakeConnection"));
       String portname=ezp.getString("portName");
       if(Safe.NonTrivial(portname)){
-        ezp.assert("baud",Integer.toString(defbaud));
+        ezp.assure("baud",Integer.toString(defbaud));
         return new SerialConnection("paymate_"+portname,new SerialParameters(portname,ezp));
       } else {
         dbg.VERBOSE("hopelessly bad portName:"+portname);

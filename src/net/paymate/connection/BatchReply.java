@@ -90,8 +90,8 @@ public class BatchReply extends AdminReply implements isEasy {
       stuffHeader(new FormattedLineItem("Starting:",ranger.one()));
       stuffHeader(new FormattedLineItem("Ending:",ranger.two()));
       // add the subtotals for card type
-      for(Enumeration enum = cardTotals.sorted(); enum.hasMoreElements(); ) {
-        String cardtype = (String)enum.nextElement();
+      for(Enumeration ennum = cardTotals.sorted(); ennum.hasMoreElements(); ) {
+        String cardtype = (String)ennum.nextElement();
         Accumulator acc = (Accumulator) cardTotals.get(cardtype);
         stuffHeader(new FormattedLineItem(cardtype + " [" + acc.getCount() + "]: " , (new LedgerValue(batchmoney)).setto(acc.getTotal()).Image()));
       }

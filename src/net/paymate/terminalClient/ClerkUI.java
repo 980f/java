@@ -62,12 +62,12 @@ public class ClerkUI implements AnswerListener{
   };
 
 
-  int onInvalidEnum(TrueEnum enum){
-    if(enum==null)      return 0;
-    if(enum instanceof Functions) return Functions.Sale;
-    if(enum instanceof PaySelect) return PaySelect.ManualCard;
-    if(enum instanceof Remedies) return Remedies.Done;
-    if(enum instanceof SigningOption) return SigningOption.DoneSigning;
+  int onInvalidEnum(TrueEnum ennum){
+    if(ennum==null)      return 0;
+    if(ennum instanceof Functions) return Functions.Sale;
+    if(ennum instanceof PaySelect) return PaySelect.ManualCard;
+    if(ennum instanceof Remedies) return Remedies.Done;
+    if(ennum instanceof SigningOption) return SigningOption.DoneSigning;
     return 0;
   }
 

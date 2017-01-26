@@ -96,7 +96,7 @@ public class Pcx {
 
   private static final ErrorLogStream dbg=new ErrorLogStream(Pcx.class.getName());
 
-  protected static final void assert(boolean assertion,String explanation,int actual){
+  protected static final void assure(boolean assertion,String explanation,int actual){
     if(!assertion){
      dbg.WARNING(explanation+actual);
     }
@@ -139,20 +139,20 @@ public class Pcx {
     try {
       WordyInputStream wis=new WordyInputStream(is);
       int item;
-      assert((item=wis.unsigned8())==10,"header[0] !=10:",item);
-      assert((item=wis.unsigned8())>=5,"unknown version:",item);
-      assert((item=wis.unsigned8())==1,"should be 1:",item);
-      assert((item=wis.unsigned8())==1,"bits per pixel should be 1:",item);
+      assure((item=wis.unsigned8())==10,"header[0] !=10:",item);
+      assure((item=wis.unsigned8())>=5,"unknown version:",item);
+      assure((item=wis.unsigned8())==1,"should be 1:",item);
+      assure((item=wis.unsigned8())==1,"bits per pixel should be 1:",item);
       Dimension outline=new XDimension(wis.point(),wis.point());
       Dimension aspect=wis.dimension();
       is.skip(3*16);//unused EGA/VGA palette
       is.skip(1);//ignore value of reserved items
-      assert((item=wis.unsigned8())==1,"#planes should be 1:",item);
+      assure((item=wis.unsigned8())==1,"#planes should be 1:",item);
       int bytewidth=wis.u16();
       is.skip(1);// palette type code
       Dimension shape=wis.dimension() ;
       //compare shape to outline's dimensions
-      assert(outline.getSize().equals(shape),"inconsistent bounds and size",0);
+      assure(outline.getSize().equals(shape),"inconsistent bounds and size",0);
       is.skip(54);//filler
       //header is complete
       ret = decode(shape,is,bytewidth);

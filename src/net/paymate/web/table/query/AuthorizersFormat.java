@@ -464,8 +464,8 @@ public class AuthorizersFormat extends TableGen implements TableGenRow, RowEnume
       } break;
       case AuthorizersFormatEnum.connectionsCol: { // how many open httpSessions
         int i = 0;
-        for(Enumeration enum = scontext.getIds(); enum.hasMoreElements();i++) {
-          enum.nextElement();
+        for(Enumeration ennum = scontext.getIds(); ennum.hasMoreElements();i++) {
+          ennum.nextElement();
         }
         str = ""+i;
       } break;

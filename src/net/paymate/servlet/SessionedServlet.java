@@ -156,8 +156,8 @@ public abstract class SessionedServlet extends HttpServlet {
     try {
       cursor = new EasyCursor();
       if(config != null) {
-        for(Enumeration enum = config.getInitParameterNames(); enum.hasMoreElements();) {
-          String name = (String)enum.nextElement();
+        for(Enumeration ennum = config.getInitParameterNames(); ennum.hasMoreElements();) {
+          String name = (String)ennum.nextElement();
           String value = (String)config.getInitParameter(name);
           cursor.setString(name, value);
           dbg.VERBOSE("Loaded parameter: " + name + "=" + value);

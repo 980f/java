@@ -424,28 +424,28 @@ class MTSktServer extends Thread implements ThreadReporter,AtExit {
     return commandQuoted(cmd)+"requires one of "+needsthis.toSpam();
   }
 
-  static final boolean validEnumOption(TrueEnum enum, String parameter, String cmd, TextList responses) {
-    boolean stat = enum.isLegal();
+  static final boolean validEnumOption(TrueEnum ennum, String parameter, String cmd, TextList responses) {
+    boolean stat = ennum.isLegal();
     if(!stat) {
       // check to see if it could be numeric instead
       int pint = Safe.parseInt(parameter);
       pint = (parameter.equals("0") ? 0 : (pint == 0 ? -1 : pint));
-      enum.setto(pint);
-      stat = enum.isLegal();
+      ennum.setto(pint);
+      stat = ennum.isLegal();
       if(!stat) {
         if(!parameter.equals("?") && !parameter.equals("")) {
           responses.add("Option '" + parameter + "' not valid for command '" + cmd + "'.");
         }
-        dumpEnumOptions(enum, cmd, responses);
+        dumpEnumOptions(ennum, cmd, responses);
       }
     }
     return stat;
   }
 
 
-  static final void dumpEnumOptions(TrueEnum enum, String title, TextList tl) {
+  static final void dumpEnumOptions(TrueEnum ennum, String title, TextList tl) {
     tl.add(title + " options:");
-    tl.appendMore(enum.dump("  "));
+    tl.appendMore(ennum.dump("  "));
   }
 
   void Handle(int qi,String value){

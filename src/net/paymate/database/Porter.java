@@ -427,9 +427,9 @@ public class Porter extends Vector {
       dbg.Caught(ioe);
     }
     dbg.VERBOSE( "Done.");
-    Enumeration enum = props.propertyNames();
-    while(enum.hasMoreElements()) {
-      String indexName = (String) enum.nextElement();
+    Enumeration ennum = props.propertyNames();
+    while(ennum.hasMoreElements()) {
+      String indexName = (String) ennum.nextElement();
       dbg.VERBOSE( "Reading the " + indexName + " table from the buffer ...");
       int index = Integer.parseInt(indexName);
       String item = props.getProperty(indexName);
