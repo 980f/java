@@ -6,16 +6,16 @@ package net.paymate.awtx;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Revision: 1.13 $
+* @version      $Revision: 1.20 $
 */
 
-import net.paymate.util.Streamer;
+import net.paymate.io.Streamer;
+import net.paymate.lang.Bool;
 
 import net.paymate.jpos.awt.*;//most of these should move to this package
 
 import net.paymate.util.*;
 
-import java.awt.geom.Point2D;
 import java.lang.Math;
 import java.util.Vector;
 import java.io.*;
@@ -24,7 +24,7 @@ import java.io.*;
  * Targa file processor
  */
 public class Targa {
-  private static final ErrorLogStream dbg=new ErrorLogStream(Targa.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(Targa.class);
 
   static final String ImageType(int code){
     switch (code) {
@@ -137,6 +137,15 @@ public class Targa {
     } catch (Exception tre){
       dbg.ERROR("TargaReadError:"+tre.getMessage());
       return Raster.EmptyOne();
+    }
+  }
+
+  public static final void toPcx(InputStream is, int clipLevel, OutputStream os) {
+    try {
+      Raster image = readTarga(is, clipLevel);
+      Pcx.encode(image, os);
+    } catch (Exception e) {
+      dbg.Caught(e);
     }
   }
 

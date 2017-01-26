@@ -1,30 +1,38 @@
+package net.paymate.terminalClient.IviForm;
 /**
-* Title:        Form
+* Title:        $Source: /cvs/src/net/paymate/terminalClient/IviForm/Form.java,v $
 * Description:
-* Copyright:    2000 PayMate.net
+* Copyright:    2000-2003 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Form.java,v 1.11 2001/11/14 01:47:58 andyh Exp $
+* @version      $Revision: 1.19 $
 */
-package net.paymate.terminalClient.IviForm;
 
-import net.paymate.util.Safe;
-import  java.util.Vector;
-import java.io.PrintStream;
+import net.paymate.util.*;
+import java.util.*;
+import java.io.*;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ReflectX;
 
 public class Form {
   public String myName;
   public String pcxResource=null;
+  public File pcxFile; //will get generated from pcxResource
   public int myNumber;
 
   protected Vector content=new Vector();
   private int sigindex=-1; //for not present
+
+  public int buttonCount=0;
 
   public Form add(FormItem thing){
     content.addElement(thing);
     if(thing instanceof SigBox){
       //if sigindex!=-1 we have an error +_+, only one sigbox allowed per form.
       sigindex=content.size()-1;
+    }
+    if(thing instanceof Button){
+      ++buttonCount;
     }
     return this;
   }
@@ -54,7 +62,7 @@ public class Form {
   }
 
   public boolean hasGraphic(){
-    return Safe.NonTrivial(pcxResource);//but file could be missing
+    return StringX.NonTrivial(pcxResource);//but file could be missing
   }
   //+++ need replace and remove by type, for example:
 
@@ -96,9 +104,41 @@ public class Form {
     this(name,1);
   }
 
+  public String toString(){
+    return myName+"["+myNumber+"]";
+  }
   public String toSpam(){
-    return this.getClass().getName()+"."+myName+" ["+hasGraphic()+myNumber+"]";
+    StringBuffer spam=new StringBuffer(80);
+    spam.append(ReflectX.shortClassName(this,myName));
+
+    if(this.hasSignature()){
+      spam.append(" gets signature");
+    }
+    if(hasGraphic()){
+      spam.append(" bgnd:");
+      spam.append(this.pcxResource);
+    }
+    return String.valueOf(spam);
+  }
+
+  public TextList asXml(TextList addto){
+    if(addto==null){
+      addto=new TextList();
+    }
+    EasyCursor attribs=new EasyCursor();
+    attribs.setBoolean("hasGraphic",hasGraphic());
+    attribs.setBoolean("hasSignature",hasSignature());
+    attribs.setString("background",this.pcxResource);
+    attribs.setInt("POSForm",this.myNumber);
+
+    addto.add(Xml.attributed("form",attribs));
+    for(int i=0;i<content.size();i++){//in construction order
+      FormItem fi= (FormItem) content.elementAt(i);
+      addto.add(fi.xml());
+    }
+    addto.add( Xml.end("form"));
+    return addto;
   }
 
 }
-//$Id: Form.java,v 1.11 2001/11/14 01:47:58 andyh Exp $
+//$Id: Form.java,v 1.19 2003/07/27 05:35:17 mattm Exp $

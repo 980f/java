@@ -4,26 +4,50 @@
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author       PayMate.net
- * @version      $Id: TableProfile.java,v 1.13 2001/11/16 01:34:30 mattm Exp $
+ * @version      $Id: TableProfile.java,v 1.33 2005/03/19 15:59:04 andyh Exp $
  */
 
 package net.paymate.database;
-import  net.paymate.util.*;
-import  java.util.Arrays;
+import net.paymate.lang.ObjectX;
+import net.paymate.util.EasyProperties;
+import net.paymate.util.ErrorLogStream;
+import net.paymate.util.TextList;
 
-public class TableProfile {
-  private static final ErrorLogStream dbg = new ErrorLogStream(TableProfile.class.getName(), ErrorLogStream.WARNING);
+import java.util.Arrays;
+
+// +++ @@@ %%% Get when reading existing info:
+//    Primary keys
+//    Foreign keys
+//    Index
+
+public class TableProfile implements Comparable {
+  protected static final ErrorLogStream dbg = ErrorLogStream.getForClass(TableProfile.class, ErrorLogStream.WARNING);
+
+  PostgresVacuum pgv;
+  public EasyProperties vacuumStats() {
+    return pgv.vacuumStats();
+  }
+  // END vacuum stats stuff
+  /////////////////////////////////////////
 
   private TableInfo ti = null;
-  private ColumnProfile columns[] = null;
+  protected ColumnProfile columns[] = null;
+  public PrimaryKeyProfile primaryKey = null;
+  public ForeignKeyProfile [] foreignKeys = null;
+  public IndexProfile [] indexes = null;
+  public TableType type = new TableType(); // defaults to unknown
 
-  protected TableProfile(TableInfo ti, ColumnProfile [] columns) {
+  // Coded profiles enter here ...
+  protected TableProfile(TableInfo ti, TableType type, ColumnProfile [] columns) {
     this.ti = ti;
     this.columns = columns;
+    if(type != null) {
+      this.type = type;
+    }
   }
 
-  public static final TableProfile create(TableInfo ti, ColumnProfile [] columns) {
-    TableProfile tp = new TableProfile(ti, columns);
+  public static final TableProfile create(TableInfo ti, TableType type, ColumnProfile [] columns) {
+    TableProfile tp = new TableProfile(ti, type, columns);
     return tp;
   }
 
@@ -35,24 +59,18 @@ public class TableProfile {
     return this;
   }
 
+  public String fullname() {
+    // for now, but +++ need to make it a child of a database object and really make a full name!
+    return name();
+  }
+
   public String name() {
     return ti.name();
   }
 
-  public String fieldname(String fname) {
-//+++ verify name is of one of our columns...
-    return ti.name()+'.'+fname;
+  public String all() {
+    return ti.name()+".*";
   }
-
-  public String allFields() {
-    return fieldname("*");
-  }
-
-  public String fieldname(ColumnProfile colm) {
-//+++ verify column is of one of our columns...
-    return ti.name()+'.'+colm.name();
-  }
-
 
   public TextList fieldNames() {
     TextList tl = new TextList();
@@ -77,7 +95,7 @@ public class TableProfile {
     if(columns != null) {
       ret = 0;
       for(int i = columns.length; i-->0;) {
-        ret += columns()[i].size();
+        ret += columns[i].size();
       }
     }
     return ret;
@@ -127,9 +145,31 @@ public class TableProfile {
     return ret;
   }
 
+  public boolean isLogType() {
+    return (type != null) && type.is(TableType.log);
+  }
+
   public void sort() {
     Arrays.sort(columns);
   }
 
+  public final String toString() {
+    return name();
+  }
+
+  public int compareTo(Object o) {
+    int i = 0;
+    if(ObjectX.NonTrivial(o)) {
+      try {
+        TableProfile tp = (TableProfile) o;
+        i = name().compareTo(tp.name());
+      } catch (Exception e) {
+        dbg.ERROR("Compared different types!");
+      }
+      return i;
+    } else {
+      return 1; // this is bigger than null
+    }
+  }
 }
-//$Id: TableProfile.java,v 1.13 2001/11/16 01:34:30 mattm Exp $
+//$Id: TableProfile.java,v 1.33 2005/03/19 15:59:04 andyh Exp $

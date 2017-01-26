@@ -1,8 +1,6 @@
-// DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/util/LogLevelEnum.Enum]
 package net.paymate.util;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class LogLevelEnum extends TrueEnum {
   public final static int VERBOSE=0;
@@ -11,8 +9,8 @@ public class LogLevelEnum extends TrueEnum {
   public final static int OFF    =3;
 
   public int numValues(){ return 4; }
-  static final TextList myText = TrueEnum.nameVector(LogLevelEnum.class);
-  protected final TextList getMyText() {
+  static final String [ ] myText = TrueEnum.nameVector(LogLevelEnum.class);
+  protected final String [ ] getMyText() {
     return myText;
   }
   public static final LogLevelEnum Prop=new LogLevelEnum();

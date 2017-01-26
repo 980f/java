@@ -4,10 +4,10 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Field.java,v 1.3 2001/04/25 13:49:58 andyh Exp $
+* @version      $Id: Field.java,v 1.5 2003/07/27 05:35:17 mattm Exp $
 */
 package net.paymate.terminalClient.IviForm;
-import  net.paymate.util.Fstring;
+import  net.paymate.lang.Fstring;
 import  net.paymate.util.Xml;
 
 public class Field extends Legend {//a place for displayAt text
@@ -15,7 +15,7 @@ public class Field extends Legend {//a place for displayAt text
   final static String xmlType="FIELD";
   public Legend display(String newvalue){
     slot.setto(newvalue); //clips and extends as needed
-    super.legend=slot.toString();
+    super.legend=String.valueOf(slot);
     return this;
   }
 
@@ -30,4 +30,4 @@ public class Field extends Legend {//a place for displayAt text
   }
 
 }
-//$Id: Field.java,v 1.3 2001/04/25 13:49:58 andyh Exp $
+//$Id: Field.java,v 1.5 2003/07/27 05:35:17 mattm Exp $

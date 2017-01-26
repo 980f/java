@@ -4,27 +4,25 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Button.java,v 1.8 2001/06/17 00:14:28 andyh Exp $
+* @version      $Id: Button.java,v 1.10 2003/12/08 22:45:42 mattm Exp $
 */
 package net.paymate.terminalClient.IviForm;
-import java.awt.Point;
-import java.awt.Dimension;
-import java.awt.Rectangle;
+import net.paymate.awtx.*;
 
 public class Button extends FormItem {
   public int guid;
 
-  public Button(Rectangle outline,int guid){
+  public Button(XRectangle outline,int guid){
     this.guid=guid;
-    shape= new Rectangle(outline);//copy for comfort.
+    shape= new XRectangle(outline);//copy for comfort.
   }
 
   public Button(int x, int y, int w, int h, int guid){
     this.guid=guid;
-    shape= new Rectangle(x,y,w,h);
+    shape= new XRectangle(x,y,w,h);
   }
 
-  public Button(Point topleft, Dimension bigness, int guid){
+  public Button(XPoint topleft, XDimension bigness, int guid){
     this(topleft.x,topleft.y,bigness.width,bigness.height,guid);
   }
 
@@ -33,4 +31,4 @@ public class Button extends FormItem {
   }
 
 }
-//$Id: Button.java,v 1.8 2001/06/17 00:14:28 andyh Exp $
+//$Id: Button.java,v 1.10 2003/12/08 22:45:42 mattm Exp $

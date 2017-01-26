@@ -6,19 +6,21 @@ package net.paymate.ivicm.et1K;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: Reply.java,v 1.8 2001/10/05 17:28:52 andyh Exp $
+ * @version $Id: Reply.java,v 1.20 2003/12/10 02:16:53 mattm Exp $
  */
 
 import net.paymate.util.*;
-import net.paymate.authorizer.LrcBufferBase;
+import net.paymate.lang.MathX;
 
 public class Reply extends LrcBuffer {
-  static ErrorLogStream rdbg=new ErrorLogStream(Reply.class.getName());
-  final static int RcvSize   =256;//actually 230 is probably the max.
+  static ErrorLogStream rdbg;
+  final static int RcvSize   =256;//actually ~230 is probably the max.
+  private final static int responseCodeIndex=3;
 
   private Reply(int maxsize){
     super(maxsize,true);
-    dbg=rdbg;
+    if(rdbg==null) rdbg=ErrorLogStream.getForClass(Reply.class);
+    isReceiver=true;
   }
 
   public static Reply New(){
@@ -30,18 +32,22 @@ public class Reply extends LrcBuffer {
    */
   public int EndExpectedAt(){
   //if got enough bytes and first one is SOF
-    return ( ptr()>1 && bight(0)==0 ) ? sizeCode(): RcvSize;
+    return ( ptr()>1 && bight(0)==0 ) ? sizeCode() : RcvSize;
   }
 
   /**
    * @return true if the last byte appended completed reception.
    */
   private boolean endReceived(){
-    return ptr()==EndExpectedAt();
+    return ptr()==EndExpectedAt()-1;//lrc acquisition now handled by LrcBufferBase
   }
 
-   public int response(){
-    return isOk()? bight(3):Safe.INVALIDINTEGER;
+  public int response(){
+    return isOk()? bight(responseCodeIndex):MathX.INVALIDINTEGER;
+  }
+
+  boolean forceResponse(int respcode){
+    return replace(responseCodeIndex,(byte)respcode);
   }
 
 /**
@@ -58,10 +64,9 @@ public class Reply extends LrcBuffer {
   }
 
   public boolean append(byte b){
-    dbg.Enter("append:"+Safe.ox2(b));
     if(super.append(b)){
-      if(endReceived()){//looks at sizes rather than an etx marker.
-        dbg.VERBOSE("end received");
+      if(!hasEnded()&& endReceived()){//looks at sizes rather than an etx marker.
+        rdbg.VERBOSE("end received");
         return end();
       } else {
         return true;
@@ -70,46 +75,5 @@ public class Reply extends LrcBuffer {
     return false;
   }
 
-//  /**
-//   * removes at least one nominal packet, at a minimum teh whole incoming thing is removed
-//   */
-//  Reply peel(){
-//    Reply atfront= Reply.New();
-//    for(int i=0;i<nexti;i++){
-//      atfront.append(buffer[i]);
-//      if(atfront.hasEnded()){//ignore if CS is ok.
-//        //remove its bytes from incoming
-//        shift(atfront.ptr());
-//        break;
-//      }
-//    }
-//    return atfront;
-//  }
-//
-// /**
-// * for when we suspect we missed the end of a reply...
-// * peel an apparent reply off of the front
-// */
-//  static Reply peel(Reply rcvbuf){
-//    return rcvbuf!=null? rcvbuf.peel():null;
-//  }
-//
-//  /**
-//   * discard leading data while trying to find a start of frame
-//   */
-//  boolean peelSof(){
-//    int i=0;
-//    for(;i<nexti;i++){
-//      if(buffer[i]==0){//SOF for incoming data is 0
-//        break;
-//      }
-//    }
-//    shift(i); //obliterate all if no SOF found at all. Modifies nexti...
-//    return nexti>0;
-//  }
-
-
-
-
 }
-//$Id: Reply.java,v 1.8 2001/10/05 17:28:52 andyh Exp $
+//$Id: Reply.java,v 1.20 2003/12/10 02:16:53 mattm Exp $

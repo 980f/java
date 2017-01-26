@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: InternetMediaType.java,v 1.2 2000/10/12 19:08:08 mattm Exp $
+ * @version      $Id: InternetMediaType.java,v 1.3 2003/10/01 04:33:08 mattm Exp $
  */
 
 package net.paymate.net;
@@ -14,5 +14,6 @@ public class InternetMediaType {
   // best resource:  ftp://ftp.isi.edu/in-notes/iana/assignments/media-types/
   public static final String TEXT_PLAIN = "text/plain";
   public static final String TEXT_HTML  = "text/html";
+  public static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
   public static final String IMAGE_PNG  = "image/png";
 }

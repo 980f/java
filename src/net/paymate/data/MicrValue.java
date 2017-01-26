@@ -4,11 +4,13 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: MicrValue.java,v 1.2 2000/12/02 04:04:34 andyh Exp $
+* @version      $Id: MicrValue.java,v 1.5 2003/07/27 05:34:58 mattm Exp $
 */
 package net.paymate.data;
 
-import  net.paymate.util.Safe;
+import  net.paymate.util.*;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ContentType;
 
 public class MicrValue extends TextValue {//need to maintain '?' data
   int maxlength;
@@ -33,7 +35,7 @@ public class MicrValue extends TextValue {//need to maintain '?' data
      cleaner.insert(0,'?');
     }
 */
-    return super.setto(cleaner.toString());
+    return super.setto(String.valueOf(cleaner));
   }
 
   public void Clear(){
@@ -42,7 +44,7 @@ public class MicrValue extends TextValue {//need to maintain '?' data
 
   public MicrValue(int maxlen,String micrin) {
     maxlength=maxlen;
-    if(Safe.NonTrivial(micrin)){
+    if(StringX.NonTrivial(micrin)){
       setto(micrin);
     } else {
       //could throw "NumberFormatException"
@@ -55,4 +57,4 @@ public class MicrValue extends TextValue {//need to maintain '?' data
   }
 
 }
-//$Id: MicrValue.java,v 1.2 2000/12/02 04:04:34 andyh Exp $
+//$Id: MicrValue.java,v 1.5 2003/07/27 05:34:58 mattm Exp $

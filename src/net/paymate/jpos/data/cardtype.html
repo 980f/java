@@ -7,6 +7,11 @@
    <title>Credit Card Check Digit Validation</title>
 </head>
 <body>
+this is a bunch of different notes wadded
+together.
+<h1>
+
+<hr WIDTH="100%"></h1>
 
 <h1>
 Credit Card Validation - Check Digits</h1>
@@ -35,6 +40,9 @@ digit using the MOD 10 method.</li>
 Here is a table outlining the major credit cards that you might want to
 validate.
 <table BORDER >
+<caption><tbody>
+<br></tbody></caption>
+
 <tr>
 <td><b>CARD TYPE</b></td>
 
@@ -68,7 +76,7 @@ validate.
 <tr>
 <td>AMEX</td>
 
-<td>34
+<td>34&nbsp;
 <br>37</td>
 
 <td>15</td>
@@ -77,11 +85,11 @@ validate.
 </tr>
 
 <tr>
-<td>Diners Club/
+<td>Diners Club/&nbsp;
 <br>Carte Blanche</td>
 
-<td>300-305
-<br>36
+<td>300-305&nbsp;
+<br>36&nbsp;
 <br>38</td>
 
 <td>14</td>
@@ -102,7 +110,7 @@ validate.
 <tr>
 <td>enRoute</td>
 
-<td>2014
+<td>2014&nbsp;
 <br>2149</td>
 
 <td>15</td>
@@ -123,7 +131,7 @@ validate.
 <tr>
 <td>JCB</td>
 
-<td>2131
+<td>2131&nbsp;
 <br>1800</td>
 
 <td>15</td>
@@ -136,6 +144,8 @@ validate.
 stripe content</h2>
 
 <pre>Track 1 and Track 2 Formats
+
+Track 1
 The standard credit card track coding contains the following information:
 &middot; Primary account number (13 - 16 digits)
 &middot; Cardholder Name (embossed)
@@ -145,47 +155,301 @@ The standard credit card track coding contains the following information:
 &middot; PIN Verification Value
 &middot; Discretionary Data
 &middot; VISA Reserved Field (11 spaces)
+
 IATA Track I format contains a maximum number of 79 characters and all alphanumeric characters between the start and
+end sentinel are in upper case. The grid below describes each field:</pre>
+
+<pre></pre>
+
+<table BORDER >
+<tr>
+<td>FIELD&nbsp;</td>
+
+<td></td>
+
+<td>DESCRIPTION</td>
+</tr>
+
+<tr>
+<td>Start Sentinel&nbsp;</td>
+
+<td>“%”&nbsp;</td>
+
+<td>Start sentinel</td>
+</tr>
+
+<tr>
+<td>Format Code for Track 1</td>
+
+<td>B</td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>Account Number&nbsp;</td>
+
+<td>13, 16 or 19digits
+<br>(more like 12..19)</td>
+
+<td>Cardholder account number&nbsp;</td>
+</tr>
+
+<tr>
+<td>Field Separator&nbsp;</td>
+
+<td>“^”&nbsp;</td>
+
+<td>Field separator</td>
+</tr>
+
+<tr>
+<td>Surname&nbsp;</td>
+
+<td></td>
+
+<td>Last name of cardholder</td>
+</tr>
+
+<tr>
+<td>space&nbsp;</td>
+
+<td>*&nbsp;</td>
+
+<td>Space (optional)</td>
+</tr>
+
+<tr>
+<td>Suffix</td>
+
+<td>*&nbsp;</td>
+
+<td>Used to indicate JR, SR, II , etc. (optional)</td>
+</tr>
+
+<tr>
+<td>Surname Separator&nbsp;</td>
+
+<td>“/”&nbsp;</td>
+
+<td>Surname separator</td>
+</tr>
+
+<tr>
+<td>First Name&nbsp;</td>
+
+<td></td>
+
+<td>First name of cardholder (optional)</td>
+</tr>
+
+<tr>
+<td>space&nbsp;</td>
+
+<td>*&nbsp;</td>
+
+<td>Space (optional)</td>
+</tr>
+
+<tr>
+<td>Middle Initial&nbsp;</td>
+
+<td></td>
+
+<td>Middle initial of cardholder (optional)</td>
+</tr>
+
+<tr>
+<td>Title Separator&nbsp;</td>
+
+<td>“.”&nbsp;</td>
+
+<td>Title separator (optional)</td>
+</tr>
+
+<tr>
+<td>Title&nbsp;</td>
+
+<td></td>
+
+<td>MR, MRS, MS, etc. (optional)</td>
+</tr>
+
+<tr>
+<td>Field Separator&nbsp;</td>
+
+<td>“^”&nbsp;</td>
+
+<td>Field separator</td>
+</tr>
+
+<tr>
+<td>Expiration Date&nbsp;</td>
+
+<td>YYMM</td>
+
+<td>Expiration Date&nbsp;</td>
+</tr>
+
+<tr>
+<td>Service Code&nbsp;</td>
+
+<td>3 decimal digits</td>
+
+<td>Service code for international</td>
+</tr>
+
+<tr>
+<td>PVKI&nbsp;</td>
+
+<td></td>
+
+<td>Pin verification key index</td>
+</tr>
+
+<tr>
+<td>PVV&nbsp;</td>
+
+<td></td>
+
+<td>Pin verification value</td>
+</tr>
+
+<tr>
+<td>Discretionary Data&nbsp;</td>
+
+<td></td>
+
+<td>Discretionary Data (optional)</td>
+</tr>
+
+<tr>
+<td>VISA Reserved Data&nbsp;</td>
+
+<td>11 bytes</td>
+
+<td>VISA reserved data</td>
+</tr>
+
+<tr>
+<td>End Sentinel&nbsp;</td>
+
+<td>“?”&nbsp;</td>
+
+<td>End Sentinel?</td>
+</tr>
+
+<tr>
+<td>LRC&nbsp;</td>
+
+<td>simple xor of all previous bytes</td>
+
+<td>LRC check character</td>
+</tr>
+</table>
+
+<h4>
+<br>
+Track 2 Format<br>
+<BR></h4>
+
+<pre>ABA Track 2 format contains a maximum number of 40 characters and all alphanumeric characters between the start and
 end sentinel are in upper case. The grid below describes each field:
-FIELD DESCRIPTION
-Start Sentinel “%” Start sentinel
-B Format Code for Track 1
-Account Number Cardholder account number 13, 16 or 19
-digits
-Field Separator “^” Field separator
-Surname Last name of cardholder
-space * Space (optional)
-Suffix* Used to indicate JR, SR, II , etc. (optional)
-Surname Separator “/” Surname separator
-First Name First name of cardholder (optional)
-space * Space (optional)
-Middle Initial Middle initial of cardholder (optional)
-Title Separator “.” Title separator (optional)
-Title MR, MRS, MS, etc. (optional)
-Field Separator “^” Field separator
-Expiration Date Expiration Date YYMM
-Service Code Service code for international
-PVKI Pin verification key index
-PVV Pin verification value
-Discretionary Data Discretionary Data (optional)
-VISA Reserved Data VISA reserved data
-End Sentinel “?” End Sentinel?Universal Terminal Formats Technical Specifications
-LRC LRC check character
-Track 1 and Track 2 Formats (continued)
-ABA Track 2 format contains a maximum number of 40 characters and all alphanumeric characters between the start and
-end sentinel are in upper case. The grid below describes each field:
-FIELD DESCRIPTION
-Start sentinel “;” Start sentinel
-Account Number Cardholder account number 13, 16 or 19
-digits
-Field Separator “=” Field Separator
-Expiration Date Expiration Date YYMM
-Service Code Service code for international
-PVKI Pin verification key index
-PVV Pin verification value
-Discretionary Data Discretionary Data (optional)
-End Sentinel “?” End Sentinel
-LRC LRC check character</pre>
+</pre>
+
+<table BORDER >
+<tr>
+<td>FIELD&nbsp;</td>
+
+<td></td>
+
+<td>DESCRIPTION</td>
+</tr>
+
+<tr>
+<td>Start Sentinel&nbsp;</td>
+
+<td>“;”&nbsp;</td>
+
+<td>Start sentinel</td>
+</tr>
+
+<tr>
+<td>Account Number&nbsp;</td>
+
+<td>13, 16 or 19digits
+<br>(more like 12..19)</td>
+
+<td>Cardholder account number&nbsp;</td>
+</tr>
+
+<tr>
+<td>Field Separator&nbsp;</td>
+
+<td>“=”&nbsp;</td>
+
+<td>Field separator</td>
+</tr>
+
+<tr>
+<td>Expiration Date&nbsp;</td>
+
+<td>YYMM</td>
+
+<td>Expiration Date&nbsp;</td>
+</tr>
+
+<tr>
+<td>Service Code&nbsp;</td>
+
+<td>3 decimal digits</td>
+
+<td>Service code for international</td>
+</tr>
+
+<tr>
+<td>PVKI&nbsp;</td>
+
+<td></td>
+
+<td>Pin verification key index</td>
+</tr>
+
+<tr>
+<td>PVV&nbsp;</td>
+
+<td></td>
+
+<td>Pin verification value</td>
+</tr>
+
+<tr>
+<td>Discretionary Data&nbsp;</td>
+
+<td></td>
+
+<td>Discretionary Data (optional)</td>
+</tr>
+
+<tr>
+<td>End Sentinel&nbsp;</td>
+
+<td>“?”&nbsp;</td>
+
+<td>End Sentinel?</td>
+</tr>
+
+<tr>
+<td>LRC&nbsp;</td>
+
+<td>simple xor of all previous bytes</td>
+
+<td>LRC check character</td>
+</tr>
+</table>
+
+<h4>
+</h4>
 
 <h2>
 2. LUHN Formula (Mod 10) for Validation of Primary Account Number</h2>
@@ -214,20 +478,20 @@ in zero (30, 40, 50, etc.) for the account number to be validated.
 remainder.</font>
 <br>&nbsp;
 <br>&nbsp;
-<p><font size=-1>The great folks at <a href="http://www.icverify.com">IC<i>VERIFY</i></a>
-are the original source of this data, I only formatted it in HTML starting
-with html from:</font>
+<p><font size=-1>The great folks at <a href="http://www.icverify.com">IC<i>
+VERIFY</i></a> are the original source of this data, I only formatted it
+in HTML starting with html from:</font>
 <br>&nbsp;
 <br>&nbsp;
 <br>
 <center>
 <p><font size=-1>E-Mail me at: <a href="MAILTO:hstiles@beachnet.com">hstiles@beachnet.com</a></font>
-<br><font size=-1>Also, visit my <a href="http://www.beachnet.com/~hstiles/index.html">home
-page </a>or my <a href="../../../../../../www.beachnet.com/~hstiles/posl2.html">POS
-page</a>.</font>
+<br><font size=-1>Also, visit my <a href="http://www.beachnet.com/%7Ehstiles/index.html">home
+page </a>or my <a href="../../../../../../www.beachnet.com/%7Ehstiles/posl2.html">POS
+page</a> .</font>
 <p><font size=-1>Last revised: <b>2/25/97</b></font>
 <br>
-<hr WIDTH="100%"></center>
+<hr width="100%"></center>
 _____________________________________________________________________________________
 <br>&copy; CardSystems Page 37
 <br>Rev. 1/9/2001 12:26 PM
@@ -300,9 +564,6 @@ the digits are added
 <br>Sum = 50
 <br>3. The sum should be an even multiple of 10: Sum equals 50 which divides
 by 10 evenly.
-<br>Expiration Date
-<br>The expiration date should not be less than the current month and year.
-Notice that on the Track-2 magnetic
-<br>strip the expiration date is formatted MMYY.
+<br>&nbsp;
 </body>
 </html>

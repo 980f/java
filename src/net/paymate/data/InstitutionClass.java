@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/data/InstitutionClass.Enum]
 package net.paymate.data;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class InstitutionClass extends TrueEnum {
   public final static int CardIssuer          =0;
@@ -11,11 +10,11 @@ public class InstitutionClass extends TrueEnum {
   public final static int Other               =3;
 
   public int numValues(){ return 4; }
-  private static final TextList myText = TrueEnum.nameVector(InstitutionClass.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(InstitutionClass.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final InstitutionClass Prop=new InstitutionClass();
+  public static final InstitutionClass Prop=new InstitutionClass();//for accessing class info
   public InstitutionClass(){
     super();
   }
@@ -32,6 +31,18 @@ public class InstitutionClass extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static InstitutionClass CopyOf(InstitutionClass rhs){//null-safe cloner
+    return (rhs!=null)? new InstitutionClass(rhs) : new InstitutionClass();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

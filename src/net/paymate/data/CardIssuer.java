@@ -1,35 +1,73 @@
 package net.paymate.data;
 
 /**
-* Title:
+* Title:        $Source: /cvs/src/net/paymate/data/CardIssuer.java,v $
 * Description:
 * Copyright:    Copyright (c) 2000
 * Company:      PayMate.net
-* @author $Author: mattm $
-* @version $Id: CardIssuer.java,v 1.3 2001/10/02 17:06:37 mattm Exp $
+* @author paymate.net
+* @version $Revision: 1.18 $
 */
 
-import java.util.Properties;
-import net.paymate.util.Safe;
-public class CardIssuer implements Institution {
-  static final Properties NameList=new Properties();
+import java.util.*;
+import net.paymate.util.*;
 
-  final static String nada="  ";//special 'nothing' to ease formatting issues
+public class CardIssuer implements Institution {
+
+  static InstitutionClass myclass;
+  public InstitutionClass Class(){
+    if(myclass==null){
+      myclass= new InstitutionClass (InstitutionClass.CardIssuer);
+    }
+    return myclass;
+  }
+
   /**
   * two character abbreviation
   */
-  String key=nada;
+  String key;
+  String longname;
 
-  static {
-    NameList.setProperty("VS","VISA");
-    NameList.setProperty("MC","Mastercard");
-    NameList.setProperty("AX","American Express");
-    NameList.setProperty("DS","Discover");
-    NameList.setProperty(nada,"Unknown");
+  private static Hashtable lookup=new Hashtable(20);//must textually precede the well known instances
+
+
+  //well known instances:
+  public static final Institution MasterCard=new CardIssuer("MC","MasterCard");
+  public static final Institution DinersClub=new CardIssuer("DC","Diners Club");
+  public static final Institution JCB=new CardIssuer("JC","JCB");
+  public static final Institution CarteBlanche=new CardIssuer("CB","CarteBlance");
+
+  public static final Institution Discover=new CardIssuer("DS","Discover");
+  public static final Institution Visa=new CardIssuer("VS","VISA");
+  public static final Institution AmericanExpress=new CardIssuer("AE","American Express");
+
+  public static final Institution CardSystems=new CardIssuer("CS","Maverick");
+  public static final Institution Paymentech =new CardIssuer("PT","Paymentech");
+  public static final Institution Debit =new CardIssuer("DB","Debit");//ptdebit3
+
+
+  public static final Institution Unknown =new CardIssuer("UK","Unknown");
+
+//////////////////////
+//
+  private boolean is(String twochar){
+    return key.equalsIgnoreCase(twochar);
   }
 
-  public boolean is(String twochar){
-    return key.equalsIgnoreCase(Safe.OnTrivial(twochar,nada));
+  /**
+   * all Institution objects are created uniquely, therefore we can
+   * compare objects neatly taking care of nulls while we are at it.
+   */
+  public static boolean AreSame(Institution issuer,Institution bank){
+    return issuer!=null && issuer == bank;
+  }
+
+  public boolean is(Institution bank){
+    return bank!=null && bank instanceof CardIssuer && is(((CardIssuer)bank).key);
+  }
+
+  public boolean supportsAVS(){ // +++ please reference the authority on this matter (where we found out who supports AVS)
+    return this == MasterCard || this == Visa ||  this == Discover ||  this == AmericanExpress;
   }
 
   public String Abbreviation(){
@@ -37,28 +75,37 @@ public class CardIssuer implements Institution {
   }
 
   public String FullName(){
-    return NameList.getProperty(key,"Unknown Issuer");
-  }
-
-  public static final String firstDigitRule(int firstDigit){
-    switch (firstDigit){
-      case 6: return "DS";
-      case 5: return "MC";
-      case 4: return "VS";
-      case 3: return "AX";
-      default: return nada;
-    }
-
+    return longname;
   }
 
   public Institution setFromIIN(int sixdigitcode){
-    key=firstDigitRule(sixdigitcode);
-    return this;
+    return getFromIIN(sixdigitcode);
   }
 
-  public CardIssuer() {
+  public static boolean isIssuer(BinEntry guess){
+    return guess != null && guess.issuer instanceof CardIssuer;
+    //dregs && ((CardIssuer)guess).is(InstitutionClass.CardIssuer);
+  }
 
+  public static Institution getFromIIN(int sixdigitcode){
+    BinEntry be=BinEntry.Guess(sixdigitcode);
+    return be!=null ? be.issuer : null;
+  }
+
+  public static Institution getFrom2(String twochar){
+    try {
+      return (Institution) lookup.get(twochar);
+    }
+    catch (Exception ex) {
+      return null;
+    }
+  }
+
+  private CardIssuer(String twochar,String longname) {
+    key=twochar;
+    this.longname=longname;
+    lookup.put(key,this);
   }
 
 }
-//$Id: CardIssuer.java,v 1.3 2001/10/02 17:06:37 mattm Exp $
+//$Id: CardIssuer.java,v 1.18 2004/01/29 16:39:23 mattm Exp $

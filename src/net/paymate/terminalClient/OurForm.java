@@ -1,43 +1,38 @@
+package net.paymate.terminalClient;
 /**
-* Title:        Form
+* Title:        $Source: /cvs/src/net/paymate/terminalClient/OurForm.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: OurForm.java,v 1.42 2001/11/14 01:47:50 andyh Exp $
+* @version      $Id: OurForm.java,v 1.59 2003/12/08 22:45:42 mattm Exp $
 */
-package net.paymate.terminalClient;
-
-import jpos.ServiceTracker;
-import jpos.ServiceObject;
 
 import net.paymate.terminalClient.IviForm.* ;//really need to move this package!
 import net.paymate.util.ErrorLogStream;
 import net.paymate.util.TextList;
-import net.paymate.util.Safe;
-
-import net.paymate.util.Fstring;
-
+import net.paymate.io.IOX;
+import net.paymate.lang.Fstring;
+import net.paymate.lang.StringX;
 import net.paymate.Main;
 import net.paymate.util.OS;
 
 import java.io.*;
 
-import java.awt.Point;
-import java.awt.Rectangle;
-
-import net.paymate.util.ErrorLogStream;
+import net.paymate.awtx.*;
+import net.paymate.util.*;
 
 public class OurForm extends Form {
-  static final ErrorLogStream dbg=new ErrorLogStream(OurForm.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(OurForm.class);
+  public static boolean debitAllowed=false;
   public boolean isSwiper     =false;
   public boolean idSwipe      =false;
   public boolean isPinPad     =false;
 
   public boolean showsAmount  =false;
-  public boolean hasSignspot  =false;
 
   public boolean isStored     =false;
+  public boolean hasDebitButton=false;
   public TextList altText     =null;
 
   public final static String CouponText="PRINT COUPON";
@@ -45,55 +40,60 @@ public class OurForm extends Form {
   final static String Done=" Ok ";
 
   final static String licenseid=   "Swipe your ID";//instructions
-  public final static String waitclerk="Waiting on Cashier";
 
-  public final static String firstSwipe="Swipe Your Card";
-  public final static String reSwipe   ="Swipe Card Again";
+  final static String waitclerk ="Waiting on Cashier";
+  final static String firstSwipe="Swipe Your Card";
+  final static String reSwipe   ="Swipe Card Again";
+  final static String candebit  ="DEBIT?";
+
   Field  amtSlot=null;
   Field swipeSpot=null;
 
   //theoretically could fetch some of these numbers from jpos service BUT
   //we need to write forms out before we start the service due to bugs in the service
-  final static int textWidth=40;
+  private int textWidth=40;
 
-  public final static int Margin=1;
-  public final static int LastColumn=textWidth-Margin;
-  final static int WallToWall=LastColumn-Margin;
+  public TextList makeParagraph(String msg){
+    return new TextList(msg,textWidth,true);
+  }
+  public int Margin=1;
+  public int LastColumn=textWidth-Margin;
+  int WallToWall=LastColumn-Margin;
 
-  public final static int bigWidth=(textWidth-2*Margin)/2;
+  public int bigWidth=(textWidth-2*Margin)/2;
 
-  public final static int LastRow=29;
-  final static int ButtonRow=LastRow-3;
+  public int LastRow=29;
+  int ButtonRow=LastRow-3;
 
-  static final Point amountLocation=  new Point( Margin,4);
-  protected Point BannerLocation= new Point(Margin,1);
+  XPoint amountLocation= new XPoint( Margin,4);
+  XPoint BannerLocation= new XPoint(Margin,1);
 
-  protected static final String FullRule=Fstring.fill ("",WallToWall,'-');
+  String FullRule=Fstring.fill ("",WallToWall,'-');
 
-//  public final static Rectangle AdBox=new Rectangle(Margin,3,LastColumn-Margin,22);
+  //  public final static Rectangle AdBox=new Rectangle(Margin,3,LastColumn-Margin,22);
 
   static final String ManufacturedBy="Terminal by PayMate.Net\n9420 Research  Blvd.\nAustin TX 78759";
 
-//  public void setAdName(String filename){
-//    pcxFilename=filename;
-//  }
-//
-//  public void setAdAlt(String storeInfo){
-//    altText=new TextList(Safe.OnTrivial(storeInfo,ManufacturedBy),bigWidth,true);
-//  }
+  //  public void setAdName(String filename){
+    //    pcxFilename=filename;
+  //  }
+  //
+  //  public void setAdAlt(String storeInfo){
+    //    altText=new TextList(StringX.OnTrivial(storeInfo,ManufacturedBy),bigWidth,true);
+  //  }
 
-  protected OurForm BannerLine(String toAnnounce){
+  OurForm BannerLine(String toAnnounce){
     add(BannerThis(toAnnounce));
     return this;
   }
 
   String bannerFont="1";
   //need +++ width(font)...
-  public static final String ValuePair(String name, String value){
+  public String ValuePair(String name, String value){
     return Fstring.justified(bigWidth,name,value,' ');
   }
 
-  public static final String Bannerize(String toAnnounce){
+  public String Bannerize(String toAnnounce){
     return Fstring.centered(toAnnounce,bigWidth,' ');
   }
 
@@ -101,13 +101,13 @@ public class OurForm extends Form {
     return new Legend(BannerLocation,Bannerize(toAnnounce),bannerFont);
   }
 
-  protected OurForm stdCancel(){
+  OurForm stdCancel(){
     String fartoff="CANCEL";
     add(new TextButton(LastColumn-fartoff.length()-Margin-1,ButtonRow,fartoff,ButtonTag.CustomerCancels));
     return this;
   }
 
-  protected OurForm stdAmount(){
+  OurForm stdAmount(){
     showsAmount=true;
     amtSlot=new Field(new Legend( amountLocation, Bannerize(waitclerk),"1"));
     add(amtSlot);
@@ -118,24 +118,26 @@ public class OurForm extends Form {
   /**@deprecated
   * the underlying feature itself was deprecated, not so much htis function in its own right
   */
-  public OurForm switchToCard(){
+  OurForm switchToCard(){
     addLegend("swipe to use a card instead of a check","0");
     return this;
   }
 
   public OurForm showalt(boolean allbig){
     if(TextList.NonTrivial(altText)){
-      for(int i=0;i<altText.size();i++){
-        addLegend(altText.itemAt(i),((!allbig &&i>0)?"0":"1"));
-//til enTouch is fixed:
-        //if(!allbig)
-        break; //entouch can't handle as much text as we would like
-      }
+//      for(int i=0;i<altText.size();i++){
+//        addLegend(altText.itemAt(i),((!allbig &&i>0)?"0":"1"));
+//        //til enTouch is fixed:
+//        //if(!allbig)
+//        break; //entouch can't handle as much text as we would like
+//      }
+// until the above is fixed, (won't compile on gcj), do this:
+      addLegend(altText.itemAt(0),((!allbig &&0>0)?"0":"1"));
     }
     return this;
   }
 
-  public OurForm addCheckInfo(){
+  public OurForm addCheckInfo(LocalTimeFormat ltf){
     hrule();
 
     if(TextList.NonTrivial(altText)){
@@ -144,7 +146,7 @@ public class OurForm extends Form {
       showalt(true);
     }
     //+_+ get time format from Receipt class.
-    addLegend(Fstring.justified(bigWidth,"Date:", Receipt.LocalTime(Safe.Now())),"1");
+    addLegend(Fstring.justified(bigWidth,"Date:", ltf.format(UTC.Now())),"1");
     hrule();
     stdCancel();
     return this;
@@ -154,9 +156,9 @@ public class OurForm extends Form {
     return (amtSlot!=null)? amtSlot.display(image): new Legend(0,0,"");
   }
 
-  protected OurForm insertSwipe(String prompt){
+  OurForm insertSwipe(String prompt){
     isSwiper  =true;
-    if(Safe.NonTrivial(prompt)){
+    if(StringX.NonTrivial(prompt)){
       if(prompt.length()<=15){//+++ compute
         prompt="->"+prompt+"<-";
       }
@@ -167,16 +169,16 @@ public class OurForm extends Form {
   }
 
 
-  protected OurForm insertCardSwipe(String prompt){
+  OurForm insertCardSwipe(String prompt){
     idSwipe=false;
     return insertSwipe(prompt);
   }
 
-  protected OurForm insertCardSwipe(){
+  OurForm insertCardSwipe(){
     return insertCardSwipe(firstSwipe);
   }
 
-  protected OurForm insertIdSwipe(){
+  OurForm insertIdSwipe(){
     idSwipe=true;
     insertSwipe(licenseid);
     space(1,3);
@@ -185,18 +187,18 @@ public class OurForm extends Form {
     return this;
   }
 
-  protected OurForm insertHideSwipe(){
+  OurForm insertHideSwipe(){
     idSwipe=true;
     return insertSwipe("");
   }
 
-  protected OurForm insertReSwipe(){
+  OurForm insertReSwipe(){
     idSwipe=false;
     return insertSwipe("");
   }
 
-  protected OurForm addRawButton(int tagger){
-    Point p=new Point(Margin,nextY());
+  OurForm addRawButton(int tagger){
+    XPoint p=new XPoint(Margin,nextY());
     ButtonTag button=new ButtonTag(tagger);
     TextButton wtf;
     add(wtf=new TextButton(p,button.Image()+","+button.Value(),button.Value()));
@@ -204,14 +206,18 @@ public class OurForm extends Form {
     return this;
   }
 
-  protected static final boolean willFit(String prompt) {
-    return prompt.length()<=6;;
+  /**
+   * @return true if string will fit inside the biggest button
+   * presumes big font!
+   */
+  static final boolean willFit(String prompt) {
+    return prompt.length()<=6;
   }
 
-  protected OurForm bigButton(String text, int tagger){//one per line...
+  OurForm bigButton(String text, int tagger){//one per line...
     boolean inside=willFit(text);
     //added a second +1 below to space things better on screen.
-    Point p=new Point(inside?Margin+1:Margin,nextY()+1+1);//room for button margin, else they overlap
+    XPoint p=new XPoint(inside?Margin+1:Margin,nextY()+1+1);//room for button margin, else they overlap
     Legend lege=new Legend(p,text,"1");
     if(inside){
       add(new TextButton(lege,tagger));
@@ -221,12 +227,40 @@ public class OurForm extends Form {
     return this;
   }
 
-  protected OurForm bigButtonRight(String text, int tagger){//one per line...
+  OurForm bigButtonNext(String text, int tagger){//one per line...
+    boolean inside=willFit(text);
+    XPoint p=new XPoint(inside?nextX()+1:nextX(),inside?Y()+1:Y());//room for button margin, else they overlap
+    Legend lege=new Legend(p,text,"1");
+    if(inside){
+      add(new TextButton(lege,tagger));
+    } else {
+      add(new BigButton(lege,tagger,true));
+    }
+    return this;
+  }
+
+
+  OurForm bigButtonCenter(String text, int tagger){//one per line...
+    boolean inside=willFit(text);
+
+    int x=(inside?Margin+1:Margin)+ ( (WallToWall- text.length() ) /2);
+    XPoint p=new XPoint(x,nextY()+1+1);//room for button margin, else they overlap
+    Legend lege=new Legend(p,text,"1");
+    if(inside){
+      add(new TextButton(lege,tagger));
+    } else {
+      add(new BigButton(lege,tagger,true));
+    }
+    return this;
+  }
+
+
+  OurForm bigButtonRight(String text, int tagger){//one per line...
     boolean inside=willFit(text);
     int xwidth= text.length()+(inside? 2 : BigButton.buttwidth);
-    int why= (xwidth+nextX()>=LastColumn)?(nextY()+1):this.Y();
+    int why= (xwidth+nextX()>=LastColumn)?(nextY()+1):Y();
 
-    Point p=new Point(LastColumn-1,why+1);//room for button margin, else
+    XPoint p=new XPoint(LastColumn-1,why+1);//room for button margin, else
     Legend lege=new Legend(p,text,"1");
     if(inside){
       add(new TextButton(lege,tagger,false));
@@ -236,45 +270,48 @@ public class OurForm extends Form {
     return this;
   }
 
-//  protected OurForm insertAd(boolean withCoupon){
-//    //  add(new Button(AdBox,ButtonTag.NullButton));
-//    if(Safe.NonTrivial(pcxFilename) ){
-//      pcxResource= pcxFilename;
-//    } else {
-//      space(AdBox.x+1,AdBox.y+1);
-//      showalt(true);
-//    }
-//    if(withCoupon){
-//      addButton(CouponText,ButtonTag.CouponDesired);
-//    }
-//    return this;
-//  }
+  //    OurForm insertAd(boolean withCoupon){
+    //    //  add(new Button(AdBox,ButtonTag.NullButton));
+    //    if(StringX.NonTrivial(pcxFilename) ){
+      //      pcxResource= pcxFilename;
+    //    } else {
+      //      space(AdBox.x+1,AdBox.y+1);
+      //      showalt(true);
+    //    }
+    //    if(withCoupon){
+      //      addButton(CouponText,ButtonTag.CouponDesired);
+    //    }
+    //    return this;
+  //  }
 
-  public OurForm addSigBox(/* receipt.sigBox and aspectRatio..*/){
+  OurForm addSigBox(/* receipt.sigBox and aspectRatio..*/){
     int vertical=24/8; //derive the 24 from data hinted at in comment above
-    add(new SigBox(new Rectangle(Margin,nextY(),WallToWall,nextY()+vertical)));
-    hasSignspot=true;
+    add(new SigBox(new XRectangle(Margin,nextY(),WallToWall,nextY()+vertical)));
+
     addLegend("Use Pen to press");
     addLegend(Done+" when done--v");
     bigButton("ERASE",ButtonTag.ClearForm);
+//too late, will be authroizing as credit before this form shows.    addDebit("KNOW PIN?");
     bigButtonRight(Done,ButtonTag.Signed);
 
     return this;
   }
 
-  protected final static String pushpen="Please Use the Pen";
+  final static String pushpen="Please Use the Pen";
 
-  public OurForm askOkWrong(){
+  OurForm askOkWrong(){
     space(0,1);
     addLegend(pushpen);
     bigButton("OK",ButtonTag.CustomerAmountOk);
+
+    addDebit("KNOW PIN?");
     bigButtonRight("WRONG",ButtonTag.CustomerCancels);
     space(0,1);
     addLegend(pushpen);
     return this;
   }
 
-  public OurForm askYesno(String question){
+  OurForm askYesno(String question){
     addLegend(question);
     space(0,1);
     addLegend(pushpen);
@@ -285,41 +322,56 @@ public class OurForm extends Form {
     return this;
   }
 
-  public OurForm hrule(){
-  //kill hrules until enTouch can handle more text per packet set.
-//    add(new Legend(Margin,nextY(),FullRule,"0"));
+  OurForm hrule(){
+    //kill hrules until enTouch can handle more text per packet set.
+    //    add(new Legend(Margin,nextY(),FullRule,"0"));
     return this;
   }
 
-  public OurForm space(int width,int height){
-    add(new Spacer(new Rectangle(nextX(),nextY(),width,height)));
+  OurForm space(int width,int height){
+    add(new Spacer(new XRectangle(nextX(),nextY(),width,height)));
     return this;
   }
 
   boolean isFirst=true;
 
-  public OurForm addButton(String legend, int buttontag){
+  OurForm addButton(String legend, int buttontag){
     int xloc=isFirst?Margin:(nextX()+1);
-    add(new TextButton(xloc,ButtonRow,legend, buttontag));
+    add(new TextButton(xloc,Y(),legend, buttontag));
     isFirst=false;
     return this;
   }
 
-  public OurForm addLegend(String legend,Font f){
-    add(new Legend(OurForm.Margin,nextY(),legend,f));
+  /**
+   * debit legend must always be adjusted to fit.
+   */
+  void addDebit(String tracer){
+    if(debitAllowed){
+      dbg.VERBOSE("debit button: "+tracer);
+      space(2,0);
+      bigButtonNext(tracer,ButtonTag.DoDebit);
+//      addButton(tracer,ButtonTag.DoDebit);
+      hasDebitButton=true;
+    }
+    else {
+      dbg.VERBOSE("NO debit on "+tracer);
+    }
+  }
+
+  OurForm addLegend(String legend,Font f){
+    add(new Legend(Margin,nextY(),legend,f));
     return this;
   }
 
-  public OurForm addLegend(String legend,String font){
+  OurForm addLegend(String legend,String font){
     return addLegend(legend,Font.Create(font));
   }
 
-  public OurForm addLegend(String legend){
+  OurForm addLegend(String legend){
     return addLegend(legend,DefaultLegendFont);
   }
 
-
-  public OurForm addParagraph(TextList para,Font f){
+  OurForm addParagraph(TextList para,Font f){
     //textColumn is too primitive, FormattedLines would make us create a printer...
     int numlines=para.size();
     for(int i=0;i<numlines;i++){
@@ -327,31 +379,27 @@ public class OurForm extends Form {
     }
     return this;
   }
-  public OurForm addParagraph(TextList para){
+
+  OurForm addParagraph(TextList para){
     return addParagraph(para,Font.Create("0"));
   }
 
-  public OurForm addParagraph(String toWrap,String fontname){
+  OurForm addParagraph(String toWrap,String fontname){
     Font f=Font.Create(fontname);
     TextList wrapped=new TextList(toWrap, (f.Width()>1)? bigWidth:textWidth,true);
     return addParagraph(wrapped,f);
   }
 
   /////////////////////////////////////////////////////////
-  protected final static String PCX= ".pcx";
+  final static String PCX= ".pcx";
 
-  public OurForm ToService() throws java.io.IOException {
-    ServiceTracker.storeService(new ServiceObject(myName,this));//??? use super?
-    if(Safe.NonTrivial(pcxResource)){//normalize file naming.
-      if(!pcxResource.endsWith(PCX)){//must have this extension, legacy
-        pcxResource+=PCX;
-      }
-      //+_+ try using Main.localFile();
-      File pcxFile =new File(System.getProperty("user.dir")+ File.separatorChar+pcxResource);
-      //had to be that explicit coz of bugs in JAVA! it couldn't find the freaking file (C: problem)
-      if(Safe.FileExists(pcxFile)){
-        ServiceTracker.storeService(new ServiceObject(pcxResource,pcxFile));
-      } else {
+  OurForm ToService()
+//  throws java.io.IOException
+  {
+//    ServiceTracker.storeService(new ServiceObject(myName,this));//??? use super?
+    if(StringX.NonTrivial(pcxResource)){//normalize file naming.
+      pcxFile =Main.LocalFile(pcxResource,"pcx");//same place as testpos.properties
+      if(!IOX.FileExists(pcxFile)){
         dbg.ERROR("PCX definition: file:"+pcxFile.getAbsolutePath()+" does not exist on path:"+System.getProperty("user.dir"));
       }
     }
@@ -361,12 +409,7 @@ public class OurForm extends Form {
   public OurForm(POSForm pfnum) {
     super(pfnum.Image(),pfnum.Value()) ;
     dbg.VERBOSE("Making Form "+pfnum.Image());
-    //load graphic
-    if(OurForms.insertGraphic(this)){
-      dbg.VERBOSE(pfnum.Image()+"graphic:"+pcxResource);
-    } else {
-      dbg.VERBOSE("no graphic for "+pfnum.Image());
-    }
+    /*bgndDefined=*/OurForms.insertGraphic(this);
     OurForms.Register(this);
   }
 
@@ -378,5 +421,26 @@ public class OurForm extends Form {
     return new POSForm(myNumber);
   }
 
+  public String toSpam(){
+    StringBuffer spam=new StringBuffer(50);
+    if(this.hasDebitButton){
+      spam.append(" hasDebitButton");
+    }
+
+    if(this.idSwipe){
+      spam.append(" gets id card");
+    }
+
+    if(this.isPinPad){
+      spam.append(" is PinPad");
+    }
+
+    if(this.showsAmount){
+      spam.append(" shows amount");
+    }
+
+    return super.toSpam()+String.valueOf(spam);
+  }
+
 }
-//$Id: OurForm.java,v 1.42 2001/11/14 01:47:50 andyh Exp $
+//$Id: OurForm.java,v 1.59 2003/12/08 22:45:42 mattm Exp $

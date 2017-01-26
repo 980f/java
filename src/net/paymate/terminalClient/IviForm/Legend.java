@@ -1,15 +1,15 @@
+package net.paymate.terminalClient.IviForm;
 /**
-* Title:        Legend
+* Title:        $Source: /cvs/src/net/paymate/terminalClient/IviForm/Legend.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Legend.java,v 1.13 2001/07/19 01:06:53 mattm Exp $
+* @version      $Revision: 1.15 $
 */
-package net.paymate.terminalClient.IviForm;
+
 import  net.paymate.util.Xml;
-import java.awt.Point;
-import java.awt.Rectangle;
+import net.paymate.awtx.*;
 
 public class Legend extends FormItem {
 /** square braces in legends get killed by the net.paymate.ivicm forms parser! */
@@ -70,11 +70,11 @@ public class Legend extends FormItem {
     this(x,y,legend,DefaultFont.Clone());
   }
 
-  public Legend(Point p, String legend,String fontspec){
+  public Legend(XPoint p, String legend,String fontspec){
     this(p.x,p.y,legend,fontspec);
   }
 
-  public Legend(Point p, String legend){
+  public Legend(XPoint p, String legend){
     this(p.x,p.y,legend,DefaultFont.Clone());
   }
 
@@ -89,4 +89,4 @@ public class Legend extends FormItem {
   }
 
 }
-//$Id: Legend.java,v 1.13 2001/07/19 01:06:53 mattm Exp $
+//$Id: Legend.java,v 1.15 2003/12/08 22:45:43 mattm Exp $

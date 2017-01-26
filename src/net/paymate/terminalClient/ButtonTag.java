@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/terminalClient/ButtonTag.Enum]
 package net.paymate.terminalClient;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class ButtonTag extends TrueEnum {
   public final static int Reserved0       =0;
@@ -15,16 +14,17 @@ public class ButtonTag extends TrueEnum {
   public final static int DoCredit        =7;
   public final static int DoDebit         =8;
   public final static int DoCash          =9;
-  public final static int DriversLicense  =10;
-  public final static int OtherCard       =11;
-  public final static int CouponDesired   =12;
+  public final static int GetBalance      =10;
+  public final static int DriversLicense  =11;
+  public final static int OtherCard       =12;
+  public final static int CouponDesired   =13;
 
-  public int numValues(){ return 13; }
-  private static final TextList myText = TrueEnum.nameVector(ButtonTag.class);
-  protected final TextList getMyText() {
+  public int numValues(){ return 14; }
+  private static final String[ ] myText = TrueEnum.nameVector(ButtonTag.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final ButtonTag Prop=new ButtonTag();
+  public static final ButtonTag Prop=new ButtonTag();//for accessing class info
   public ButtonTag(){
     super();
   }
@@ -41,6 +41,18 @@ public class ButtonTag extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static ButtonTag CopyOf(ButtonTag rhs){//null-safe cloner
+    return (rhs!=null)? new ButtonTag(rhs) : new ButtonTag();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

@@ -1,36 +1,37 @@
 /**
- * Title:        PrinterModel<p>
+ * Title:        $Source: /cvs/src/net/paymate/awtx/print/PrinterModel.java,v $
  * Description:  base class for printer output formatting <p>
  * Copyright:    2000<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: PrinterModel.java,v 1.37 2001/10/22 23:33:37 andyh Exp $
+ * @version      $Id: PrinterModel.java,v 1.61 2004/02/26 18:40:50 andyh Exp $
  */
 package net.paymate.awtx.print;
 
-import net.paymate.data.Value;
-
+import net.paymate.lang.Value;
+import net.paymate.lang.ReflectX;
 import  net.paymate.util.*;
 import  net.paymate.jpos.Terminal.LinePrinter;
 import  net.paymate.jpos.awt.Hancock;
 import  net.paymate.jpos.data.ByteBlock;
-
+import net.paymate.lang.StringX;
 import  net.paymate.jpos.awt.Raster;
-import  net.paymate.awtx.Targa;
+import  net.paymate.awtx.*;
 import  net.paymate.awtx.print.*;
 import  net.paymate.jpos.data.ByteBlock;
-
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.geom.Point2D;
 import java.lang.Math;
 import java.util.Vector;
 
 import java.io.*;
 
 public class PrinterModel {
-  protected static final ErrorLogStream dbg = new ErrorLogStream(PrinterModel.class.getName());
-  protected LinePrinter lp = new LinePrinter("PrinterModelInit");//prints to debug stream
+  protected ErrorLogStream dbg;
+//while each object gets its own stream they share loglevels. this is what we should USUALLY do, rather than our static ones.
+  protected LinePrinter lp;
+
+  public void disConnect(){
+//    lp.
+  }
 
   public void startPage (){
     if(lp!=null){
@@ -45,7 +46,7 @@ public class PrinterModel {
   }
 
   //a class is looming: 'printerAttributes'
-  public int rasterWidth=0;
+  public int rasterWidth=320;//0 caused defects when running ReceiptAgent.main(...)
   protected int myTextWidth=40;//0 caused an infinite loop when used via NullPrinter.
 
   public int textWidth(){//because it may not be a construction-time constant.
@@ -53,7 +54,8 @@ public class PrinterModel {
   }
 
   /** shape of a printer dot in dpi by dpi: */
-  public /*final*/ Dimension Aspect=new Dimension(1,1);//square
+  public /*final*/ XDimension Aspect=new XDimension(1,1);//square
+  public Quadrant quad=Quadrant.Fourth();//most common choice.
 
   private byte [] makeFeeder(int lf,int padding){
     if(padding<0){//so that formulae can be sloppy
@@ -65,7 +67,7 @@ public class PrinterModel {
   }
 
   /** lineFeed is byte not char because it is used by raw printing */
-  public byte [] lineFeed={'\n'};//set to most common value
+  public byte [] lineFeed={Ascii.LF};//set to most common value
 
   public PrinterModel setLineFeed(int lf,int padding){
     lineFeed= makeFeeder(lf,padding);
@@ -84,16 +86,16 @@ public class PrinterModel {
   * A best size for printing signatures, +_+ can be formulaicly derived from
   * abstract values and the Aspect and rasterWidth members. i.e. inches and dpi.
   */
-  public Dimension sigBox= new Dimension(rasterWidth,30);//72nds of an inch
+  public XDimension sigBox= new XDimension(rasterWidth,30);//72nds of an inch
 
-  public PrinterModel() {
-    // stub
+  protected PrinterModel() {
+    dbg = ErrorLogStream.getForClass(this.getClass());
   }
 
 /**
  * @param lp is the physical printer interface
  */
-  public PrinterModel(LinePrinter lp) {
+  /*protected*/ public PrinterModel(LinePrinter lp) {
     this();
     // +_+ create a null printer here if lp==null?
     this.lp = lp;
@@ -112,9 +114,9 @@ public class PrinterModel {
  * @return whether we wrapped and therfore did all of the printing here.
  */
   protected boolean autoWrap(String stuff){
-    int payload=Safe.lengthOf(stuff);
-    if(payload>this.textWidth()){
-      TextList wrapper=new TextList(stuff,this.textWidth(),TextList.SMARTWRAP_ON);// as in "word wrap"
+    int payload=StringX.lengthOf(stuff);
+    if(payload>textWidth()){
+      TextList wrapper=new TextList(stuff,textWidth(),TextList.SMARTWRAP_ON);// as in "word wrap"
       print(wrapper);//which calls back into println(String)
       return true;
     }
@@ -130,7 +132,7 @@ public class PrinterModel {
     dbg.VERBOSE("println: <"+stuff+">");
     if(lp != null ) {
       if(!autoWrap(stuff)){//else autoWrap has already called back to here, twice!
-        int payload=Safe.lengthOf(stuff);
+        int payload=StringX.lengthOf(stuff);
         int padding=lineFeed.length;
         byte [] terminated=new byte[payload+padding];
         if(stuff!=null){
@@ -147,6 +149,12 @@ public class PrinterModel {
     println("");
   }
 
+  /**
+   * prints each item, wrapping each line individually.
+   * does NOT merge tail of one wrapped line with next item.
+   * NB: extracting an array from the textlist and using the String[] method would
+   * be expensive as that function makes a COPY of the textlist's content
+   */
   public void print(TextList textList){
     int size=textList.size();
     for(int i =0 ; i<size;i++) {//!!retain given order
@@ -154,25 +162,20 @@ public class PrinterModel {
     }
   }
 
+  /**
+   * prints each item, wrapping each line individually.
+   * does NOT merge tail of one wrapped line with next item.
+   */
+  public void print(String [] textList){
+    int size=textList.length;
+    for(int i =0 ; i<size;i++) {//!!retain given order
+      println(textList[i]);
+    }
+  }
+
   public void print(FormattedLineItem fl) {
-    String str = "";
     if(fl != null) {//this test simplifies conditionally presented lines at a higher level
-//    dbg.Message("FORMATTING:"+fl.toSpam());
-      switch(fl.justification.Value()) {
-        case ColumnJustification.PLAIN: {
-          str = fl.name + Safe.TrivialDefault(fl.value , "");
-        } break;
-        case ColumnJustification.JUSTIFIED: {
-          str = Fstring.justified(textWidth(), fl.name,fl.value, (fl.filler == 0) ? '.' : fl.filler);
-        } break;
-        case ColumnJustification.CENTERED: {
-          str = Fstring.centered(fl.name, textWidth(), fl.filler);
-        } break;
-        case ColumnJustification.WINGED: {
-          str = Fstring.winged(fl.name, textWidth());
-        } break;
-      }
-      println(str);
+      println(fl.formatted(textWidth()));
     }
   }
 
@@ -185,7 +188,18 @@ public class PrinterModel {
   }
 
   public void print(String name,String value){//FUE
-    print(new FormattedLineItem(name,value));
+    print(FormattedLineItem.pair(name,value));
+  }
+
+  public void printPage(String [] content){
+    startPage();
+    try {
+      print(content);
+      formfeed();
+    }
+    finally {
+      endPage();
+    }
   }
 
   ///////////////////////////////////
@@ -199,9 +213,13 @@ public class PrinterModel {
 
   public PrinterModel print(Hancock hk) {
     dbg.VERBOSE( "print(Hancock): " + "sigBox.width=" + sigBox.width + ", sigBox.height=" + sigBox.height +
-      ", Aspect.width=" + Aspect.width + ", Aspect.height=" + Aspect.height);
-    Hancock cooked=hk.remapped(sigBox,Aspect);
-    print(cooked.rasterTo(sigBox)/*.box()*/);//signature boxing
+      ", Aspect.width=" + Aspect.width + ", Aspect.height=" + Aspect.height+", Quadrant="+quad.toString());
+    try {
+      Hancock cooked=hk.remapped(sigBox,Aspect,quad);
+      print(cooked.rasterTo(sigBox)/*.box()*/);//signature boxing
+    } catch (Exception e) {
+      dbg.Caught(e);
+    }
     return this;
   }
 
@@ -228,17 +246,21 @@ public class PrinterModel {
 
   public PrinterModel startGraphics(){//usually overridden
   //usually an escape sequence, such as esc K for Epson's
-    lp.setGraphing(amGraphing=true);
+    if(lp!=null){
+      lp.setGraphing(amGraphing=true);
+    }
     return this;
   }
 
   public PrinterModel startText(){//usually overridden
-    lp.setGraphing(amGraphing=false);
+    if(lp!=null){
+      lp.setGraphing(amGraphing=false);
+    }
     return this;
   }
 
   public ByteBlock fromRaster(Raster raster){
-   dbg.VERBOSE("FORMAT GRAPHIC");
+    dbg.VERBOSE("FORMAT GRAPHIC");
     return ByteBlock.EmptyBlock();//usually overridden!
   }
 
@@ -248,8 +270,26 @@ public class PrinterModel {
   }
 
   public String toSpam(){
-    return this.getClass().getName()+ (lp!=null? (" on "+lp.getClass().getName()):", abstract");
+    return ReflectX.shortClassName(this)+ (lp!=null? (" on "+ReflectX.shortClassName(lp)):", abstract");
+  }
+
+  public boolean HasCutter(){//override for printers that cut paper on formfeed.
+    return false;
+  }
+///////////
+  public static PrinterModel BugPrinter(int width){
+    PrinterModel newone=new PrinterModel(net.paymate.awtx.print.StreamPrinter.Out());
+    newone.myTextWidth=width;
+    newone.dbg.setLevel(LogSwitch.ERROR);//suppress logstream
+    return newone;
+  }
+
+  public static PrinterModel Null(){
+    PrinterModel newone=new PrinterModel(null);
+    newone.myTextWidth=0;
+    newone.dbg.setLevel(LogSwitch.OFF);//suppress logstream
+    return newone;
   }
 
 }
-//$Id: PrinterModel.java,v 1.37 2001/10/22 23:33:37 andyh Exp $
+//$Id: PrinterModel.java,v 1.61 2004/02/26 18:40:50 andyh Exp $

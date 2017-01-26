@@ -4,10 +4,11 @@
  * Copyright:    2000<p>
  * Company:      paymate<p>
  * @author       PayMate.net
- * @version      $Id: ParameterDefinition.java,v 1.2 2000/07/09 22:50:44 mattm Exp $
+ * @version      $Id: ParameterDefinition.java,v 1.4 2003/07/27 05:35:27 mattm Exp $
  */
 package net.paymate.util.cmdline;
-import  net.paymate.util.Safe;
+
+import net.paymate.lang.StringX;
 
 public class ParameterDefinition {
   public String flag;              // flag is the actual parameter flag, eg: -v.
@@ -20,9 +21,9 @@ public class ParameterDefinition {
   public ParameterDefinition(String flag, String name, String defaultValue,
       String description, int typicalValueCount) {
     this.defaultValue      = defaultValue;
-    this.name              = Safe.TrivialDefault(name,  this.toString());
-    this.flag              = Safe.TrivialDefault(flag,  name);
-    this.description       = Safe.TrivialDefault(description, name);
+    this.name              = StringX.TrivialDefault(name,  String.valueOf(this));
+    this.flag              = StringX.TrivialDefault(flag,  name);
+    this.description       = StringX.TrivialDefault(description, name);
     this.typicalValueCount = typicalValueCount;
   }
 }

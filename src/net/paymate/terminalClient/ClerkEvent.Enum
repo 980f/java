@@ -1,14 +1,14 @@
-/* $Id: ClerkEvent.Enum,v 1.14 2001/11/01 17:14:45 andyh Exp $ */
+/* $Id: ClerkEvent.Enum,v 1.15 2003/01/03 21:41:48 andyh Exp $ */
 Clear   //beam me up scotty
 Cancel  //void an operation in progress
 Enter   //a value
 Send
 Reprint
 Login
-PrintCoupon
+//PrintCoupon
 SendSignature //
 Reconnect //terminal login, will eventually run on a clock.
 //UpdateJar // for updating the jar file from a button on the main screen
 Functions
 Debug     //changes frequently
-//$Id: ClerkEvent.Enum,v 1.14 2001/11/01 17:14:45 andyh Exp $
+//$Id: ClerkEvent.Enum,v 1.15 2003/01/03 21:41:48 andyh Exp $

@@ -6,7 +6,7 @@ package net.paymate.net;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 
 //mindbright not yet in cvs!
@@ -23,8 +23,8 @@ public class Scp {
 
   }
 
-  public static final void main(String [] args) {
+//  public static final void main(String [] args) {
     // scp
-  }
+//  }
 
 }

@@ -1,6 +1,6 @@
-// ThreadFormatEnum.Enum
-// put these in the order that you want the columns
-nameCol
-priorityCol
-daemonCol
-thisCol
+// ThreadFormatEnum.Enum
+// put these in the order that you want the columns
+nameCol
+priorityCol
+daemonCol
+thisCol

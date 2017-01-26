@@ -4,7 +4,7 @@
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author       PayMate.net
- * @version      $Id: WeakSet.java,v 1.2 2001/07/19 01:06:55 mattm Exp $
+ * @version      $Id: WeakSet.java,v 1.4 2003/10/09 19:15:11 mattm Exp $
  */
 
 package net.paymate.util;
@@ -12,6 +12,10 @@ import  java.util.*; // +++ optimize
 import  java.lang.ref.WeakReference;
 import  java.lang.ref.ReferenceQueue;
 
+/**
+ * +++ TODO: Propagate this to other classes that can/should use it:
+ * TempFile, LogFile, FileZipper, LogSwitch, SyncMonitorList, but NOT PrintForks.
+ */
 
 /**
  * A <code>Set</code> implementation with <em>weak values</em>.
@@ -86,41 +90,6 @@ import  java.lang.ref.ReferenceQueue;
 public class WeakSet extends AbstractSet {
 
   Set hash = null;
-
-  static private final class WeakObject extends WeakReference {
-    private WeakObject(Object k) {
-      super(k);
-    }
-    private static final WeakObject create(Object k) {
-      return (k == null) ? null : new WeakObject(k);
-    }
-    private WeakObject(Object k, ReferenceQueue q) {
-      super(k, q);
-    }
-    private static final WeakObject create(Object k, ReferenceQueue q) {
-      return (k == null) ? null : new WeakObject(k, q);
-    }
-
-    /* A WeakObject is equal to another WeakObject iff they both refer to objects
-    that are, in turn, equal according to their own equals methods */
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof WeakObject)) {
-        return false;
-      }
-      Object t = this.get();
-      Object u = ((WeakObject)o).get();
-      if ((t == null) || (u == null)) {
-        return false;
-      }
-      if (t == u) {
-        return true;
-      }
-      return t.equals(u);
-    }
-  }
 
   /* Reference queue for cleared WeakObject */
   private ReferenceQueue queue = new ReferenceQueue();

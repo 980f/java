@@ -1,11 +1,12 @@
 /**
  * Title:        Cleaner<p>
- * Description:  Cleaner cleans up old user sessions based on certain expiration times<p>
- *                this will effectively free up memory and db connections
+ * Description:  Destroys SSlSessions based on certain expiration times<p>
+ *                This will effectively free up a small amount of memory and db connections.
+ *                PLEASE only create one of these in the VM!
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: SessionCleaner.java,v 1.32 2001/10/30 19:37:22 mattm Exp $
+ * @version      $Id: SessionCleaner.java,v 1.48 2004/03/13 01:29:31 mattm Exp $
  */
 
 package net.paymate.servlet;
@@ -15,47 +16,73 @@ import  java.util.Date;
 import  java.util.Vector;
 import  java.util.Enumeration;
 import  net.paymate.util.*;
+import  net.paymate.web.UserSession;
+import net.paymate.lang.ThreadX;
 
-/**
- * Sessions begun from our client application will not be monitored for
- * inactivity by the server.  However, the client application will be required
- * to logout+in on a roughly 24-hour period.  This means that after a terminal
- * has been logged in for 24 hours, it will be automatically logged out.
- *
- * This ensures that we do certain kinds of cleanup at the server side, and also
- * ensures that stale sessions do not remain alive forever.  This also means
- * that we do NOT have to spam the server with "I'm alive" messages all the
- * time.
- *
- * Sessions begun from a browser will be monitored for inactivity and disconnected
- * after either 5 minutes (5 * 60 * 1000 =  300000 milliseconds) of inactivy
- * or after two hours (2 * 60 * 60 * 1000 = 7200000 milliseconds) of connectivity, with activity.
-**/
+public class SessionCleaner extends Service {
 
-public class SessionCleaner {
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(SessionCleaner.class, ErrorLogStream.WARNING);
 
-  private static final CleanerThread broom = new CleanerThread(SessionCleaner.class.getName());
-  private static final ErrorLogStream dbg = new ErrorLogStream(SessionCleaner.class.getName());
+  public static final String NAME = "SSLSessionCleaner";
 
-  static {
+  public static final String INTERVALSECS = "intervalsecs";
+  private int intervalSecs = 30;
+
+  // service stuff ...
+  public SessionCleaner(ServiceConfigurator configger, int interval) {
+    super(NAME, configger, true);
+    this.intervalSecs = interval;
+    initLog();
+    up();
+  }
+  public void down() {
+    broom.kill();
+    markStateChange();
+    dbg.ERROR("SessionCleaner is dead.");
+  }
+  public void up() {
     try {
-      broom.start();
+      if((broom == null) || !broom.isAlive()) {
+        broom = new CleanerThread(this);
+        broom.intervalSecs = this.intervalSecs;
+        broom.setDaemon(true);
+        broom.start();
+        markStateChange();
+      }
     } catch (IllegalThreadStateException itse) {
       // don't care
     }
   }
+  public boolean isUp() {
+    return broom.isAlive();
+  }
+  public String svcTimeouts() {
+    return ""+count.value();//"Invalidated " + SessionCleaner.count.value() + " stale sessions.";
+  }
+  public String svcCnxns() {
+    int i = 0;
+    HttpSessionContext [] contexts = getContexts();
+    for(int ci = contexts.length; ci-->0;) {
+      for(Enumeration enum = contexts[ci].getIds(); enum.hasMoreElements();i++) {
+        enum.nextElement();
+      }
+    }
+    return ""+i;
+  }
 
-  public static final Counter count = new Counter();
+  private CleanerThread broom = null;
+
+  public /*static final*/ Counter count = new Counter();
 
   // +++ add some sort of thread protection here?; stop the broom?
-  public static final void addContext(HttpSessionContext newContext) {
+  public /*static final*/ void addContext(HttpSessionContext newContext) {
     broom.addContext(newContext);
   }
 
-  public static final void kill() {
-    broom.kill();
-    dbg.ERROR("SessionCleaner is dead.");
+  public /*static final*/ HttpSessionContext [] getContexts() {
+    return broom.getContexts();
   }
+
 }
 
 class ServerContextList extends Vector {
@@ -76,21 +103,17 @@ class ServerContextList extends Vector {
   }
 }
 
-/** This has statics in it in places, but there really should only be ONE,
- *  and a real non-static one at that
- *  as the containing class should declare an instance of this static!  (+++ fix !!!)
- *  However, you can't make the class totally static, since it is a thread.
- *  Instead, you HAVE to create a single instance.
- */
 class CleanerThread extends Thread {
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(CleanerThread.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(CleanerThread.class);
 
-  private static final ServerContextList contextList = new ServerContextList();
+  private final ServerContextList contextList = new ServerContextList();
   private boolean requestStop = false;
+  private SessionCleaner cleaner = null;
 
-  public CleanerThread(String name) {
-    super(name);
+  public CleanerThread(SessionCleaner cleaner) {
+    super(cleaner.serviceName());
+    this.cleaner = cleaner;
   }
 
   public void setStopRequested() {
@@ -101,6 +124,8 @@ class CleanerThread extends Thread {
     return requestStop;
   }
 
+  public int intervalSecs = 30; // checking every 30 seconds is fast enough!
+
 /**
  * This function takes the current sessions' contexts and expiration times for the sessions,
  * NOTE that millisAge should always be larger than millisAccessed.
@@ -110,11 +135,17 @@ class CleanerThread extends Thread {
   Monitor sessionMon = new Monitor("CleanerThread.sessionMon");
   public void run() {
     try {
-      long sleepTime = Ticks.forSeconds(30); // checking every 30 seconds is fast enough!
+      long sleepTime = Ticks.forSeconds(intervalSecs);
       // keep sleeping and cleaning on regular intervals
       while(!getStopRequested()) {
         try {
           int count = 0;
+//          yield(); // we don't want this guy to eat up too many cycles
+          try {
+            ThreadX.sleepFor(sleepTime);
+          } catch (Exception trash) {
+            dbg.Caught(trash);
+          }
           // clean all of the sessions in each context
           try {
             contextListMon.getMonitor();
@@ -147,14 +178,14 @@ class CleanerThread extends Thread {
                 if(cont) {
                   continue;
                 }
-                long systemMillis = System.currentTimeMillis();
+                long systemMillis = DateX.utcNow();
                 if(millisAccessed > 0) {
                   Date minsAgo  = new Date(systemMillis - millisAccessed);
                   Date accessed = new Date(session.getLastAccessedTime());
                   if(accessed.before(minsAgo)) {
-                    dbg.VERBOSE("Invalidating http session id=" + id + ": Over " + Safe.millisToTime(millisAccessed) + " time since last access.");
+                    dbg.VERBOSE("Invalidating http session id=" + id + ": Over " + DateX.millisToTime(millisAccessed) + " time since last access.");
                     session.invalidate();
-                    SessionCleaner.count.incr();
+                    cleaner.count.incr();
                     count++; // just for this run
                     continue;
                   }
@@ -163,17 +194,17 @@ class CleanerThread extends Thread {
                   Date hoursAgo  = new Date(systemMillis - millisAge);
                   Date created  = new Date(session.getCreationTime());
                   if(created.before(hoursAgo)) {
-                    dbg.VERBOSE("Invalidating http session id=" + id + ": Over " + Safe.millisToTime(millisAge) + " time since creation.");
+                    dbg.VERBOSE("Invalidating http session id=" + id + ": Over " + DateX.millisToTime(millisAge) + " time since creation.");
                     session.invalidate();
-                    SessionCleaner.count.incr();
+                    cleaner.count.incr();
                     count++; // just for this run
                     continue;
                   }
                 }
                 // if you made it here, the session was spared
-                yield(); // we don't want this guy to eat up too many cycles
+//                yield(); // we don't want this guy to eat up too many cycles
               }
-              yield(); // we don't want this guy to eat up too many cycles
+//              yield(); // we don't want this guy to eat up too many cycles
             }
           } catch (Exception mone) {
             dbg.Caught(mone);
@@ -181,24 +212,15 @@ class CleanerThread extends Thread {
             contextListMon.freeMonitor();
           }
           if(count > 0) {
-            dbg.VERBOSE("Invalidated " + count + " stale sessions.");
+            dbg.WARNING("Invalidated " + count + " stale sessions.");
           } else {
-            //dbg.VERBOSE("SessionCleaner.run() [inner loop]: No stale sessions found.");
+            dbg.VERBOSE("SessionCleaner.run() [inner loop]: No stale sessions found.");
           }
         } catch (Exception caught) {
           dbg.Enter("run");
           dbg.Caught(caught);
           dbg.Exit();
         } finally {
-        }
-//        if(getStopRequested()) { // handled by the while()
-//          break;
-//        }
-        yield(); // we don't want this guy to eat up too many cycles
-        try {
-          ThreadX.sleepFor(sleepTime);
-        } catch (Exception trash) {
-          // who cares
         }
       }
     } catch (Throwable e) {
@@ -218,6 +240,22 @@ class CleanerThread extends Thread {
     }
   }
 
+  public HttpSessionContext [] getContexts() {
+    HttpSessionContext [] contexts = null;
+    try {
+      contextListMon.getMonitor();
+      contexts = new HttpSessionContext[contextList.size()];
+      for(int i = contextList.size(); i-->0;) {
+        contexts[i] = contextList.getContext(i);
+      }
+    } catch (Exception e) {
+      dbg.Caught(e);
+    } finally {
+      contextListMon.freeMonitor();
+      return contexts;
+    }
+  }
+
   public void kill() {
     setStopRequested();
     ThreadX.waitOnStopped(this, Ticks.forSeconds(2)); // wait forever
@@ -230,6 +268,17 @@ class CleanerThread extends Thread {
         while(ids.hasMoreElements() && !getStopRequested()) {
           String id = (String)ids.nextElement();
           HttpSession session = context.getSession(id);
+          // unbind all that aren't GODS
+          if (session != null) {
+            try {
+              UserSession user = UserSession.extractUserSession(session);
+              if (user != null) {
+                user.AtExit();
+              }
+            } catch (Exception ex) {
+              dbg.Caught(ex);
+            }
+          }
           session.invalidate();
         }
       }
@@ -238,6 +287,5 @@ class CleanerThread extends Thread {
     } finally {
       contextListMon.freeMonitor();
     }
-    System.gc(); // clean up the crap
   }
 }

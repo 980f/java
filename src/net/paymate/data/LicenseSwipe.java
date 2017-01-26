@@ -6,18 +6,17 @@ package net.paymate.data;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author $Author: mattm $
- * @version $Id: LicenseSwipe.java,v 1.7 2001/07/19 01:06:47 mattm Exp $
+ * @version $Id: LicenseSwipe.java,v 1.10 2003/07/27 05:34:57 mattm Exp $
  */
 import net.paymate.jpos.data.MSRData;
-
+import net.paymate.lang.StringX;
 import net.paymate.util.ErrorLogStream;
-import net.paymate.util.Safe;
 
 /**
  * parsing ID cards is split randomly between IdMangler, DriversLicense, and this class
  */
 public class LicenseSwipe {
-  static final ErrorLogStream dbg=new ErrorLogStream(LicenseSwipe.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(LicenseSwipe.class);
   String state;
   int tracknumber;
   int start;
@@ -29,7 +28,7 @@ public class LicenseSwipe {
       LicenseSwipe decoder=parser[0]; //texas, our texas, all hail the mighty state.
       String myTrack=swipe.track(1).Data(); //track for this state
       dbg.VERBOSE("rawtrack:<"+myTrack+"> start:"+decoder.start+" len:"+decoder.length);
-      return Safe.subString(myTrack,decoder.start,decoder.start+decoder.length);
+      return StringX.subString(myTrack,decoder.start,decoder.start+decoder.length);
     } catch (Exception caught){
       dbg.Caught(caught);
       return "DLnotFound";
@@ -53,4 +52,4 @@ public class LicenseSwipe {
   }
 
 }
-//$Id: LicenseSwipe.java,v 1.7 2001/07/19 01:06:47 mattm Exp $
+//$Id: LicenseSwipe.java,v 1.10 2003/07/27 05:34:57 mattm Exp $

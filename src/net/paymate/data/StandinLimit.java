@@ -1,12 +1,13 @@
 package net.paymate.data;
 
 /**
- * Title:
- * Description:
- * Copyright:    Copyright (c) 2001
+ * Title:        $Source: /home/andyh/localcvs/pmnet/cvs/src/net/paymate/data/StandinLimit.java,v $
+ * Description:  limit values for standin approvals
+ * Copyright:    Copyright (c) 2001-2002
  * Company:      PayMate.net
- * @author $Author: andyh $
- * @version $Id: StandinLimit.java,v 1.5 2001/07/13 18:48:20 andyh Exp $
+ * @author   Paymate.net
+ * @version $Id: StandinLimit.java,v 1.11 2005/03/03 05:19:55 andyh Exp $
+ * changed: made exact match to limit be 'approved' to make description easier.
  */
 
 import net.paymate.awtx.RealMoney;
@@ -14,9 +15,12 @@ import net.paymate.util.*;
 
 public class StandinLimit implements isEasy {
 
-  public RealMoney perTxn;
-  public RealMoney total;
-//  public RealMoney perCard;
+  private RealMoney perTxn;
+  private RealMoney total;
+
+  public RealMoney perTxn(){ return perTxn;}
+  public RealMoney total(){ return total;}
+
 
   public final static String perTxnKey="perTxn";
   public final static String totalKey="total";
@@ -36,13 +40,12 @@ public class StandinLimit implements isEasy {
 
   public void save(EasyCursor ezc){
     ezc.setLong(perTxnKey,perTxn.Value());
-    ezc.setLong(totalKey, total.plus(perTxn).Value());//#standin3: later over limit problem
+    ezc.setLong(totalKey, total.Value());
   }
 
   public void load(EasyCursor ezc){
     perTxn=new RealMoney(ezc.getLong(perTxnKey));
     total =new RealMoney(ezc.getLong(totalKey));
-    total.subtract(perTxn);//#standin3: later over limit problem
   }
 
   public String spam(){
@@ -53,5 +56,25 @@ public class StandinLimit implements isEasy {
     return rhs!=null && rhs.perTxn.compareTo(perTxn)==0 && rhs.total.compareTo(total)==0;
   }
 
+  public boolean totalOk(RealMoney item,LedgerValue sofar){
+    return total.NonTrivial() && (sofar.plus(item).compareTo(total)<=0);
+  }
+
+  public boolean totalOk(RealMoney item, long centsSofar){
+    return totalOk(item, new LedgerValue().setto(centsSofar));
+  }
+
+  public boolean itemOk(RealMoney item){
+    return  perTxn.NonTrivial() && item.compareTo(perTxn)<=0;
+  }
+
+
+/**
+ *
+ */
+  public boolean NonZero(){
+    return perTxn.NonTrivial() && total.NonTrivial();
+  }
+
 }
-//$Id: StandinLimit.java,v 1.5 2001/07/13 18:48:20 andyh Exp $
+//$Id: StandinLimit.java,v 1.11 2005/03/03 05:19:55 andyh Exp $

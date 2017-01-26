@@ -6,31 +6,35 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: EasyProperties.java,v 1.66 2001/09/14 21:10:39 andyh Exp $
+* @version      $Id: EasyProperties.java,v 1.100 2003/08/22 20:54:05 mattm Exp $
 */
 package net.paymate.util;
 import  java.util.*;
-import  java.lang.reflect.Field;
+import  java.lang.reflect.*;
 import  java.io.*;
-import  java.net.URLDecoder;
-import  java.net.URLEncoder;
+import net.paymate.io.IOX;
+import net.paymate.lang.Bool;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ReflectX;
+import net.paymate.lang.ObjectX;
+import net.paymate.lang.TrueEnum;
 
 // !!! NOTE: There should only be ONE instance each
 // !!!       of setProperty() and getProperty(), and NONE of get() and put()
 // !!!       All other functions should use getString() and setString()
 // !!!       so that we can extend and do transformations on data!
 
-
+public  //Receipt needs some legacy stuff
 class EasyProperties extends Properties {
 
-  protected static final ErrorLogStream dbg = new ErrorLogStream(EasyProperties.class.getName(), ErrorLogStream.WARNING);
+  protected static final ErrorLogStream dbg = ErrorLogStream.getForClass(EasyProperties.class, ErrorLogStream.WARNING);
 
   public EasyProperties(){
     super();
   }
 
   public EasyProperties(Properties rhs){
-//    super(rhs); //can't do it this way...
+//#can't do it this way...    super(rhs);
     super();
     addMore(rhs);//...gotta copy to go deep on easycursor stuff
   }
@@ -39,24 +43,113 @@ class EasyProperties extends Properties {
     super();
     this.fromString(from, false /* don't need to clear a new one */);
   }
+
   /**
-   * coz of the file storage format this is ...
-   * ...the one char that no property value can ever start with:
+   * @return list of all full length names in set, regardless of internal cursor position
    */
+  public TextList allKeys(){
+    TextList keylist=new TextList(this.size());
+    //HashTable.propertyNames gives full length names
+    for(Enumeration enump = super.propertyNames(); enump.hasMoreElements(); ) {
+      keylist.add((String)enump.nextElement());
+    }
+    return keylist;
+  }
+
   public static final boolean isLegit(String value){
-    return Safe.NonTrivial(value);// at least need this much!!! else 'default' values don't work
+    return StringX.NonTrivial(value);// at least need this much!!! else 'default' values don't work
   }
 
   /**
    * if property is trivial replace with given
-   * @return always true
+   * @return true if already was set
    */
-  public boolean assure(String key, String defawlt){
-    if(!Safe.NonTrivial(getString(key))){
+  public boolean Assert(String key, String defawlt){
+    if(!StringX.NonTrivial(getString(key))){
       setProperty(key,defawlt);
-      //return false; //new setting is used
+      return false; //new setting is used
     }
     return true;//was already good
+  }
+
+  public EasyProperties setObject(String key,Object obj){
+    setString(key,String.valueOf(obj));
+    return this;
+  }
+
+  /**
+   * get named object
+   */
+  public Object getObject(String key,Class act){
+    return extractObject(getString(key),act);
+  }
+
+/**
+ * we can get objects if they have a string based constructor OR
+ * public null constructors and a setto(String) function.
+ */
+  public Object extractObject(String objimage,Class act){
+    try {
+      try {
+        Constructor [] ctors=act.getConstructors();
+        Constructor nullCtor=null;
+        Object []arglist=new Object[1];
+        arglist[0]=objimage;
+
+        for(int i=ctors.length;i-->0;){
+          Constructor ctor=ctors[i];
+          Class[] plist=ctor.getParameterTypes();
+          if(plist.length==0){
+            nullCtor=ctor;
+          }
+          if(plist.length==1 && plist[0]==String.class){
+            return ctor.newInstance(arglist); //preferred exit
+          }
+        }
+       //2nd chance: cosntruct then set:
+        if(nullCtor!=null){
+          Object obj=nullCtor.newInstance(new Object[0]);
+          Class[] plist=new Class[1];
+          plist[0]=String.class;
+          Method setto=act.getMethod("setto",plist);
+          if(setto!=null){
+            setto.invoke(obj,arglist); //if we could trust all setto's to return this...
+            //we could return the return value of the setto above.
+            //at present some return their arg rather than 'this'
+          }
+          return obj;
+        }
+        return act.newInstance();
+      }
+      catch (Exception ex) {
+        return act.newInstance();
+      }
+    } catch(Exception arf){
+      dbg.Caught("getObject got",arf);
+      return null;
+    }
+  }
+
+  public Object getObject(String key,Object def){
+    try {
+      Object obj=getObject(key,def.getClass());//might goto EasyCursor.getobject
+      return obj!=null ? obj : def;//.clone();
+    }
+    catch (Exception ex) {
+      return def;//.clone();
+    }
+  }
+
+  public EasyProperties setClass(String key, Class claz){
+    setString(key,claz.getName());
+    return this;
+  }
+
+  /**
+   * @return a Class for the given @param key, null on any problem
+   */
+  public Class getClass(String key){
+    return ReflectX.classForName(getString(key));
   }
 
   public EasyProperties setBoolean(String key, boolean newValue){
@@ -64,18 +157,17 @@ class EasyProperties extends Properties {
     return this;
   }
 
-  public EasyProperties assertBoolean(String key, boolean newValue){
-    assure(key,Bool.toString(newValue));
-    return this;
+//this had been commentedout without a reason why.
+  public boolean assertBoolean(String key, boolean newValue){
+    return Assert(key,Bool.toString(newValue));
   }
+
 
   public boolean getBoolean(String key, boolean defaultValue){
     for(int star=5;star-->0;) {//to recover from cycle of indirection
       String prop=getString(key);
-      if(!Safe.NonTrivial(prop)) break;
-      if(prop.equalsIgnoreCase("true"))  return true;
-      if(prop.equalsIgnoreCase("false")) return false;
-      key=prop; //see if it points to another property
+      if(!StringX.NonTrivial(prop)) break;
+      return Bool.For(prop);
     }
     return defaultValue;
   }
@@ -85,20 +177,32 @@ class EasyProperties extends Properties {
   }
 
   public EasyProperties setInt(String key, int newValue){
-    setString(key,Integer.toString(newValue));
+    setString(key,String.valueOf(newValue));
     return this;
   }
 
-  public EasyProperties assertInt(String key, int newValue){
-    assure(key,Integer.toString(newValue));
-    return this;
+  public boolean Assert(String key, int newValue){
+    return Assert(key,String.valueOf(newValue));
   }
-
 
   public int getInt(String key, int defaultValue){
     try {
       String prop=getString(key);
-      return Safe.NonTrivial(prop)?Safe.parseInt(prop):defaultValue;
+      return StringX.NonTrivial(prop)?StringX.parseInt(prop):defaultValue;
+    } catch (Exception caught){
+      return defaultValue;      //be silent on errors
+    }
+  }
+
+  public EasyProperties setChar(String key, char newValue){
+    setString(key,String.valueOf(newValue));
+    return this;
+  }
+
+  public char getChar(String key, char defaultValue){
+    try {
+      String prop=getString(key);
+      return StringX.NonTrivial(prop)?StringX.firstChar(prop):defaultValue;
     } catch (Exception caught){
       return defaultValue;      //be silent on errors
     }
@@ -113,15 +217,14 @@ class EasyProperties extends Properties {
     return this;
   }
 
-  public EasyProperties assertLong(String key, long newValue){
-    assure(key,Long.toString(newValue));
-    return this;
+  public boolean assertLong(String key, long newValue){
+    return Assert(key,Long.toString(newValue));
   }
 
   public long getLong(String key, long defaultValue){
     try {
       String prop=getString(key);
-      return Safe.NonTrivial(prop)?Safe.parseLong(prop):defaultValue;
+      return StringX.NonTrivial(prop)?StringX.parseLong(prop):defaultValue;
     } catch (Exception caught){
       return defaultValue;      //be silent on errors
     }
@@ -131,34 +234,26 @@ class EasyProperties extends Properties {
     return getLong(key,0);
   }
 
+  public boolean assertDouble(String key, double newValue){
+    return Assert(key,Double.toString(newValue));
+  }
+
   public EasyProperties setNumber(String key, double newValue){
     setString(key,Double.toString(newValue));
     return this;
   }
 
   public double getNumber(String key, double defaultValue){
-    try {
-      return Double.parseDouble(getString(key));
-    } catch (Exception caught){
-      return defaultValue;      //be silent on errors
-    }
+    assertDouble(key,defaultValue); //regular default syntax doesn't get us a default
+    return StringX.parseDouble(getString(key),defaultValue);      //be silent on errors
   }
 
   public double getNumber(String key){
     return getNumber(key,0.0);
   }
 
-  public void setChar(String key, char chr) {
-    setString(key, ""+chr);
-  }
-
   public char getChar(String key) {
-    String str = getString(key);
-    if(str.length() > 0) {
-      return str.charAt(0);
-    } else {
-      return 0;
-    }
+    return getChar(key,(char)0);
   }
 
   /**
@@ -168,35 +263,48 @@ class EasyProperties extends Properties {
   // if you need longer data types, use getBytes() and setBytes() or a similar array handler
    * ! we want to be able to overwrite a non-null value with a null one!
    */
-  public void setString(String key, String newValue){
+  public EasyProperties setString(String key, String newValue){
     setProperty(key,newValue);
+    return this;
   }
 
+/**
+ * added trim() here as crlf/lf stuff in properties files was killing us.
+ * we could do a scan on load-from-file to optimize this
+ */
   public String getProperty(String key){//4debug, to see param going to Properties.getProperty
-    return Safe.NonTrivial(key)? super.getProperty(key):"";
+    if(StringX.NonTrivial(key)){
+      String raw=super.getProperty(key);
+      if(raw!=null){
+        return raw.trim();//which might become zero length but won't be a null.
+      }
+    }
+    return "";
   }
 
   /**
    * remove items whose values are null
    */
-  public EasyProperties purgeNulls(boolean trivialsToo){
+  private EasyProperties purgeNulls(boolean trivialsToo){
     Enumeration allprops=super.keys();
     Object okey; //key as object
     Object value;
     while(allprops.hasMoreElements()){
       okey=allprops.nextElement();
       value=super.get(okey);
-      if(value==null){
+      if( value==null || (trivialsToo && !ObjectX.NonTrivial(value))){
         remove(okey);
-      } else {
-        if(trivialsToo){
-           if(!Safe.NonTrivial(value)){
-            remove(okey);
-           }
-        }
       }
     }
     return this;
+  }
+
+  public EasyProperties purgeNulls(){
+    return purgeNulls(false);
+  }
+
+  public EasyProperties purgeTrivials(){
+    return purgeNulls(true);
   }
 
   public String getString(String key, String defaultValue){
@@ -215,52 +323,23 @@ class EasyProperties extends Properties {
     }
   }
 
+  // ++++++++++++++ should we endeavor to make this case-INsensitive?
+
   public String getString(String key){
     return getString(key,"");//empty string rather than null!!!
   }
 
   public void setURLedString(String key, String newValue){
-    if(Safe.NonTrivial (newValue) ) {
-      setString(key,URLEncoder.encode(newValue));
+    if(StringX.NonTrivial(newValue)) {
+      setString(key,EasyUrlString.encode(newValue));
     }
   }
+
   /**
-   * @param defaultValue is not encoded, it is used when there is nothing to decode
+   * @param defaultValue is not urlencoded, it is used when there is nothing to decode
    */
-
   public String getURLedString(String key, String defaultValue) {
-    try {//java.net.URLDecode code stupidly explicitly throws Exception rather than the particular that it throws
-      return URLDecoder.decode(getString(key, defaultValue));
-    } catch (Exception e){
-      //+_+ could complain!
-      return defaultValue;
-    }
-  }
-
-  // +_+ if you add empty lines to this, it will truncate the list!
-  public TextList getTextList(String key) {
-    int size = getInt(textListSizeKey(key));
-    TextList tl = new TextList(size);//reserves space
-    tl.setSize(size);//allocates cells
-    for(int i =size;i-->0;) {
-      String prop = getString(textListKey(key, i/* was 'i++' --- a bug!!!???!!! */));
-      tl.set(i,prop);//using this for order independence
-    }
-    return tl;
-  }
-  public void setTextList(String key, TextList tl) {
-    setInt(textListSizeKey(key), tl.size());
-    for(int i = 0; i<tl.size();i++) {
-      setString(textListKey(key, i), tl.itemAt(i));
-    }
-  }
-
-  protected String textListKey(String key, int i) {
-    return key + "_" + i;
-  }
-
-  protected String textListSizeKey(String key) {
-    return key + "_SIZE";
+    return StringX.TrivialDefault(EasyUrlString.decode(getString(key, defaultValue)), defaultValue);
   }
 
   public TextList getPackedList(String key){
@@ -268,53 +347,6 @@ class EasyProperties extends Properties {
     String packed=getString(key);
     list.wordsOfSentence(packed);
     return list;
-  }
-
-  // maybe we should eventually add a string
-  // to tell how many bytes we should find (and chunks there are)
-  // for data validation
-  public byte[] getBytes(String key) {
-    StringBuffer ofBytes = new StringBuffer(128000); // sigh
-    // since we ALWAYS suffix the key with an integer,
-    // we can be guaranteed that the keys will have them now.
-    // 64000 chunks makes 4 gigabytes; should be PLENTY
-    for(int chunk = 0; chunk < MAXLENGTH; chunk++) {
-      String chunky = key + chunk;
-      String chunkStr = getString(chunky, null);
-      if(chunkStr == null) {
-        break;
-      }
-      ofBytes.append(chunkStr);
-    }
-    return ofBytes.toString().getBytes();
-  }
-
-  public void setBytes(String key, byte[] b) {
-    // have to break this up into separate strings
-    int MAXLENGTH = 64000;  // arbitrary < 64K
-    if(b.length == 0) {
-      setString(key + "0", "");
-      return;
-    }
-    int chunks    = (b.length+MAXLENGTH-1) / MAXLENGTH; // ROUNDUP
-    int length    = b.length;
-    int done      = 0;
-    for(int chunk = 0; chunk < chunks; chunk++) {
-      String chunkStr = new String(b, chunk * MAXLENGTH, Math.min(MAXLENGTH, length-done));
-      String chunky = key + chunk; // hehe
-      setString(chunky, chunkStr);
-      done += chunkStr.length();
-    }
-  }
-
-  protected static final int MAXLENGTH = 64000;  // arbitrary < 64K
-
-  public EasyCursor getEasyCursor(String key) {
-    return new EasyCursor(getURLedString(key, ""));
-  }
-
-  public void setEasyCursor(String key, EasyCursor ezp) {
-    setURLedString(key, ezp.toString());
   }
 
   public void saveEnum(String key, TrueEnum target){
@@ -325,6 +357,26 @@ class EasyProperties extends Properties {
     String prop=getString(key);
     if(prop!=null){
       target.setto(prop);
+    }
+  }
+
+  /**
+   * get int value of an enumeraiton using @param proto as a definition of the class involved.
+   * it is strongly suggested that the TrueEnum.Prop member be used for this.
+   * only in that case is this function (somewhat) multi-thread safe.
+   */
+  public int getEnumValue(String key, TrueEnum proto){
+    String prop=getString(key);
+    if(StringX.NonTrivial(prop)){
+      synchronized (proto) {
+      //this is synched presuming that proto is one of the TrueEnum.Prop objects,
+      //and that this is the only place in the universe that uses the value of
+      //that object.
+        proto.setto(prop);
+        return proto.Value();
+      }
+    } else {
+      return TrueEnum.Invalid();
     }
   }
 
@@ -342,13 +394,21 @@ class EasyProperties extends Properties {
   }
 
   public Date getDate(String key){
-    return getDate(key,Safe.Now());
+    return getDate(key,DateX.Now());
   }
 
-  /**
-   * why synch? someone can change the underlying set the moment after synch is gone
-   * I dropped the sync.  Does that seem reasonable? MMM 20010521
-   */
+  public void setUTC(String key,UTC d){
+    setLong(key,d != null ? d.utc : 0L);
+  }
+
+  public UTC getUTC(String key,UTC def){
+    return new UTC().setto(getLong(key,def != null ? def.utc : 0L));
+  }
+
+  public UTC getUTC(String key){
+    return new UTC().setto(getLong(key));
+  }
+
   public Enumeration sorted() {
     return new OrderedEasyPropertiesEnumeration(this);
   }
@@ -360,6 +420,8 @@ class EasyProperties extends Properties {
       //silent failure...
     } catch (NullPointerException caught){
       //also ignored.
+    } finally {
+      IOX.Close(is);
     }
     return this;
   }
@@ -372,16 +434,21 @@ class EasyProperties extends Properties {
     return asParagraph(specialEOL, defaultValueSeparator);
   }
 
+  /**
+   * when called from EasyCursor this should list only the branch
+   */
   public String asSwitchedParagraph(String specialEOL, String valueSeparator, boolean raw) {
     StringBuffer block=new StringBuffer(250); //wag
     for(Enumeration enump = propertyNames(); enump.hasMoreElements(); ) {
       String name = (String)enump.nextElement();
       block.append(name);
       block.append(valueSeparator);
-      block.append(raw ? getProperty(name) : getString(name));
-      block.append(specialEOL);
+      block.append(raw ? super.getProperty(name) : getString(name));
+      if(enump.hasMoreElements()){//in case 'specialEOL' is a comma
+        block.append(specialEOL);
+      }
     }
-    return block.toString();
+    return String.valueOf(block);
   }
 
   public String asParagraph(String specialEOL, String valueSeparator) {
@@ -402,9 +469,7 @@ class EasyProperties extends Properties {
 
   public TextList propertyList(){
     TextList unsorted=new TextList(this.size());
-    Enumeration enump = this.propertyNames();//goes deep on defaults.
-    unsorted.insertEnumeration(enump);
-    return unsorted;
+    return unsorted.assureItems(this.propertyNames());
   }
 
   // returns the number added
@@ -431,7 +496,7 @@ class EasyProperties extends Properties {
       if(defaults!=null){//+_+ can only recurse one level deep with this approach
         defaults.store(baos,header);
       }
-      return baos.toString();
+      return String.valueOf(baos);
     } catch (Exception caught) {
       dbg.Enter("toString");
       dbg.Caught(caught);
@@ -441,40 +506,35 @@ class EasyProperties extends Properties {
   }
 
   public String toURLdString(String header) {
-    return URLEncoder.encode(toString(header));
+    return EasyUrlString.encode(toString(header));
   }
 
   public void fromURLdString(String from, boolean clearFirst) {
-    try {
-      dbg.VERBOSE("fromURLdString() BEFORE decode: " + from);
-      String newFrom = URLDecoder.decode(from);
-      dbg.VERBOSE("fromURLdString() AFTER decode: " + newFrom);
-      fromString(newFrom, clearFirst);
-    } catch (java.lang.Exception jle){// added coz Sun 1.2.2 gives compilation error #360 if we don't
-      //boo hoo....
-      dbg.Caught(jle);
-    }
+    dbg.VERBOSE("fromURLdString() BEFORE decode: " + from);
+    String newFrom = EasyUrlString.decode(from);
+    dbg.VERBOSE("fromURLdString() AFTER decode: " + newFrom);
+    fromString(newFrom, clearFirst);
   }
 
   public void fromString(String from, boolean clearFirst) {
     if(clearFirst) {
       clear();
     }
-    if(Safe.NonTrivial(from)) {
+    if(StringX.NonTrivial(from)) {
       try {
         byte bytes[] = from.getBytes();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        dbg.VERBOSE("fromString() BEFORE load: " + asParagraph());
         /*super.*/load(bais);
-        dbg.VERBOSE("fromstring loaded " + toString(""));
-        dbg.VERBOSE("class: '" + getString("class") + "'");
       } catch (Exception caught) {
-        dbg.Enter("fromString");
         dbg.Caught(caught);
-        dbg.Exit();
-      } finally {
       }
     }
+  }
+
+  public static EasyProperties FromString(String streamed){
+    EasyProperties newone = new EasyProperties();
+    newone.fromString(streamed,false);
+    return newone;
   }
 
   public void storeSorted(OutputStream out, String header) throws IOException{
@@ -483,7 +543,7 @@ class EasyProperties extends Properties {
     StringWriter writer = new StringWriter();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     store(baos, header);
-    BufferedReader reader = new BufferedReader(new StringReader(baos.toString()));
+    BufferedReader reader = new BufferedReader(new StringReader(String.valueOf(baos)));
     TextList tl = new TextList();
     String test = "";
     while(test != null) {
@@ -523,4 +583,4 @@ class OrderedEasyPropertiesEnumeration implements Enumeration {
 
 }
 
-//$Id: EasyProperties.java,v 1.66 2001/09/14 21:10:39 andyh Exp $
+//$Id: EasyProperties.java,v 1.100 2003/08/22 20:54:05 mattm Exp $

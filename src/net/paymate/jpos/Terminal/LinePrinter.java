@@ -1,24 +1,24 @@
+package net.paymate.jpos.Terminal;
 /**
-* Description:
+* Title:        $Source: /cvs/src/net/paymate/jpos/Terminal/LinePrinter.java,v $
+* Description:    class LinePrinter directly implements a NullPrinter. Normally
+one extends its "sendLine" functions to route output to an actual
+printing device. IF RTS is required override that too.
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: LinePrinter.java,v 1.20 2001/10/05 20:39:31 andyh Exp $
+* @version      $Rev: LinePrinter.java,v 1.21 2001/12/04 06:52:53 andyh Exp $
+* @todo: use Qagent and notifies instead of idiosyncractic RTS stuff.
 */
-package net.paymate.jpos.Terminal;
 
 import net.paymate.util.*;
 import net.paymate.jpos.data.ByteBlock;
 import net.paymate.util.ObjectFifo;
-/** class LinePrinter directly implements a NullPrinter. Normally
-one extends its "sendLine" functions to route output to an actual
-printing device. IF RTS is required override that too.
-
- */
+import net.paymate.text.Formatter;
 
 public class LinePrinter {//base is complete, but prints to debug stream
-  protected static final ErrorLogStream dbg=new ErrorLogStream(LinePrinter.class.getName());
-  private static final ErrorLogStream lines=new ErrorLogStream(LinePrinter.class.getName()+".lines");
+  protected static final ErrorLogStream dbg=ErrorLogStream.getForClass(LinePrinter.class);
+  protected static final ErrorLogStream lines=ErrorLogStream.getExtension(LinePrinter.class, "lines");
 /** for the configuration psuedo database  */
   protected String myName;
   protected ObjectFifo paraBuffer;
@@ -27,14 +27,19 @@ public class LinePrinter {//base is complete, but prints to debug stream
 
   private Monitor pageMonitor = new Monitor("pagecoherence");
 
+  public void disConnect(){
+  //stop NOW and release all resources.
+  //trusts overriding clases to free paraBuffer.
+    paraBuffer.Clear();
+    endPage();
+  }
+
   public void startPage (){
     pageMonitor.getMonitor();
   }
   public void endPage (){
     pageMonitor.freeMonitor();
   }
-
-
 
 /**
  * usually overloaded
@@ -44,7 +49,7 @@ public class LinePrinter {//base is complete, but prints to debug stream
       if(!amGraphing){
         lines.VERBOSE(new String(rawline));
       } else {
-        lines.VERBOSE(Safe.hexImage( rawline).toString());
+        lines.VERBOSE(String.valueOf(Formatter.hexImage(rawline)));
       }
       CTSEvent(true); //else rest of buffer will stay filled
   }
@@ -58,7 +63,7 @@ public class LinePrinter {//base is complete, but prints to debug stream
   public boolean Print(byte[] rawline){
     try {
       paraBufferMonitor.getMonitor();
-      dbg.VERBOSE("Buffering:"+Safe.hexImage(rawline));
+      dbg.VERBOSE("Buffering:"+Formatter.hexImage(rawline));
       paraBuffer.put(rawline);
       setRTS(true);  //rigged to give us an event if we can send data.
     } finally {
@@ -70,7 +75,7 @@ public class LinePrinter {//base is complete, but prints to debug stream
     /**@return true if successfully buffered   */
 
   public boolean Print(byte controlchar){//param is named for most common use
-    dbg.VERBOSE("print one char:"+Safe.ox2(controlchar));
+    dbg.VERBOSE("print one char:"+Formatter.ox2(controlchar));
     byte [] one=new byte [1];
     one[0]=controlchar;
     return Print(one);
@@ -160,8 +165,13 @@ public class LinePrinter {//base is complete, but prints to debug stream
     paraBuffer= new ObjectFifo();
   }
 
+  public static LinePrinter Null(){
+    return new LinePrinter("nullLinePrinter");
+  }
+
+
   public String toString(){
     return myName;
   }
 
-} //$Id: LinePrinter.java,v 1.20 2001/10/05 20:39:31 andyh Exp $
+} //$Id: LinePrinter.java,v 1.29 2003/07/27 05:35:06 mattm Exp $

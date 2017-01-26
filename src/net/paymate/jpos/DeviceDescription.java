@@ -6,14 +6,15 @@ package net.paymate.jpos;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.6 $
  */
 
 import net.paymate.util.*;
 import java.util.Vector;
+import net.paymate.lang.ReflectX;
 
 public class DeviceDescription implements isEasy {
-  static final Tracer dbg=new Tracer(DeviceDescription.class.getName());
+  static final Tracer dbg=new Tracer(DeviceDescription.class);
 
   public String name;
   public String className;
@@ -38,19 +39,13 @@ public class DeviceDescription implements isEasy {
     String className=null;
     try {
       className = ezp.getString("class");
-      newone = (DeviceDescription)Class.forName(className).newInstance();
+      newone = (DeviceDescription)ReflectX.newInstance(className);
       newone.load(ezp);
       newone.name=name;
       newone.className=className;
     }
     catch(NullPointerException npe){
       dbg.ERROR("No properties or no className therein for class named'" + className + "'!");
-    }
-    catch (InstantiationException ie){
-      dbg.ERROR("No empty constructor  for class named'" + className + "'!");
-    }
-    catch (ClassNotFoundException cnfe) {
-      dbg.ERROR("No class definition for class named'" + className + "'!");
     }
     catch (Exception e) {
       dbg.Caught(e);
@@ -62,4 +57,4 @@ public class DeviceDescription implements isEasy {
   }
 
 }
-//$Id: DeviceDescription.java,v 1.3 2001/10/10 22:47:54 andyh Exp $
+//$Id: DeviceDescription.java,v 1.6 2003/07/27 05:35:06 mattm Exp $

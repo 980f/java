@@ -1,14 +1,20 @@
-/* $Id: StringStack.java,v 1.4 2001/09/01 09:33:39 mattm Exp $
+package net.paymate.util;
+/* $Source: /cvs/src/net/paymate/util/StringStack.java,v $
  A string stack that does not throw empty stack exceptions
-
  */
 
-package net.paymate.util;
-
-import java.util.Stack;
-import java.util.EmptyStackException;
+import java.util.*;
 
 public class StringStack {
+  private static LogSwitch dumpLevel;
+
+  public static void setDebug(LogLevelEnum lle){
+    if(dumpLevel==null){
+      dumpLevel = LogSwitch.getFor(StringStack.class);
+    }
+    dumpLevel.setto(lle.Value());
+  }
+
   protected Stack myStack;
   public final static String stringForEmpty="StackEmpty";
 
@@ -45,8 +51,15 @@ public class StringStack {
     return myStack.search(o);
   }
 
-  public StringStack(){
+  private String name = "unconstructed";
+  public String name() {
+    return name;
+  }
+
+  public StringStack(String name){
     myStack= new Stack();
+    this.name = name;
+    register(this);
   }
 
   public String toString() {
@@ -60,8 +73,68 @@ public class StringStack {
       sb.insert(0, myStack.elementAt(i));
       sb.insert(0, separator);
     }
-    return sb.toString();
+    return String.valueOf(sb);
   }
 
+  /**
+   * The registry is used to track the push and pops of ErrorLogStream.
+   * Since the StringStacks shouldn't get created over and over, for now we can make references in a list instead of using WeakSet.
+   */
+  protected static WeakSet registry = null;
+  private static final void register(StringStack thisone) {
+    if(registry == null) {
+      registry = new WeakSet(100, 10);
+    }
+    registry.add(thisone);
+  }
+  public static final TextList dumpStackList() {
+    TextList ret = new TextList();
+
+    try {
+      boolean names = false;
+      boolean details = false;
+      boolean empties = false;
+      if(dumpLevel == null) {
+        ret.add("StringStack.dumpLevel is null!");
+      } else {
+        switch(dumpLevel.Value()) {
+          case LogLevelEnum.VERBOSE:  empties = true;
+          case LogLevelEnum.WARNING:  details = true;
+          case LogLevelEnum.ERROR:    names   = true;
+            break;
+            // eventually will list ones with detected stack errors ...
+        }
+      }
+      if(names){
+        ret.add("stack count:"+registry.size());
+      }
+
+      for(Iterator iter = registry.iterator(); iter.hasNext();) {
+        StringStack stack = (StringStack)iter.next();
+        if(names) {
+          int j = stack.myStack.size();
+          if( empties || j > 0 ) {
+            String line = stack.name() + "[" + j + "]";
+            if(details) {
+              line += ":";
+              for(;j-->0;) {
+                try {
+                  String str = (String)stack.myStack.elementAt(j);
+                  line+=str+(j==0 ? "." : ",");
+                } catch (Exception ex) {
+                  ret.add(ex.getMessage());
+                }
+              }
+            }
+            ret.add(line);
+          }
+        }
+      }
+    } catch(Exception e) {
+      ret.add("StackList.dumpStackList: Excepted trying to generate stacklist output: " + e);
+    } finally {
+      return ret;
+    }
+  }
 }
-//$Id: StringStack.java,v 1.4 2001/09/01 09:33:39 mattm Exp $
+//$Id: StringStack.java,v 1.19 2003/07/24 23:10:49 andyh Exp $

@@ -4,29 +4,29 @@
  * Copyright:    2000<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: PackageArrayTableGen.java,v 1.9 2001/10/15 22:41:38 andyh Exp $
+ * @version      $Id: PackageArrayTableGen.java,v 1.14 2003/10/30 23:06:12 mattm Exp $
  */
 
 package net.paymate.web.table;
 import  net.paymate.util.ErrorLogStream;
 import  net.paymate.web.color.*;
 import  org.apache.ecs.*;
-import  net.paymate.util.Safe;
+import net.paymate.lang.StringX;
 
 public class PackageArrayTableGen extends TableGen {
 
   // logging facilities
-  private static final ErrorLogStream dbg=new ErrorLogStream(PackageArrayTableGen.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(PackageArrayTableGen.class);
 
   Package[] pkgs = null;
 
-  public PackageArrayTableGen(String title, ColorScheme colors, Package[] pkgs, HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    super(title, colors, headers, absoluteURL, howMany, sessionid);
+  public PackageArrayTableGen(String title, ColorScheme colors, Package[] pkgs, HeaderDef headers[], String absoluteURL) {
+    super(title, colors, headers, absoluteURL);
     this.pkgs = pkgs;
   }
 
-  public static final Element output(String title, ColorScheme colors, Package[] pkgs, String sessionid) {
-    return new PackageArrayTableGen(title, colors, pkgs, null, null, -1, sessionid);
+  public static final Element output(String title, ColorScheme colors, Package[] pkgs) {
+    return new PackageArrayTableGen(title, colors, pkgs, null, null);
   }
 
   public RowEnumeration rows() {
@@ -60,10 +60,6 @@ public class PackageArrayTableGen extends TableGen {
       headers[HASH]        = new HeaderDef(AlignType.LEFT, "Hash");
     }
     return headers;
-  }
-
-  public void close() {
-    super.close();
   }
 }
 
@@ -159,6 +155,6 @@ class PackageArrayTableGenRow implements TableGenRow {
         } break;
       }
     }
-    return new StringElement(Safe.TrivialDefault(reply, ""));
+    return new StringElement(StringX.TrivialDefault(reply, ""));
   }
 }

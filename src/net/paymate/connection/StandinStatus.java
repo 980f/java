@@ -6,10 +6,12 @@ package net.paymate.connection;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.5 $
  */
 
 import net.paymate.util.*;
+import net.paymate.lang.StringX;
+import net.paymate.text.Formatter;
 
 public class StandinStatus {
 
@@ -55,8 +57,8 @@ public class StandinStatus {
    * @param prefix goes at fron of string, its last char's complementary char goes at last
    */
   public String toSpam(String prefix){
-    if(Safe.NonTrivial(prefix)){
-      return prefix+txnBacklog()+"/"+rcpBacklog()+Fstring.matcher(prefix.charAt(prefix.length()-1));
+    if(StringX.NonTrivial(prefix)){
+      return Formatter.ratioText(prefix,txnBacklog(),rcpBacklog());
     } else {
       return toSpam(" ");
     }
@@ -67,4 +69,4 @@ public class StandinStatus {
   }
 
 }
-//$Id: StandinStatus.java,v 1.3 2001/11/17 00:38:34 andyh Exp $
+//$Id: StandinStatus.java,v 1.5 2003/07/27 05:34:55 mattm Exp $

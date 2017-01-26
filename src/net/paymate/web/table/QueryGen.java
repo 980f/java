@@ -6,7 +6,7 @@ package net.paymate.web.table;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: QueryGen.java,v 1.5 2001/09/07 23:33:08 mattm Exp $
+ * @version $Id: QueryGen.java,v 1.8 2003/10/30 21:05:16 mattm Exp $
  */
 
 import  net.paymate.util.ErrorLogStream;
@@ -17,13 +17,12 @@ import  org.apache.ecs.*;
 
 public abstract class QueryGen extends TableGen implements TableGenRow, RowEnumeration {
   // logging facilities
-  private static final ErrorLogStream dbg=new ErrorLogStream(QueryGen.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(QueryGen.class);
 
   protected Query q = null;
 
-  public QueryGen(String title, ColorScheme colors, Query q, HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    super(title, colors, headers, absoluteURL, howMany, sessionid);
-    this.maxRows = howMany;
+  public QueryGen(String title, ColorScheme colors, Query q, HeaderDef headers[], String absoluteURL) {
+    super(title, colors, headers, absoluteURL);
     this.q = q;
   }
 

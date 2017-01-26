@@ -3,12 +3,12 @@ package net.paymate.ivicm.et1K;
 import net.paymate.awtx.print.PrinterModel;
 
 /**
- * Title:
- * Description:
+ * Title:         $Source: /cvs/src/net/paymate/ivicm/et1K/EtPrinter.java,v $
+ * Description:  print to enTouch, kinda like we saw at homeDepot
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
- * @author $Author: andyh $
- * @version $Id: EtPrinter.java,v 1.4 2001/06/26 01:35:21 andyh Exp $
+ * @version $Id: EtPrinter.java,v 1.6 2003/01/09 00:25:32 andyh Exp $
+ * @todo: delete this class
  */
 
 import  net.paymate.jpos.Terminal.LinePrinter;
@@ -35,4 +35,4 @@ public class EtPrinter extends PrinterModel {
 
 
 }
-//$Id: EtPrinter.java,v 1.4 2001/06/26 01:35:21 andyh Exp $
+//$Id: EtPrinter.java,v 1.6 2003/01/09 00:25:32 andyh Exp $

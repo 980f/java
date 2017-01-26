@@ -7,13 +7,13 @@
  * Copyright:    2000 PayMate.net<p>
  * Company:      paymate<p>
  * @author       paymate
- * @version      $Id: ConnectionCallback.java,v 1.9 2001/10/17 22:07:22 andyh Exp $
+ * @version      $Id: ConnectionCallback.java,v 1.12 2004/02/23 17:47:23 andyh Exp $
  */
 
 package net.paymate.connection;
-import  net.paymate.util.ErrorLogStream;
 
 public interface ConnectionCallback {
-  void ActionReplyReceipt(Action action);
+  public void ActionReplyReceipt(Action action);
+  public void extendTimeout(int millis);//ConnectionCallback interface
 }
-//$Id: ConnectionCallback.java,v 1.9 2001/10/17 22:07:22 andyh Exp $
+//$Id: ConnectionCallback.java,v 1.12 2004/02/23 17:47:23 andyh Exp $

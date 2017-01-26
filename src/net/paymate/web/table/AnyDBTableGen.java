@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: AnyDBTableGen.java,v 1.10 2001/10/11 04:34:03 mattm Exp $
+ * @version      $Id: AnyDBTableGen.java,v 1.14 2003/10/30 21:05:15 mattm Exp $
  */
 
 package net.paymate.web.table;
@@ -13,21 +13,18 @@ import  net.paymate.web.color.*;
 import  java.sql.*;
 import  org.apache.ecs.*;
 import  net.paymate.database.DBMacros;
+import net.paymate.lang.StringX;
 
 public class AnyDBTableGen extends DBTableGen {
   // logging facilities
-  private static final ErrorLogStream dbg=new ErrorLogStream(AnyDBTableGen.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(AnyDBTableGen.class);
 
-  public AnyDBTableGen(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    super(title, colors, rs, headers, absoluteURL, howMany, sessionid);
+  public AnyDBTableGen(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[], String absoluteURL) {
+    super(title, colors, rs, headers, absoluteURL);
   }
 
-  public static final Element output(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[], String sessionid) {
-    return output(title, colors, rs, headers, null, -1, sessionid);
-  }
-
-  public static final Element output(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    return new AnyDBTableGen(title, colors, rs, headers, absoluteURL, howMany, sessionid);
+  public static final Element output(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[]) {
+    return new AnyDBTableGen(title, colors, rs, headers, null);
   }
 
   protected int numCols = -1;
@@ -47,7 +44,7 @@ public class AnyDBTableGen extends DBTableGen {
   }
 
   public Element column(int col) {
-    return new StringElement(Safe.TrivialDefault(DBMacros.getStringFromRS(col+1, rs), " "));
+    return new StringElement(StringX.TrivialDefault(DBMacros.getStringFromRS(col+1, rs), " "));
   }
 
   public void close() {

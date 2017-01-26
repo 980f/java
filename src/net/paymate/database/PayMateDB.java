@@ -1,1367 +1,968 @@
 package net.paymate.database;
+
 /**
-* Title:        PayMateDB<p>
-* Description:  structured queries for the DBMS (etc)<p>
-* Copyright:    2000, PayMate.net<p>
-* Company:      PayMate.net<p>
-* @author       PayMate.net
-* @version      $Id: PayMateDB.java,v 1.37 2001/11/17 20:06:36 mattm Exp $
-*/
+ * Title:        $Source: /cvs/src/net/paymate/database/PayMateDB.java,v $
+ * Description:  structured queries for the DBMS (etc)<p>
+ * Copyright:    2000, PayMate.net3520<p>
+ * Company:      PayMate.net<p>
+ * @author       PayMate.net
+ * @version      $Revision: 1.389 $
+ */
 
-import  net.paymate.database.*;
-import  net.paymate.util.*;
-import  net.paymate.database.ours.query.*;
-import  net.paymate.database.ours.*;
-import  net.paymate.database.ours.table.*;
-import  net.paymate.connection.*;
-import  net.paymate.ISO8583.data.*;
-import  net.paymate.web.LoginInfo;
-import  java.io.File;
-import  java.util.Date; //explicit to resolve conflict between this and java.sql.date
-import  java.sql.*;
-import  java.text.*;
-import  java.io.*;
-import  java.util.*;
-import  net.paymate.terminalClient.*;
-import  net.paymate.ISO8583.data.LedgerValue; // amounts
-import  net.paymate.data.*;
-import  net.paymate.awtx.*;
-import  net.paymate.jpos.data.*;
-import  net.paymate.util.timer.*;
-import  net.paymate.authorizer.*; //getStoodins(StandinList...)
+import java.lang.reflect.*; // for testing the queries
+import java.sql.*;
+import java.util.*;
+import net.paymate.authorizer.*;
+import net.paymate.awtx.*;
+import net.paymate.connection.*;
+import net.paymate.data.*;
+import net.paymate.data.sinet.*;
+import net.paymate.data.sinet.business.*;
+import net.paymate.data.sinet.hardware.*;
+import net.paymate.database.ours.*;
+import net.paymate.database.ours.query.*;
+import net.paymate.database.ours.table.*;
+import net.paymate.lang.*;
+import net.paymate.terminalClient.Receipt;
+import net.paymate.terminalClient.ReceiptFormat;
+import net.paymate.terminalClient.TerminalCapabilities;
+import net.paymate.util.*;
+import net.paymate.util.timer.*;
+import net.paymate.jpos.data.*;
+import net.paymate.jpos.awt.Hancock; // for signatures
 
-public class PayMateDB extends DBMacros implements DBConstants, Database {
-  private static final ErrorLogStream dbg = new ErrorLogStream(PayMateDB.class.getName());
+public class PayMateDB extends DBMacros implements Database, ConfigurationManager, HardwareCfgMgr /* do NOT add DBCONSTANTS here */, BusinessCfgMgr {
 
-  private static final String EMPTYSTRING = "";
-  private static final String SPACE = " ";
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(PayMateDB.class, ErrorLogStream.WARNING);
 
-  public final static int NOTANUMBER = -1; //we should choose another value, like 0x800000000
+  static {
+    appliance.foreignKeys = applianceForeignKeys;
+    associate.foreignKeys = associateForeignKeys;
+    authattempt.foreignKeys = authattemptForeignKeys;
+    batch.foreignKeys = batchForeignKeys;
+    drawer.foreignKeys = drawerForeignKeys;
+    // +++ eventually enterprise.foreignKeys = enterpriseForeignKeys;
+    storeaccess.foreignKeys = storeAccessForeignKeys;
+    storeauth.foreignKeys = storeauthForeignKeys;
+    store.foreignKeys = storeForeignKeys;
+    termauth.foreignKeys = termauthForeignKeys;
+    terminal.foreignKeys = terminalForeignKeys;
+    txn.foreignKeys = txnForeignKeys;
+  }
+
+  private static TableProfile[] SINETTABLES;
+  private static void prepareSinetTables() {
+    int count = new SinetClass().numValues();
+    dbg.ERROR("prepareSinetTables() setting SINETTABLES length to " + count);
+    SINETTABLES = new TableProfile[count];
+    for(int i = count; i-- > 0; ) {
+      TableProfile tp = null;
+      switch(i) {
+// +++ eventually put these values into the TableProfiles themselves?
+        case SinetClass.Enterprise:
+          tp = enterprise;
+          break;
+        case SinetClass.Store:
+          tp = store;
+          break;
+        case SinetClass.Appliance:
+          tp = appliance;
+          break;
+// no persistence of appliance log data 20040523 !
+//        case SinetClass.ApplNetStatus:
+//          tp = applnetstatus;
+//          break;
+//        case SinetClass.ApplPgmStatus:
+//          tp = applpgmstatus;
+//          break;
+        case SinetClass.Associate:
+          tp = associate;
+          break;
+        case SinetClass.Terminal:
+          tp = terminal;
+          break;
+// +++ @SS2
+      }
+      SINETTABLES[i] = tp;
+    }
+  }
+
+  private static final Counter PayMateDBclassMonitorCounter = new Counter();
+
+  private static final PayMateDBQueryString QS = new PayMateDBQueryString();
+  // this is for the Database interface!
+  public static final TableProfile[] tables = QS.getTableArray();
+
+  // set server-based defaults
+  public static final void setServerDefaultColors() {
+    associate.colorschemeid.columnDef = Associate.DEFAULTCOLORS; // shouldn't be singleQuoteEscaped
+  }
 
   public PayMateDB(DBConnInfo connInfo) {
-    super(connInfo);
-  }
-
-  public final static int LASTAUTOSTAN=99999; //last stan we can use in server
-  // made symbolic as we may share stan range with client stand-in.
-  ///////////////////////////////////////
-  //  protected static TimeZone tz;
-  /**
-  * formatter for transtarttime field
-  */
-
-  //////////////////////
-  // transtarttime is our major time reference for transactions.
-  //////// Time/date stuff
-
-  public final static String transtarttimeFormat = "yyyyMMddHHmmss";//maimsail's choice
-  protected static final LocalTimeFormat trantime=LocalTimeFormat.Utc(transtarttimeFormat);
-/**
- * can't have a default range, we use this in places that must start with an empty range
- */
-  public static final TimeRange TimeRange(){
-    return TimeRange.Create(transtarttimeFormat,TRANSTARTTIME);
-  }
-
-/**
- * @return a timerange for the lifetime of the database
- */
-
-  public static final TimeRange ForAllTime(){
-    return TimeRange.Create(transtarttimeFormat,TRANSTARTTIME).
-    setStart(LocalTimeFormat.genesis).setEnd(Safe.Now());
-  }
-
-//  private static final Monitor tranTimeMonitor = new Monitor("PayMateDB.trantime");
-
-  /**
-  * @param dbvalue string value of time from databse transstartime field or equivalent
-  */
-  public static final Date tranUTC(String dbvalue){
-    return TransactionTime.tranUTC(dbvalue);
-  }
-  /**
-  * convert @param date into string for transtarttime field
-  */
-  public static final String forTrantime(Date utc){
-    return TransactionTime.forTrantime(utc);
-  }
-  /**
-  * convert @param utcTix into string for transtarttime field
-  */
-
-  public static final String forTrantime(long utcTix){
-    return forTrantime(new Date(utcTix));
+    super(connInfo, Thread.currentThread().getName());
+    PayMateDBclassMonitor = new Monitor(PayMateDB.class.getName() + "." + PayMateDBclassMonitorCounter.incr());
   }
 
   /**
-   * default format for time displays at stores.
-   * (PLEASE make i tbe a fixed legnth regardless of time/date!)
+   * @return successful db manipulation
+   * @param original
+   * @param record
+   * @return
    */
-
-  ////////////////////
-
-  public static final QueryString StoreIs(int storenum){
-    return QueryString.Clause(EMPTYSTRING).nvPair(STOREID,storenum);
+  public boolean updateTxn(TxnRow original) {
+    EasyProperties ezp = original.toProperties();
+    return setRecordProperties(txn, original.txnid(), ezp) != FAILED;
   }
 
-  public static final QueryString TimeIs(String tstime){
-    return QueryString.Clause(EMPTYSTRING).nvPair(TRANSTARTTIME,tstime);
+  public String Safeid(UniqueId id) {
+    return UniqueId.isValid(id) ? id.toString() : null;
   }
 
-  public static final QueryString TimeAfter(String time){
-    return QueryString.Clause(EMPTYSTRING).
-    Open("").nGTEQv(TRANSTARTTIME,time).Close();
+  public Enterpriseid[] getAllEnterprisesEnabledNameOrder() {
+    return(Enterpriseid[]) getUniqueIdExtentArrayFromQuery(QS.genEnterpriseIdsbyEnabledName(), Enterpriseid.class);
   }
 
-  public static final QueryString ApplianceIs(String applidnum){
-    return QueryString.Clause(EMPTYSTRING).nvPair(APPLIANCEID,applidnum);
+  public Storeid[] getAllStoresTxnCountOrder() {
+    return(Storeid[]) getUniqueIdExtentArrayFromQuery(QS.genStoreidsByAscTxncount(), Storeid.class);
   }
 
-  public static final QueryString TerminalIs(int termidnum){
-    return QueryString.Clause(EMPTYSTRING).nvPair(TERMINALID,termidnum);
+  public TerminalInfo getTerminalInfo(Terminalid terminalId) {
+    TerminalInfo newone = null;
+    if(Terminalid.isValid(terminalId)) {
+      EasyProperties ezp = getRecordProperties(terminal, terminalId);
+      newone = new TerminalInfo(terminalId);
+      newone.setNickName(ezp.getString(terminal.terminalname.name()));
+      newone.setHack(ezp.getString(terminal.modelcode.name()));
+      newone.setAllowSigCap(ezp.getBoolean(terminal.dosigcap.name()));
+      newone.setAskforAvs(ezp.getBoolean(terminal.enavs.name()));
+      newone.setTwoCopies(ezp.getBoolean(terminal.twocopies.name()));
+      newone.setCanStandinModify(ezp.getBoolean(terminal.ensimodify.name()));
+      EasyProperties more = EasyProperties.FromString(ezp.getString(terminal.eqhack.name()));
+      newone.moreProperties = more;
+      // storeinfo stuff
+      newone.si = getStoreInfo(StoreHome.Get(getStoreForTerminal(terminalId)));
+      dbg.VERBOSE("getTerminalInfo:" + newone.toSpam());
+    }
+    return newone;
   }
 
-  public static final QueryString TerminalIs(TerminalID T) {
-    return QueryString.Clause(EMPTYSTRING).append(TerminalIs(T.terminalID)).and().append(StoreIs(T.storeid));
+  public String getTerminalName(Terminalid terminalId) {
+    return getRecordProperties(terminal, terminalId).getString(terminal.terminalname.name());
   }
 
-  public static final QueryString TerminalNamed(String nickname){
-    return QueryString.Clause(EMPTYSTRING).nvPair(TERMINALNAME,nickname);
+  public TermauthRow getTermauths(Terminalid termid) {
+    Statement q = query(QS.genTermAuths(termid));
+    if(q == null) {
+      dbg.ERROR("TermauthRow: q = null!");
+    }
+    return TermauthRow.NewSet(q);
   }
 
-  public static final QueryString ApprovedTxns(){
-    QueryString toReturn = QueryString.Clause(EMPTYSTRING).
-      Open(""). // new ...
-        Open("").
-          nvPair(ACTIONCODE,"A").
-        Close().
-        or().
-        Open("").
-          not().isEmpty("tranjour."+/* --- possible cause of bug !!! STOODINSTAN --- */CLIENTREFTIME).//nvPair("tranjour."+/* --- possible cause of bug !!! STOODINSTAN --- */CLIENTREFTIME, "").
-        Close().
-      Close().
-      and().append(NoVoids()).
-      and().not().nvPair("voidtransaction","Y");
-      dbg.VERBOSE("ApprovedTxns() returning: " + toReturn);
-    return toReturn;
+  public final StoreAccessid getStoreaccess(Associateid associd, Storeid storeid) {
+    return new StoreAccessid(getIntFromQuery(QS.genStoreAccessid(associd, storeid)));
   }
 
-  public static final QueryString NoVoids(){
-    return  QueryString.Clause(EMPTYSTRING).not().nvPair(MESSAGETYPE,"0400");
+  // +++ eventually require storeid
+  public final StoreaccessRow getStoreaccesses(Associateid associd) {
+    Statement q = query(QS.genStoreAccessesByAssoc(associd));
+    if(q == null) {
+      dbg.ERROR("getStoreaccesses: q = null!");
+    }
+    return StoreaccessRow.NewSet(q);
   }
 
-
-  // +++ put these into the querystring !!! ???
-  public static final QueryString StoreAgrees(){
-    return  QueryString.Clause(EMPTYSTRING).matching(store.name(),terminal.name(),STOREID);
+  public final StoreaccessRow getStoreaccesses(UniqueId storeid) {
+    Statement q = query(QS.genStoreAccessesByStore(storeid));
+    if(q == null) {
+      dbg.ERROR("getStoreaccesses: q = null!");
+    }
+    return StoreaccessRow.NewSet(q);
   }
 
-  /////////////////////////////////////////////////
-  protected static final QueryString tiftQuery(TxnRow rec){//excised for testing
-    return QueryString.Select(TERMINALID).from(terminal.name()).
-    where(TerminalNamed(rec.cardacceptortermid)).and(StoreIs(Safe.parseInt(rec.storeid)));
-  }
+  private static final PayType PTEMPTY = new PayType();
 
-  public TerminalInfo getTerminalInfo(int terminalId) {
-    TerminalInfo ti = new TerminalInfo(terminalId);
-    Statement stmt =null;
-    try {
-      stmt = query(genTerminalInfoQuery(terminalId));
-      ResultSet rs = getResultSet(stmt);
-      if(next(rs)) {
-        ti=TermFromRS(rs);
-        ti.si = storeFromRS(rs);
+  private final boolean findStoreAuthInfo(Storeid storeid, PayType paytype, String institution, RealMoney maxtxnlimitRM, TxnRow record) {
+    boolean gateway = (record != null) && record.hasAuthRequest();
+    long maxtxnlimit = 0;
+    // this ignores the institution if it set to null!
+    StoreAuthid id = new StoreAuthid(getIntFromQuery(QS.genStoreAuthInfo(storeid, String.valueOf(paytype.Char()), institution)));
+    if(id.isValid()) {
+      EasyProperties ezp = getRecordProperties(storeauth, id);
+      // we sometimes pass null in for record when we are JUST getting the merchant
+      // info and don't care about the authid or have a TxnRow to put it in
+      if(record != null) {
+        record.authid = ezp.getString(storeauth.authid.name());
+        record.settleid = ezp.getString(storeauth.settleid.name());
       }
-    } catch(Exception arf){
-      dbg.ERROR("Swallowed in getTerminalInfo:"+arf);
+      maxtxnlimit = ezp.getLong(storeauth.maxtxnlimit.name());
+      maxtxnlimitRM.setto(gateway ? Integer.MAX_VALUE : maxtxnlimit);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public final TermAuthid[] getTermauthids(Terminalid termid) {
+    return(TermAuthid[]) getUniqueIdExtentArrayFromQuery(QS.genTermAuthIds(termid), TermAuthid.class);
+  }
+
+  /**
+   * stuffs the record with the authid, settleid, and gets the maxtxnlimit for this paytype + institution + store
+   * @return max txn limit for that card
+   */
+  public final RealMoney getAuthInfo(Storeid storeid, TxnRow record, MerchantInfo merch) {
+    // need to stuff record with auth info and get a merchantinfo
+    // find the authid, settleid, and maxtxnlimit via the storeid, paytype, and institution
+    RealMoney maxtxnlimit = new RealMoney();
+    // if this is not a DB card, we can first try to find it by institution ...
+    boolean found = false;
+    if(!record.isDebit()) { // try to look it up with institution, except debit
+      found = findStoreAuthInfo(storeid, record.paytype(), record.institution, maxtxnlimit, record);
+    }
+    if(!found) { // if you don't find the right one, see if the store has a default one for that paytype...
+      dbg.ERROR("No authorizer found for PT=" + record.paytype + ", IN= " + record.institution + ", storeid=" + storeid + ".");
+      found = findStoreAuthInfo(storeid, record.paytype(), CardIssuer.Unknown.Abbreviation(), maxtxnlimit, record);
+      if(!found) { // if still not found, try forgetting the institution altogether
+        dbg.ERROR("No default authorizer for PT=" + record.paytype + ", institution=" + CardIssuer.Unknown.Abbreviation() + ", storeid=" + storeid);
+        found = findStoreAuthInfo(storeid, record.paytype(), null, maxtxnlimit, record);
+        if(!found) { // if still not found, try forgetting the paytype altogether
+          dbg.ERROR("No default authorizer for PT=" + record.paytype + ", storeid=" + storeid);
+          found = findStoreAuthInfo(storeid, new PayType(PayType.Unknown), null, maxtxnlimit, record);
+          if(!found) { // if still not found, give up
+            service.PANIC("No authorizer found for any combination of PT=" + record.paytype + ", storeid=" + storeid);
+          }
+        }
+      }
+    }
+
+    // get the merchantinfo
+    getMerchantInfo(record.terminalid(), record.authid(), /*settlement=*/ false, merch);
+    return maxtxnlimit;
+
+  }
+
+  // used for standins & reversals
+  public final MerchantInfo getAuthMerchantInfo(Terminalid terminalid, Authid authid) {
+    return getMerchantInfo(terminalid, authid, /*settlement=*/ false, null);
+  }
+
+  public final MerchantInfo getSubmitMerchantInfo(Terminalid terminalid, Authid authid) {
+    return getMerchantInfo(terminalid, authid, /*settlement=*/ true, null);
+  }
+
+  private final MerchantInfo getMerchantInfo(Terminalid terminalid, Authid authid, boolean settlement, MerchantInfo minfo) {
+    Statement stmt = null;
+    try {
+      if(minfo == null) {
+        minfo = new MerchantInfo(); //averts NPE's, but this merch data will evaporate
+      }
+      if(!Terminalid.isValid(terminalid)) {
+        dbg.ERROR("getMerchantInfo():Terminalid is invalid!");
+      } else if(!Authid.isValid(authid)) {
+        dbg.ERROR("getMerchantInfo():Authid is invalid!");
+      } else {
+        Store store = StoreHome.Get(getStoreForTerminal(terminalid));
+        stmt = query(QS.genProcInfoFor(terminalid, authid, store.storeId(), settlement));
+        if(stmt != null) {
+          ResultSet rs = getResultSet(stmt);
+          if(next(rs)) {
+            minfo.set(getStringFromRS(settlement ? storeauth.settlemerchid : storeauth.authmerchid, rs), getStringFromRS(termauth.authtermid, rs), store.getTimeZone(), store.merchanttype);
+          }
+        }
+      }
+    } catch(Exception ex) {
+      dbg.Caught(ex);
     } finally {
       closeStmt(stmt);
-      return ti;
+      return minfo;
     }
   }
 
-  public QueryString genTerminalInfoQuery(int terminalID) {
-    return QueryString.
-    SelectAllFrom("terminal").comma(store.name()).
-    where().nnPair("store."+STOREID, "terminal."+STOREID).
-    and().nvPair("terminal."+TERMINALID, terminalID);
+  public TextList getMerchantIds(Authid authid, Storeid storeid) {
+    StoreAuthid[] storeauthids = (StoreAuthid[]) getUniqueIdExtentArrayFromQuery(QS.genMerchantIds(authid, storeid), StoreAuthid.class);
+    TextList merchantids = new TextList();
+    for(int i = storeauthids.length; i-- > 0; ) {
+      EasyProperties ezp = getRecordProperties(storeauth, storeauthids[i]);
+      merchantids.assurePresent(ezp.getString(storeauth.authmerchid.name()));
+    }
+    return merchantids;
   }
 
-  public int getOriginalTerminal(TxnRow rec) {
-    return getIntFromQuery(tiftQuery(rec));
-  }
-
-//  public TerminalInfo termInfoFromTranjour(TxnRow rec) {
-//    String terminalid = getStringFromQuery(tiftQuery(rec));//cabove
-//    return getTerminalInfo(terminalid);
-//  }
-
-  public static final QueryString genStoreInfo(int storeid){
-    return QueryString.SelectAllFrom(store.name()).where(StoreIs(storeid));
-  }
-
-  public double getStoreMaxTxnLimit(int storeid) {
-    return getDoubleFromQuery(genStoreMaxTxnLimit(storeid), 0);
-  }
-
-  public static final QueryString genStoreMaxTxnLimit(int storeid) {
-    return QueryString.Select("maxtransamount").
-      from("paytype").
-      where().nvPair("storeid", storeid).
-      and().nvPair("paymenttypecode", "VS"); // just use Visa's
-  }
-
-  public double getStoreMaxSITxnLimit(int storeid) {
-    return getDoubleFromQuery(genStoreMaxSITxnLimit(storeid), 0);
-  }
-
-  public static final QueryString genStoreMaxSITxnLimit(int storeid) {
-    return QueryString.Select("standinlimit").
-      from("store").
-      where().nvPair("storeid", storeid);
-  }
-
-  public double getStoreMaxSITtlTxnLimit(int storeid) {
-    return getDoubleFromQuery(genStoreMaxSITtlTxnLimit(storeid), 0);
-  }
-
-  public static final QueryString genStoreMaxSITtlTxnLimit(int storeid) {
-    return QueryString.Select("storestandintotal").
-      from("store").
-      where().nvPair("storeid", storeid);
-  }
-
-  public static final QueryString genTerminal(int termid){
-    return QueryString.SelectAllFrom(terminal.name()).comma(enterprise.name()).comma(store.name()).where(TerminalIs(termid)).and().matching(terminal.name(),store.name(),STOREID).and().matching(store.name(), enterprise.name(), ENTERPRISEID);
-  }
-
-  static final QueryString assocQry(LoginInfo li){
-    // --- Note: possible bug
-    return QueryString.Select("storeaccess.storeacl").comma("associate.*").
-    from(storeaccess.name()).comma(terminal.name()).comma(associate.name()).comma(enterprise.name()).
-    where().nvPair("storeaccess.storeid",li.storeid).
-    and().matching("associate","storeaccess","associateid").
-    and().matching("associate",enterprise.name(),"enterpriseid").
-    and().nvPair("associate.loginname",li.clerk.Name()).
-    and().nvPair("enterprise.enterpriseid",li.enterpriseID).
-    and().nvPair("associate.encodedpw",li.clerk.Password());
-  }
-
-  // temporary
-  int getStoreFromEnterprise(int eid) {
-    return getIntFromQuery(QueryString.Select("storeid").from(store.name()).where().nvPair(store.enterpriseid.name(),eid));
-  }
+/////////////////
 
   /**
-   * return 0=NOLOGIN, 1=GOODLOGIN, 2+ =MOREINFONEEDED (failed due to too many matches)
+   * @param termid the terminal to ttl standins for
+   * @returns the ttl cents for all txns in standin for this terminal except for the one txn
    */
-  public int getLoginInfo(ClerkIdInfo clerk, int enterpriseID, int terminalID, LoginInfo li) {
-    int ret = 0;
-    li.clear(); // so that legacy stuff doesn't hang around ... just in case
-    li.clerk        = clerk;
-    li.enterpriseID = enterpriseID;
-    li.terminalID   = terminalID;
+  public LedgerValue getTtlStandinsForTerminal(Terminalid termid) {
+    return LedgerValue.New(getLongFromQuery(QS.genTtlStandinsForTerminal(termid)));
+  }
 
-    // terminalid != 0 for appliances, enterpriseid != 0 for webusers
+  public Associateid[] getAssociatesByLoginnameEntPW(String loginname, Enterpriseid entid, String password) {
+    return(Associateid[]) getUniqueIdExtentArrayFromQuery(QS.genAssociateId(loginname, password, entid), Associateid.class);
+  }
 
+  public static final int txnCountLimit() {
+    return service.txnCountLimit();
+  }
+
+  public Storeid getStoreForTerminal(Terminalid terminalid) {
+    return new Storeid(getIntFromQuery(QS.genStoreForTerminal(terminalid)));
+  }
+
+  private UniqueId[] getUniqueIdExtentArrayFromQuery(QueryString qs, Class uniqueidExtent) {
+    UniqueId[] array = null;
     try {
-      // if there is a terminalid, this is an appliance (not web) login, so get the storeid and terminalinfo
-      if(li.terminalID > 0) {
-        // first, get the terminal info:
-        Statement stmTerminal=null;
+      Statement stmt = query(qs);
+      if(stmt != null) {
         try {
-          stmTerminal = query(genTerminal(li.terminalID));
-          ResultSet rs = getResultSet(stmTerminal);
-          if(next(rs)) { /// shouldn't be multiples since terminalid's are supposed to be unique
-            li.storeid      = getIntFromRS(STOREID, rs);
-            li.terminalName = getStringFromRS(TERMINALNAME, rs);
-            li.enterpriseID = getIntFromRS(ENTERPRISEID, rs); // set this so that the login can proceed
-            li.ti=TermFromRS(rs);
+          // prep the fields and stuff
+          // +++ create a synchronized function that will lookup one of these from a list
+          // +++ that we create as we find that we don't have one of them.
+          // +++ this will work since they won't change during runtime.
+          Constructor constructor = ReflectX.constructorFor(uniqueidExtent, int.class);
+          Object[] param = new Object[1];
+          // find out how many there are and build the array
+          int count = 0;
+          ResultSet rs = getResultSet(stmt);
+          org.postgresql.jdbc3.Jdbc3ResultSet rs3 = null;
+          if(rs != null) {
+            rs3 = (org.postgresql.jdbc3.Jdbc3ResultSet) rs;
+            count = rs3.getTupleCount();
           }
-        } catch (Exception e) {
-          //+++ log to events table. as loginfailure
-          dbg.Caught("Error retreiving terminal info for login; user=" + clerk.toSpam() +", termguid=" + terminalID + ", entid="+enterpriseID+":", e);
-        } finally {
-          closeStmt(stmTerminal);
-        }
-      }
-      if(li.enterpriseID < 1) {
-        // give it a shot ...
-        QueryString countem = QueryString.Select("count(distinct enterpriseid)").from(associate).where().nvPair("loginname", li.clerk.Name());
-        int count = getIntFromQuery(countem, 0);
-        if(count > 1) {
-          ret = count;
-        } else if(count == 1){
-          li.enterpriseID = getIntFromQuery(QueryString.Select("enterpriseid").from(associate).where().nvPair("loginname", li.clerk.Name()), 0);
-        } // else you are screwed; bad login ...
-      }
-      if(ret < 2) {
-        if((li.enterpriseID > 0) && (li.storeid > 0)) {
-          // get the storeid with that
-          // +++ This is temporary!  We need to get the rest of multistore going before changing this.
-          li.storeid = getStoreFromEnterprise(li.enterpriseID);
-        }
-        // we need this in order to be able to get the store info
-        if(li.storeid>0) {
-          // now the store info
-          Statement stmStore=null;
-          try {
-            stmStore = query(genStoreInfo(li.storeid));
-            if(stmStore!=null) {
-              ResultSet rs = getResultSet(stmStore);
-              if(next(rs)) {
-                li.enterpriseID = getIntFromRS(store.enterpriseid.name(), rs); // --- overwrites, is this okay?  conditionalize it ? +++
-                String timefmt  = getStringFromRS(store.receipttimeformat.name(), rs);
-                String javatz   = getStringFromRS(store.javatz.name(), rs);
-                li.ltf=LocalTimeFormat.New(TimeZone.getTimeZone(javatz), Safe.OnTrivial(timefmt, ReceiptFormat.DefaultTimeFormat));
-                dbg.VERBOSE("Timezone set to " + li.ltf.getZone().getDisplayName() + " from " + timefmt + " for user " + li.clerk.Name());
-                li.authTermId = getStringFromRS(store.authtermid.name(), rs);
-                li.companyName = getStringFromRS(store.storename.name(), rs);
-              }
-            }
-          } catch (Exception e) {
-            //+++ log to events table. as loginfailure
-            dbg.Caught("Error retreiving store info for login; user=" + li.clerk.toSpam() +", termguid=" + li.terminalID + ", entid="+li.enterpriseID+", storeid="+li.storeid+":", e);
-          } finally {
-            closeStmt(stmStore);
-          }
-          // we need this in order to get the user login info
-  //        if(li.enterpriseID > 0) {
-            // now the permissions, etc, from the associate
-            Statement stmUser=null;
+          array = (UniqueId[]) java.lang.reflect.Array.newInstance(uniqueidExtent, count);
+          // fill the array
+          for(int i = array.length; i-- > 0; ) {
+            // get the integer
+            boolean went = false;
             try {
-              stmUser = query(assocQry(li));
-              if(stmUser!=null) {
-                ResultSet rs = getResultSet(stmUser);
-                if(next(rs)) {
-                  li.permissions   = getStringFromRS("storeacl", rs) + getStringFromRS("enterpriseacl", rs);
-                  li.longName      = getStringFromRS("firstname", rs) + SPACE + getStringFromRS("lastname", rs);//middle initial ignored +_+
-                  li.colorschemeid = getStringFromRS("colorschemeid", rs); // from associate
-                  li.associd      = getIntFromRS("associateid", rs);
-                }
-              }
-            } catch (Exception e) {
-              //+++ log to events table. as loginfailure
-              dbg.Caught("Error retreiving user info for login; user=" + li.clerk.toSpam() +", termguid=" + li.terminalID + ", entid="+li.enterpriseID+", storeid="+li.storeid+":", e);
-            } finally {
-              closeStmt(stmUser);
+              went = rs3.absolute(i + 1);
+            } catch(Exception ex) {
+              dbg.Caught(ex);
             }
-  //        }
+            int theid = net.paymate.lang.MathX.INVALIDINTEGER;
+            if(went) {
+              theid = getIntFromRS(ONLYCOLUMN, rs);
+            } else {
+              dbg.ERROR("Could not load a tuple that the recordset said was there [" + (i + 1) + "/" + array.length + "]!");
+            }
+            // create the object
+            param[0] = new Integer(theid); // since 'int' isn't an object, have to use 'Integer'
+            array[i] = (UniqueId) constructor.newInstance(param);
+          }
+        } catch(Exception ex) {
+          dbg.Caught(ex);
+        } finally {
+          closeStmt(stmt);
         }
-        if((li.storeid > 0) && Safe.NonTrivial(li.permissions)) {
-          ret = 1;
-          // how many did you get?
-          //+++ log to events table. as ClerkLogin, even if same clerk as previous login.
-        }
+      } else {
+        dbg.WARNING("getUniqueIdExtentArrayFromQuery() stmt=null!");
       }
-    } catch (Exception caught) {
-      dbg.ERROR("Exception retreiving login info for user=" + clerk.toSpam() +", termguid=" + terminalID + ":");
-      //+++ log to events table. as loginfailure
-      dbg.Caught(caught);
+    } catch(Exception ex) {
+      service.PANIC("UniqueIdExtentArrayFromIntArray exception! ", ex);
+      dbg.Caught(ex);
     } finally {
-      return ret;
+      return array;
     }
   }
 
-  public String enterpriseFromTerminalID(String terminalID) {
-    String result = getStringFromQuery(genEnterpriseFromTerminalQuery(terminalID), 0);
-    return result;
-  }
-
-  /**
-  * get tranjour record from a standinin.
-  *ins: terminalid storeid orignalstanid time
-  *out: stan
-  */
-  public QueryString findTransactionBy(LoginInfo linfo, TransactionID stoodin){
-    return QueryString.SelectAllFrom(tranjour.name()).
-    where(). nvPair(CARDACCEPTORTERMID,linfo.terminalName).
-    and().   nvPair(STOREID,linfo.storeid).
-    and().   nvPair(STOODINSTAN,stoodin.stan()).
-    and().   nvPair(CLIENTREFTIME,stoodin.time)
-    ;
+  public Associateid[] getAssociatesByLoginname(String loginname) {
+    return(Associateid[]) getUniqueIdExtentArrayFromQuery(QS.genAssociateidForAssociateLoginname(loginname), Associateid.class);
   }
 
   /**
    * first used for storing receipts associated with a stoodin request.
+   * Try to find via clietnreftime, if there is one, otherewise, use the stan if there is one.
+   * @return txnid from standin generated reference info
    */
-  public TransactionID findStandin(TransactionID stoodin,LoginInfo linfo){
-    Statement stmt=null;
-    try {
-      stmt = query(findTransactionBy(linfo,stoodin));
-      ResultSet rs = getResultSet(stmt);
-      if(next(rs)) {
-        stoodin = TransactionID.New(rs.getString(TRANSTARTTIME),rs.getString(STAN),linfo.storeid);
+  public Txnid findStandin(Terminalid terminalid, UTC clientreftime) {
+    return new Txnid(getIntFromQuery(QS.genFindTransactionBy(terminalid, clientreftime)));
+  }
+
+  /**
+   * @return matching txnid, also modify tref to hold it.
+   * @todo rework to also fetch stan from tables.
+   * @todo (lower than getting stan) rework to honor stan and use it instead of crefTime
+   */
+  public Txnid findStandin(TxnReference tref) {
+    tref.txnId = findStandin(tref.termid, tref.crefTime);
+    // this is the i'm lazy way; check and be more deterministic later ...
+    if(!Txnid.isValid(tref.txnId)) {
+      tref.txnId = getTxnid(tref.termid, tref.STAN());
+    }
+    return tref.txnId;
+  }
+
+  /**
+   * @return id of transaction row that gets created
+   */
+  public Txnid startTxn(TxnRow record) {
+    Txnid result = getNextTxnid();
+    EasyProperties ezp = null;
+    if(result.isValid()) {
+      record.txnid = String.valueOf(result);
+      if(!StringX.NonTrivial(record.settleid) && StringX.NonTrivial(record.authid)) {
+        record.settleid = record.authid;
       }
-    } catch(Exception ex){
-      // ++
-    } finally {
-      closeStmt(stmt);
-      return stoodin;
-    }
-  }
-
-  private QueryString genMarkRecordUpdate(TransactionID tid,FinancialRequest request){
-    QueryString qs = QueryString.
-    Update(tranjour.name()).
-    SetJust(CLIENTREFTIME, forTrantime(request.requestInitiationTime) ).
-    where(transactionIs(tid, tranjour.name()));
-    return qs;
-  }
-
-  public boolean markClientTime(TransactionID tid,FinancialRequest request){
-    QueryString qs = genMarkRecordUpdate(tid,request);
-    if(update(qs) != 1) {
-      dbg.ERROR("markClientTime(): Did not properly insert: " + qs);
-      return false;
+      // to be sure the service code is something legal
+      record.servicecode = String.valueOf(StringX.parseInt(record.servicecode));
+      ezp = record.toProperties();
+      dbg.ERROR("record=" + ezp);
+      int i = update(QS.genCreateTxn(ezp, result)); //modifies 'result' if successfully executed
+//      // +++ ??? do something similar with other ints?
+//      if ( (result.value() % ReceiptAgent.MAXDIRFILECOUNT) == 0) {
+//        String msg = "Txnid just rolled over to " + result +
+//            ". Time to archive receipts!";
+//        dbg.ERROR(msg);
+//        service.PANIC(msg);
+//      }
+      // here, if it exists, put the terminal's authrequest into the database out of the txnrow
+      if(record.hasAuthRequest() && !AuthattemptId.isValid(record.authattempt.id)) {
+        // just in case these things aren't set ...
+        record.authattempt.txnid = record.txnid();
+        record.authattempt.authid = record.authid();
+        record.authattempt.terminalid = record.terminalid();
+        startAuthAttempt(record.authattempt);
+      }
     } else {
-      dbg.VERBOSE("markClientTime(): Properly inserted: " + qs);
-      return true;
+      service.PANIC("DB,TXN,INSERT,FAILED", ezp);
     }
-  }
-
-  // returns the result from update()
-  // +++ put a mutexed database call here when we switch to using integer txnid's.
-  // +++ How do we get the txnid back?  Look it up by the parameters used to create it, for now.
-  // @@@ use the return id to get the txnid !!!
-  public int startTxn(TxnRow record) {
-    int result = 0;
-    result = update(genStartTxn(record));
     return result;
   }
 
-  public static QueryString genStartTxn(TxnRow record) {
-    return QueryString.Insert(tranjour.name(), record.toProperties());
-  }
-
-  public static QueryString genAuthIds() {
-    return QueryString.Select("authid").from("authorizer");
-  }
-
-  public String [] getAuthIds() {
-    return getStringsFromQuery(genAuthIds());
-  }
-
-  public static final QueryString genAuthId(String authname) {
-    return QueryString.Select("authid").from("authorizer").where().nvPair("authname", authname);
-  }
-
-  public int getAuthId(String authname) {
-    return getIntFromQuery(genAuthId(authname));
-  }
-
-  // +++ for DBMacros ???
-  public static final void rowsToProperties(ResultSet rs, EasyCursor ezc, String nameColName, String valueColName) {
-    try {
-      if(rs != null) {
-        while(next(rs)) {
-          String name  = getStringFromRS(nameColName , rs);
-          String value = getStringFromRS(valueColName, rs);
-          ezc.setString(name, value);
-        }
-      } else {
-        dbg.ERROR("Can't convert rows to properties if resultset is null!");
-      }
-    } catch (Exception ex) {
-      dbg.Caught(ex);
+  public void startAuthAttempt(AuthAttempt attempt) { // Txnid txnid, Authid authid, EasyUrlString authrequest) {
+    dbg.VERBOSE("inserting authattempt into table ...");
+    attempt.id = getNextAuthattemptId();
+    String raw = attempt.authrequest.rawValue();
+    String attemptreq = DataCrypt.databaseEncode( (raw != null) ? raw.getBytes() : new byte[0], attempt.id);
+    int i = update(QS.genCreateAuthAttempt(attempt.txnid, attempt.authid, attemptreq, attempt.terminalid, attempt.id)); //modifies 'id' if successfully executed
+    if(i != 1) {
+      service.PANIC("Unable to insert authattempt record: txnid=" + attempt.txnid + ", authid = " + attempt.authid + ", request=" + attempt.authrequest.encodedValue());
     }
+    dbg.VERBOSE("inserted authattempt " + attempt.id + " into table.");
   }
 
-  public static final QueryString genServiceParams(String serviceName) {
-    return QueryString.Select("paramname").comma("paramvalue").from("servicecfg").where().nvPair("servicename", serviceName);
+  public AuthAttemptRow getAuthAttempts(Terminalid terminalid, TimeRange times) {
+    return AuthAttemptRow.NewSet(query(QS.genAuthAttempts(terminalid, times)));
   }
 
-  public EasyCursor getServiceParams(String serviceName) {
-    EasyCursor ezc = new EasyCursor();
-    Statement stmt = null;
-    try {
-      stmt = query(genServiceParams(serviceName));
-      rowsToProperties(getResultSet(stmt), ezc, "paramname", "paramvalue");
-    } catch (Exception ex) {
-      dbg.Caught(ex);
-    } finally {
-      closeStmt(stmt);
-      return ezc;
+  public AuthorizerRow getAuths() {
+    Statement q = query(QS.genAuths());
+    if(q == null) {
+      dbg.ERROR("getAuthIds: q = null!");
     }
+    return AuthorizerRow.NewSet(q);
   }
 
-  public static final QueryString genServiceParam(String serviceName, String paramname) {
-    return QueryString.Select("paramvalue").from("servicecfg").where().nvPair("servicename", serviceName).and().nvPair("paramname", paramname);
-  }
-
-  public String getServiceParam(String serviceName, String paramname, String defaultValue) {
-    return Safe.TrivialDefault(getStringFromQuery(genServiceParam(serviceName, paramname)), defaultValue);
-  }
-
-  public QueryString genAuthClassFromId(int authid) {
-    return QueryString.Select("authclass").from("authorizer").where().nvPair("authid", authid);
-  }
-
-  public String getAuthClass(int authid) {
-    return getStringFromQuery(genAuthClassFromId(authid));
-  }
-
-  public QueryString genAuthNameFromId(int authid) {
-    return QueryString.Select("authname").from("authorizer").where().nvPair("authid", authid);
-  }
-
-  public String getAuthName(int authid) {
-    return getStringFromQuery(genAuthNameFromId(authid));
-  }
-
-  public QueryString genAuthIdForStore(int storeid) {
-    return QueryString.Select("authid").from("store").where().nvPair("storeid", storeid);
-  }
-
-  public int getAuthIdForStore(int storeid) {
-    return getIntFromQuery(genAuthIdForStore(storeid));
-  }
-
-  public static final QueryString genAuthIdForApplianceName(String applianceName) {
-    return QueryString.Select("authid").from("store").comma("appliance").where().matching("store", "appliance", "storeid").and().nvPair("appliancename", applianceName);
-  }
-
-  public int getAuthIdForApplianceName(String applianceName) {
-    return getIntFromQuery(genAuthIdForApplianceName(applianceName));
-  }
-
-  public QueryString genChangeAuth(TxnRow record, int authid) {
-    return QueryString.Update(tranjour.name()).
-      SetJust("authid", authid).
-      where().append(transactionIs(record.tid(), tranjour.name()));
-  }
-
-  public void changeAuth(TxnRow record, int authid) {
-    update(genChangeAuth(record, authid)); // +++ check return value
-  }
-
-  public void stampAuthDone(TxnRow record, TxnRow original) {
-    // stamp the new txn as completed successfully
-    record.authendtime = forTrantime(Safe.Now());
-    update(genStampAuthDone(record)); // +++ check return value
-    if((original != null) && record.isGood()) {
-      // stamp original as voided if record was an approved void
-      original.voidtransaction = "Y";
-      update(genStampVoidTxn(original)); // +++ check return value; txn might be in history!
-    }
-  }
-
-  public static QueryString genStampVoidTxn(TxnRow original) {
-    String table = tranjour.name();
-    QueryString qs = QueryString.
-      Update(table).
-      SetJust("voidtransaction", original.voidtransaction).
-      where(transactionIs(original.tid(), table));
-    return qs;
-  }
-
-  // this is only interested in respcode, authcode, and ?
-  public static QueryString genStampAuthDone(TxnRow record) {
-    String table = tranjour.name();
-    QueryString qs = QueryString.
-      Update(table).
-      SetJust("actioncode", record.actioncode).comma("").
-      nvPair("authidresponse", record.authidresponse).comma("").
-      nvPair("hostresponsecode", record.hostresponsecode).comma("").
-      nvPair("hosttracedata", record.hosttracedata).comma("").
-      nvPair("responsecode", record.responsecode).comma("").
-      nvPair("authendtime", record.authendtime).comma("").
-      nvPair("tranendtime", record.tranendtime). // stamps tranendtime & authendtime
-      where(transactionIs(record.tid(), table));
-    return qs;
-  }
-
-  public void stampAuthStandin(TxnRow record) {
-    // stamp the record.authendtime and record.authstarttime with null
-    record.authendtime = "";
-    record.authstarttime = "";
-    update(genStampAuthStandin(record)); // +++ check return value
-  }
-
-  public static QueryString genStampAuthStandin(TxnRow record) {
-    String table = tranjour.name();
-    QueryString qs = QueryString.
-      Update(table).
-      SetJust("authendtime", "").comma("").// stamps authendtime & authstarttime as ""
-      nvPair("authstarttime", "").comma("").
-      nvPair("clientreftime", record.clientreftime).comma("").
-      nvPair("stoodinstan", record.stoodinstan).
-      where(transactionIs(record.tid(), table));
-    return qs;
-  }
-
-//  public void setAuthSeq(TxnRow record) {
-//    // just sets the authseq field based on the new sequence (overwrites)
-//    update(genSetAuthSeq(record)); // +++ check return value
-//  }
-
-  public static final QueryString genSetAuthSeq(TxnRow record) {
-    int seq = (int)Long.parseLong(record.authseq);
-    String table = tranjour.name();
-    QueryString qs = QueryString.
-      Update(table).
-      SetJust("authseq", record.authseq).
-      where(transactionIs(record.tid(), table));
-    return qs;
-  }
-
-  public void getStoodins(StandinList stoodins, String authname) {
-    // load the list of txns that need processing from tables, sticking each into the list
-    QueryString qs = genStoodins(authname);
-    Statement stmt = query(qs);
-    if(stmt == null) {
-      dbg.ERROR("Error performing genStoodins query!  Cannot load old standins!");
-    } else {
+  public TextList getServiceParamsNames(String serviceName) {
+    TextList tl = new TextList(10, 10);
+    Statement stmt = query(QS.genServiceParamNames(serviceName));
+    if(stmt != null) {
       try {
         ResultSet rs = getResultSet(stmt);
-        if(rs == null) {
-          dbg.ERROR("Error extracting ResultSet from performing genStoodins query!  Cannot load old standins!");
-        } else {
-          while(next(rs)) {
-            String transtarttime=getStringFromRS("transtarttime", rs);
-            String stan=getStringFromRS("stan", rs);
-            int storeid=getIntFromRS("storeid", rs);
-            String transactionamount=getStringFromRS("transactionamount", rs);
-            stoodins.add(TransactionID.New(transtarttime, stan, storeid), (new RealMoney(transactionamount)).Value());
-          }
+        while(next(rs)) {
+          tl.add(getStringFromRS(servicecfg.paramname, rs));
         }
-      } catch (Exception e) {
+      } catch(Exception e) {
         dbg.Caught(e);
       } finally {
         closeStmt(stmt);
       }
     }
+    return tl;
   }
 
-  public static final QueryString genStoodins(String authid) {
-    QueryString qs = QueryString.Select("storeid").comma("transtarttime").comma("stan").comma("transactionamount").
-    from(tranjour.name()).
-    where("").isEmpty("tranendtime").
-    and().nvPair("authid", authid).
-    orderbyasc("transtarttime"); // try to get them in the order they arrived.
-    return qs;
+  public String getServiceParam(String serviceName, String paramname, String defaultValue) {
+    String paramvalue = "";
+    try {
+      Statement stmt = query(QS.genServiceParam(serviceName, paramname));
+      boolean found = false;
+      if(stmt != null) {
+        try {
+          ResultSet rs = getResultSet(stmt);
+          if(next(rs)) {
+            found = true;
+            paramvalue = getStringFromRS(servicecfg.paramvalue, rs);
+          }
+        } catch(Exception ex) {
+          dbg.Caught(ex);
+        } finally {
+          closeStmt(stmt);
+        }
+      }
+      if(!StringX.NonTrivial(paramvalue)) {
+        paramvalue = StringX.TrivialDefault(defaultValue);
+        setServiceParam(serviceName, paramname, paramvalue, found);
+      }
+    } catch(Exception ex) {
+      dbg.Caught(ex);
+    } finally {
+      return paramvalue;
+    }
   }
 
-  public String getPaymentTypeFromCardNo(TxnRow record) {
-    return getStringFromQuery(genPaymentTypeFromCardNo(record));
+  // this is a long way to do it, but is fine for now.  How often do these change?  Leave it slow.
+  public boolean setServiceParam(String serviceName, String paramname, String paramvalue) {
+    getServiceParam(serviceName, paramname, paramvalue); // does not change the value if it already exists, but inserts it if it doesn't
+    return setServiceParam(serviceName, paramname, paramvalue, true); // changes the value if it already existed before this function was called
   }
 
-  public QueryString genPaymentTypeFromCardNo(TxnRow record) {
-    String firstsix = Safe.subString(record.cardholderaccount, 0, 6); // +++ @@@ test !!!
-    QueryString qs = QueryString.
-      Select("paymenttypecode").
-      from("card").
-      where().nvPair("authid", record.authid).
-      and().nvPair("transactiontype", record.transactiontype).
-      and("lowbin < '" + firstsix + "'").
-      and("highbin > '"+ firstsix +"'");
-    // eg: DC, DS, AE, VS, MC, C1; get from card table
-    return qs;
+  private boolean setServiceParam(String serviceName, String paramname, String paramvalue, boolean found) {
+    boolean ret = false;
+    int count = 0;
+    Servicecfgid id = null;
+    if(found) {
+      count = update(QS.genUpdateServiceParam(serviceName, paramname, paramvalue));
+      ret = (count > 0);
+    } else {
+      id = getNextServicecfgid();
+      count = update(QS.genCreateServiceParam(serviceName, paramname, paramvalue, id));
+      ret = (count == 1);
+    }
+    String cfgChgNotice = "set " + serviceName + "." + paramname + "=" + paramvalue + ", " + (found ? "" : "NOT ") + "found, ret=" + ret;
+    if(validated()) {
+      service.notifyCfgChanged(cfgChgNotice);
+    } else {
+      dbg.ERROR(cfgChgNotice);
+    }
+    return ret;
   }
 
-  public void stampAuthStart(TxnRow record) {
-    record.authstarttime = forTrantime(Safe.Now());
-    update(genStampAuthStart(record)); // +++ check return value
+  public double getDoubleServiceParam(String serviceName, String paramname, double defaultValue) {
+    return StringX.parseDouble(getServiceParam(serviceName, paramname, String.valueOf(defaultValue)));
   }
 
-  public static final QueryString genStampAuthStart(TxnRow record) {
-    String table = tranjour.name();
-    QueryString qs = QueryString.
-      Update(table).
-      SetJust("authstarttime", record.authstarttime). // stamps authstarttime
-      where(transactionIs(record.tid(), table));
-    return qs;
+  public long getLongServiceParam(String serviceName, String paramname, long defaultValue) {
+    return StringX.parseLong(getServiceParam(serviceName, paramname, String.valueOf(defaultValue)));
   }
 
-  private static final Monitor stano = new Monitor("stano");//a mutex
-  // --- since we will be doing all table accesses via servlets, this will work
-  // --- if that ever changes, will have to let the database do locking of table, etc.
+  public int getIntServiceParam(String serviceName, String paramname, int defaultValue) {
+    return StringX.parseInt(getServiceParam(serviceName, paramname, String.valueOf(defaultValue)));
+  }
+
+  public boolean getBooleanServiceParam(String serviceName, String paramname, boolean defaultValue) {
+    return Bool.For(getServiceParam(serviceName, paramname, Bool.toString(defaultValue)));
+  }
+
+  public EasyCursor getServiceParams(String serviceName, EasyCursor ezc) {
+    TextList names = null;
+    if(ezc == null) { // if they don't send one, give them all back ...
+      ezc = new EasyCursor();
+      names = getServiceParamsNames(serviceName);
+    } else {
+      names = ezc.allKeys();
+    }
+    for(int i = names.size(); i-- > 0; ) {
+      String name = names.itemAt(i);
+      String defaultValue = ezc.getString(name);
+      ezc.setString(name, getServiceParam(serviceName, name, defaultValue));
+    }
+    return ezc;
+  }
+
+// unconditionally sets them based on the ezc passed in
+  public EasyCursor setServiceParams(String serviceName, EasyCursor ezc) {
+    TextList names = ezc.allKeys();
+    for(int i = names.size(); i-- > 0; ) {
+      String name = names.itemAt(i);
+      String value = ezc.getString(name);
+      setServiceParam(serviceName, name, value);
+    }
+    return getAllServiceParams(serviceName);
+  }
+
+  public EasyCursor getAllServiceParams(String serviceName) {
+    return getServiceParams(serviceName, null);
+  }
+
+  public AuthorizerRow getAuthidsForTerminal(Terminalid terminalid) {
+    Statement q = query(QS.genAuthIdsForTerminal(terminalid));
+    if(q == null) {
+      dbg.ERROR("getAuthIds: q = null!");
+    }
+    return AuthorizerRow.NewSet(q);
+  }
+
+  public Authid[] getAuthidsForStore(Storeid storeid) {
+    return(Authid[]) getUniqueIdExtentArrayFromQuery(QS.genAuthIdsForStore(storeid), Authid.class);
+  }
+
+  public Authid getDefaultAuthidForTerminal(Terminalid terminalid) {
+    return new Authid(getIntFromQuery(QS.genDefaultAuthidForTerminal(terminalid)));
+  }
+
+  public static final String Now() {
+    return QS.Now();
+  }
+
+  public boolean stampAuthDone(TxnRow record) {
+    // stamp the new txn as completed successfully
+    record.authendtime = Now();
+    boolean ok = updateTxn(record);
+    if(record.hasAuthResponse()) {
+      record.authattempt.txnid = record.txnid();
+      stampAuthAttemptDone(record.authattempt);
+    }
+    return ok;
+  }
+
+  // +++ needs relocation to the authterminal object when that is done (did you mean authattempt?)
+  public final void stampAuthAttemptDone(AuthAttempt attempt) {
+    // here, add code to put the TxnRow's authresponse into the authattempt database, if needed
+    int i = update(QS.genStampAuthAttemptDone(attempt.id, attempt.txnid, attempt.authresponse));
+    if(i != 1) {
+      // but ONLY if there is also an authrequest! (that is how we tell if we need to)
+      dbg.WARNING("Update of authattempt for txnid=" + attempt.txnid + " resulted in " + i + " updates for response: " + attempt.authresponse.encodedValue());
+    }
+  }
+
+  public void stampAuthAttemptTxnidOnly(AuthattemptId aaid, Txnid txnid) {
+    update(QS.genStampAuthAttemptTxnidOnly(aaid, txnid)); // ignore return value?
+  }
+
+  public boolean setVoidFlag(Txnid txnid, boolean voidflag) {
+    int ret = update(QS.genStampVoidTxn(txnid, Bool.toString(voidflag)));
+    dbg.ERROR("Stamping txn voided: original.txnid=" + txnid + ", original.voided=" + voidflag + ", returned[should be 1]=" + ret);
+    return ret == 1;
+  }
+
+  public Txnid[] getStoodins(Authid authid) {
+    // load the list of txns that need processing from tables, sticking each into the list
+    return(Txnid[]) getUniqueIdExtentArrayFromQuery(QS.genToAuth(authid), Txnid.class);
+  }
 
   /**
-  * @param store a numerical name like '0000000010005001'
-  */
-  protected static final QueryString upstan(int storeid,int stan) {
-    return QueryString.Update(store.name()).SetJust("stanometer",stan).where(StoreIs(storeid));
-  }
+   * get institution and card payment type from card itself.
+   *     // eg: DC, DS, AE, VS, MC, C1
+   * @param storeid is forward looking to qualify gift cards, not yet used.
+   * @param record is both in and out of this funciton.
+   * @todo rest of storeauth info can be read and cached NOW! rather than requeried for later.
+   */
 
-  private int getNextStanForStore(int storeid) {
-    int stan = NOTANUMBER;
-    try {
-      stano.getMonitor();
-      try {
-        stan = getIntFromQuery( QueryString.Select("stanometer").from(store.name()).where(StoreIs(storeid)), 0); // +++ just get this the first time, after that, look it up in a list every time instead of going to the database (use np.util.Counter)
-        if(stan < 1) {
-          dbg.ERROR("STAN IS AN INVALID VALUE!"); // +++ this should email
-        } else {
-          // save it back
-          if(update(upstan(storeid,++stan)) == -1) {
-            // +++ spew error
-            dbg.ERROR("COULD NOT UPDATE STAN VALUE!"); // +++ this should email
-            stan = NOTANUMBER;
-          }
-        }
-      } catch (Exception e) {
-        dbg.Caught(e); // +++ this should email
+  public String getPaymentTypeFromCardNo(TxnRow record) {
+    String paytype = String.valueOf(PTEMPTY.CharFor(PayType.Unknown));
+    if(record != null) {
+      BinEntry bin = getBinEntry(record.card().bin());
+      if(bin != null) {
+        record.institution = bin.issuer.Abbreviation(); // getStringFromRS(card.institution, rs);
+        paytype = String.valueOf(bin.act.Char()); // getStringFromRS(card.paytype, rs);
       }
-    } finally {
-      stano.freeMonitor();
-      return stan;
+      // set to unknown if we don't know
+      if(!StringX.NonTrivial(record.institution)) {
+        record.institution = CardIssuer.Unknown.Abbreviation();
+      }
+      if(!StringX.NonTrivial(paytype)) {
+        paytype = String.valueOf(PTEMPTY.CharFor(PayType.Unknown));
+      }
+      dbg.ERROR("PTin:" + paytype + record.institution);
     }
+    return paytype;
   }
 
-  public TransactionID newtransaction(int store,long reftime){
-    int stan = getNextStanForStore(store);
-    if(stan<0){
-      return TransactionID.Zero();
-    }
-    return TransactionID.New(forTrantime(reftime),stan,store);
+  public boolean stampAuthStart(TxnRow record) {
+    record.authstarttime = Now();
+    return updateTxn(record);
   }
 
-  public TransactionID newtransaction(int store){
-    return newtransaction(store,Safe.utcNow());
+  // SEQUENCE NUMBER(s)
+  public final long getSequence(Authid authid, Terminalid terminalid) {
+    return getLongFromQuery(QS.genGetSequence(authid, terminalid));
   }
 
-  public static final QueryString genEnterpriseFromTerminalQuery(String terminalID) {
-    return QueryString.Select("enterpriseid").from(store.name()).comma(terminal.name()).
-    where().nvPair("terminal."+TERMINALID,terminalID).and().matching(terminal.name(),store.name(),STOREID);
+  public final void setSequence(Authid authid, Terminalid terminalid, int number, Txnid txnid) {
+    update(QS.genSetSequence(authid, terminalid, number));
+    update(QS.genSetTxnSequence(txnid, number));
   }
 
-  public static final QueryString genStoresQuery(int enterpriseID) {
-    return QueryString.Select("store.storeid").comma("storename").comma("store.address1").comma("store.address2").
-    comma("store.city").comma("store.state").comma("store.zipcode").comma("store.country").
-    comma("EnterpriseName").comma("javatz").comma("storehomepage").
-    from("enterprise").comma(store.name()). //this group has  a name
-    where().nvPair("store.enterpriseid",enterpriseID).
-    and().matching(enterprise.name(),store.name(),"Enterpriseid").
-    orderbyasc("storename");
+  public Storeid[] storesInfoQuery(Enterpriseid enterpriseID) {
+    return(Storeid[]) getUniqueIdExtentArrayFromQuery(QS.genStoresQuery(enterpriseID), Storeid.class);
   }
 
-  public StoreInfoRow storesInfoQuery(int enterpriseID) {
-    Statement q = query(genStoresQuery(enterpriseID));
+  public StoreauthRow getStoreAuths(Storeid storeid) {
+    Statement q = query(QS.genStoreAuths(storeid));
     if(q == null) {
-      dbg.ERROR("storesInfoQuery: q = null!");
+      dbg.ERROR("storeAuthsQuery: q = null!");
     }
-    return StoreInfoRow.NewSet(q);
+    return StoreauthRow.NewSet(q);
   }
 
-  public static final QueryString genAssociatesQuery(int enterpriseID) {
-    return QueryString.Select("associateid").comma("loginname").comma("lastname").//{
-      comma("firstname").comma("middleinitial").comma("enterpriseacl").comma("colorschemeid").
-      from("associate").where().nvPair("enterpriseid",enterpriseID).
-    orderbyasc("lastname");//}
+  public Associateid[] getAssociatesByLoginnameEnt(String loginname, Enterpriseid enterid) {
+    return(Associateid[]) getUniqueIdExtentArrayFromQuery(QS.genAssociateIdByLogin(loginname, enterid), Associateid.class);
   }
 
-  public AssociateRow associateQuery(int enterpriseID) {
-    Statement q = query(genAssociatesQuery(enterpriseID));
-    if(q == null) {
-      dbg.ERROR("associateQuery: q = null!");
-    }
-    return AssociateRow.NewSet(q);
+  public DepositRow getPendingTermAuths(Storeid store) {
+    return DepositRow.NewSet(query(QS.genPendingTermAuths(store)));
   }
 
-  public TxnRow unsettledTxnsQuery(String terminalname, Date starttime, int storeid) {
-    Statement q = query(genUnsettledTxnsQuery(terminalname, starttime, storeid));
+  public TxnRow unsettledTxnsQuery(Terminalid terminalid) {
+    Statement q = query(QS.genDrawerQuery(new Drawerid(), terminalid, false));
     if(q == null) {
       dbg.ERROR("unsettledTxnsQuery: q = null!");
     }
     return TxnRow.NewSet(q);
   }
 
-  protected static final QueryString caidOfEnterprise(int enterpriseID){
-    return QueryString.Select(STOREID).from(store.name()). // +++ maybe can use max?  Which is faster?
-    where().nvPair(store.fieldname("enterpriseid"),enterpriseID);
+  public TxnRow unsettledTxnsQuery(TermAuthid termauthid) {
+    Statement q = query(QS.genBatchQuery(termauthid));
+    if(q == null) {
+      dbg.ERROR("unsettledTxnsQuery: q = null!");
+    }
+    return TxnRow.NewSet(q);
   }
 
-  public static final QueryString timeClause(String op,String cftime){
-    return QueryString.Clause(EMPTYSTRING).append(TRANSTARTTIME).append(op).value(cftime);
+  public Statement runStoreDrawerQuery(Storeid storeid, TimeRange tr) {
+    return query(QS.genStoreDrawersQuery(storeid, tr));
   }
 
-  static final QueryString AllClosings(){
-    return QueryString.Select("max("+drawer.fieldname(TRANSTARTTIME)+")"). // +++ fix
-    from(drawer.name()).
-    where().join(drawer.fieldname(TERMINALID), terminal.fieldname(TERMINALID));
+  public UTC mostRecentStoreDrawer(Storeid storeid) {
+    String datestr = getStringFromQuery(QS.genMostRecentStoreDrawer(storeid));
+    return QS.tranUTC(datestr);
   }
 
-  public Statement runEnterpriseDrawerQuery(int enterpriseid) {
-    QueryString qs = genEnterpriseDrawersQuery(enterpriseid);
-    return query(qs);
+  public UTC mostRecentStoreBatch(Storeid storeid) {
+    String datestr = getStringFromQuery(QS.genMostRecentStoreBatch(storeid));
+    return QS.tranUTC(datestr);
   }
 
-  public static final QueryString genEnterpriseDrawersQuery(int enterpriseid) {
-    // note: || means concatenate
-    return QueryString.Select(drawer.allFields()).
-    comma("store.STORENAME").comma("associate.FIRSTNAME || ' ' || associate.LASTNAME as associateName").
-    comma(terminal.name()+"."+TERMINALNAME).
-    from(drawer.name()).comma(terminal.name()).comma("associate").
-    comma(store.name()).comma(enterprise.name()).
-    where("").join(terminal.fieldname(TERMINALID),drawer.fieldname(TERMINALID)).
-    and().join("associate."+drawer.ASSOCIATEID,drawer.fieldname(drawer.ASSOCIATEID)).
-    and().join(store.fieldname(STOREID),terminal.fieldname(STOREID)).
-    and().join(store.fieldname(ENTERPRISEID), enterprise.fieldname(ENTERPRISEID)).
-    and().nvPair(enterprise.fieldname(ENTERPRISEID), enterpriseid).
-    orderbydesc(TRANSTARTTIME);
-  }
-
-  public QueryString genBookmarkQuery(int bmid) {
-    // note: || means concatenate
-    QueryString qs = QueryString.Select(drawer.allFields()).
-    comma("store.STORENAME").comma("associate.FIRSTNAME || ' ' || associate.LASTNAME as associateName").
-    comma(terminal.name()+"."+TERMINALNAME).
-    from(drawer.name()).comma(terminal.name()).comma("associate").comma("store");
-    qs.where("").nvPair(drawer.drawerid.name(),bmid).
-    and().join(terminal.name()+"."+TERMINALID,drawer.name()+"."+TERMINALID).
-    and().join("associate."+drawer.ASSOCIATEID,drawer.name()+"."+drawer.ASSOCIATEID).
-    and().join("store."+STOREID,terminal.name()+"."+STOREID).
-    orderbydesc(TRANSTARTTIME);
-    return qs;
-  }
-
-  // Problem is that dbvalidator is not a valid associateid, and enterpriseid should be filled in correctly!
-  // On second thought, when this one is created, it will create a GIGANTIC closing since it is hte first one ever recorded.
-  // Since we don't want to allow them to access that first one, we will leave it like it is, not displaying on the drawer closing screen.
-
-  public TxnRow getDrawerClosingCursor(int bmid, LocalTimeFormat ltf) {
-    // +++ find the duplicate of this code in this file and resolve the two into a single function -->
+  public TxnRow getDrawerClosingCursor(Drawerid drawerid, LocalTimeFormat ltf) {
     // first, get the info from the drawer closing indicated.
     Statement stmt = null;
-    ResultSet tqrs = null;
-    int terminalid = 0;
-    int storeid    = 0;
-    String toDate  = null;
-    String title   = null;
+    Terminalid terminalid = new Terminalid();
+    String toDate = null;
+    String title = null;
     try {
-      stmt = query(genBookmarkQuery(bmid));
-      tqrs = getResultSet(stmt);
-      next(tqrs);
-      terminalid     = getIntFromRS(drawer.terminalid.name()    , tqrs);
-      storeid = getIntFromRS(drawer.storeid.name(), tqrs);
-      toDate         = getStringFromRS(drawer.transtarttime.name() , tqrs);
-// <-- find the duplicate of this code in this file and resolve the two into a single function +++
-      title          = "Drawer Closing by " +
-      getStringFromRS("ASSOCIATENAME"         , tqrs) + " of " +
-      getStringFromRS(DBConstants.TERMINALNAME, tqrs)
-      + " at " + ltf.format(PayMateDB.tranUTC(toDate));
-      // we are done with this one
-    } catch (Exception e) {
+      stmt = query(QS.genBookmarkQuery(drawerid));
+      ResultSet tqrs = getResultSet(stmt);
+      if(next(tqrs)) {
+        terminalid = new Terminalid(getIntFromRS(drawer.terminalid, tqrs));
+        toDate = getStringFromRS(drawer.transtarttime, tqrs);
+        Associateid associd = new Associateid(getIntFromRS(drawer.associateid.name(), tqrs));
+        Associate assoc = AssociateHome.Get(associd);
+        String name = (assoc == null) ? "" : (assoc.firstname + " " + assoc.lastname);
+        title = "Drawer Closing by " + name + " of " + getStringFromRS(terminal.terminalname, tqrs) + " at " + ltf.format(QS.tranUTC(toDate));
+      }
+    } catch(Exception e) {
       dbg.Caught(e);
     } finally {
       closeStmt(stmt);
     }
-    tqrs = null;
-    // then, use that info to get the info for that closing and the previous drawer closing for that terminal
-    // +++ use the drawer search queries that will be used for the drawer search screen here.
-    TimeRange tr = PayMateDB.TimeRange().setStart(LocalTimeFormat.genesis); // from the beginning of paymate (0 fucksup)
-    tr.setEnd(toDate); // until the closing of the drawer
-    QueryString qs = QueryString.
-    SelectAllFrom(drawer.name()).
-    where().nvPair(drawer.terminalid.name(), terminalid).
-    timeInRange(tr).orderbydesc(drawer.transtarttime.name());
-    TerminalID T = null;
-    try {
-      stmt = query(qs);
-      // then, run the query to get the records from tranjour
-      T = new TerminalID(terminalid, storeid);
-      //make a standard tranStartTime range & start it off going from start of company through now.
-      tr=ForAllTime();
-      ResultSet rs = getResultSet(stmt);//all closings for this terminal
-      if(rs == null) {
-        dbg.ERROR("result set is null!");
-      } else {
-        for(int i = 0;next(rs) && (i < 2); ++i) {
-          String str = getStringFromRS(drawer.transtarttime.name(), rs);
-          if(i==0){
-            tr.setEnd(str);
-          } else if(i==1){
-            tr.setStart(str); // too few records means it starts at paymate's genesis
-          }
-        }
-      }
-    } catch (Exception e) {
-      dbg.Caught(e);
-    } finally {
-      closeStmt(stmt); // don't need this stmt anymore
-      stmt = null;
-    }
     TerminalInfo tinfo = getTerminalInfo(terminalid);
-    TxnRow trow = TxnRow.NewSet(query(genBatchQuery(storeid, tinfo.getNickName(),tr,false)));
+    TxnRow trow = getDrawerQuery(drawerid, terminalid, false);
     if(trow != null) {
       trow.setTitle(title);
     }
     return trow;
   }
 
-  public static final QueryString genBatchQuery(int storeid, String terminalName, TimeRange ranger, boolean onlyContribute) {
-    return QueryString.Select(tranjour.allFields()).//{
-      append(genWhichTxnsSubquery(storeid, terminalName, ranger, onlyContribute)).
-      orderbydesc(ranger.fieldName());//}
-  }
-
-  public static final QueryString genUnsettledTxnsQuery(String terminalname, Date starttime, int storeid) {//+=>ent2store
-    TimeRange ranger = ForAllTime().setStart(starttime);
-    return genBatchQuery(storeid, terminalname, ranger, false);
-  }
-
-  public static final QueryString genWhichTxnsSubquery(int storeid, String terminalName, TimeRange ranger, boolean onlyContribute) {
-    return QueryString.Clause("").
-      from(tranjour.name()).
-      where("").
-      append(genInnerWhereTxnsSubquery(terminalName, ranger, onlyContribute)).
-      and().nvPair("tranjour."+STOREID,storeid);
-  }
-
-  public static final QueryString genInnerWhereTxnsSubquery(String terminalName, TimeRange ranger, boolean onlyContribute) {
-    return QueryString.Clause("").
-      append(onlyContribute ? ApprovedTxns() : NoVoids()).
-      and().nvPair("tranjour."+CARDACCEPTORTERMID,terminalName).
-      and().
-      Open(""). //approved at the time submitted
-      Open("").isEmpty("tranjour.stoodinstan").andRange(ranger.fieldName(),ranger).Close().
-      or(). //standin at the time swiped
-      Open("").not().isEmpty("tranjour.stoodinstan").andRange("tranjour.CLIENTREFTIME",ranger). Close().
-      Close();
-  }
-
-  public QueryString genDrawerCardSubtotals(int storeid, String terminalName, TimeRange ranger) {
-    return QueryString.Select("paymenttypename").comma("").
-      append(genSelectTxnSubquery()).
-      from("paytype").comma(" outer "+tranjour.name()).
-      where("").
-      matching("paytype", tranjour.name(), "paymenttypecode").
-      and().matching("paytype", tranjour.name(), "storeid").
-      and().nvPair("paytype."+STOREID,storeid).
-      and().append(genInnerWhereTxnsSubquery(terminalName, ranger, true)).
-      groupby("paymenttypename").
-      orderbyasc("paymenttypename");
-  }
-
-  public final QueryString genSelectTxnSubquery() {
-    return QueryString.Clause("count(stan) as counter").
-      comma("sum(DECODE(processingcode,'200030',transactionamount*-1,transactionamount)) as sumer");
-  }
-
-  public final QueryString genTxnTotalsSubquery(int storeid, String terminalName, TimeRange ranger) {
-    return QueryString.Clause("").
-      append(genSelectTxnSubquery()).
-      append(genWhichTxnsSubquery(storeid, terminalName, ranger, true));
-  }
-
-  public QueryString genTerminalTotal(String storeid, String cardacceptortermid, String starttime) {
-    return genTerminalTotal(Safe.parseInt(storeid), cardacceptortermid, starttime);
-  }
-
-  public QueryString genTerminalTotal(int storeid, String cardacceptortermid, String starttime) {
-    TimeRange ranger = ForAllTime().setStart(starttime);
-    return QueryString.Select("").append(genTxnTotalsSubquery(storeid, cardacceptortermid, ranger));
-  }
-
-  public static final QueryString genCloseShift(TerminalID T, TimeRange ranger,LoginInfo li) {
-    DrawerTable tbm = drawer;
-    return QueryString.
-    Insert(tbm.name()).
-    Open(tbm.transtarttime.name()).
-    comma(tbm.terminalid.name()).
-    comma(tbm.associateid.name()).
-    comma(tbm.storeid.name()).
-    comma(tbm.enterpriseid.name()).
-    Close()
-    .Values(ranger.two()).
-    comma(""+T.terminalID).
-    comma(""+li.associd).
-    comma(""+T.storeid).
-    comma(""+li.enterpriseID).
-    Close();
-  }
+  // +++ @@@ %%% Next two functions need mutexing on terminal, so that drawers get recalc'd properly & so that tnx's drawer info is not changed concurrently.
 
   /**
-  * @return a database TimeRange used for querying for records associated with the range of closings for that terminal, from most recent to oldest.
-  */
-  public TimeRange getPendingRange(TerminalID T){
-    return TimeRange().setStart(getPendingStartTime(T)).setEnd(Safe.utcNow());
-  }
-
-  public Date getPendingStartTime(TerminalID T){
-    return tranUTC(getPendingStartTimeStr(T));
-  }
-
-  public String getPendingStartTimeStr(TerminalID T){
-    return getStringFromQuery(genPendingStartTimeQuery(T));
-  }
-
-  /**
-   * Get the newest (latest) CLOSING drawer for this terminal.
+   * set drawerid on a txn (so long as it doesn't already have one), and recalc the drawer
    */
-  public QueryString genPendingStartTimeQuery(TerminalID T) {
-    return QueryString.Select(" max("+TRANSTARTTIME+") as " +TRANSTARTTIME).
-      from(drawer.name()).
-      where(TerminalIs(T));
-  }
-
-  public TxnRow getTranjourRecordfromTID(TransactionID tid, String terminalId) {
-    TxnRow rec = null;
-    QueryString pending = genTransactionFromQuery(tid, terminalId, tranjour.name());
-    Statement stmt = query(pending);
-    if(stmt != null) {
-      try {
-        int count = 0;
-        ResultSet rs = getResultSet(stmt);
-        if(rs != null)  {
-          // if there is only one, use it, otherwise error
-          while(next(rs)) {
-            count++;
-            if(count > 1) {
-              rec = null;
-            } else {
-              rec = TxnRow.NewOne(rs);
-            }
-          }
-        }
-        if(rec == null) {
-          dbg.VERBOSE("getTranjourRecordfromTID: found " + count + " records from query: " + pending);
-        }
-      } catch (Exception e) {
-        dbg.Caught(e);
-      } finally {
-        closeStmt(stmt);
-      }
-    }
-    return rec;
-  }
-
-  /**
-  * add into a WHERE clause
-  * +_+ review the trims below, they should not be needed. tid normalizes its stuff.
-  */
-  private static final QueryString transactionIs(TransactionID tid, String table) {
-    //String table = tranjour.name()
-    return QueryString.Clause("")
-    .nvPair(table + "."+STOREID, tid.caid)
-    .and().nvPair(table + ".stan",tid.stan())
-    .and(TimeAfter(TransactionTime.forTrantime(tranUTC(tid.time).getTime()-Ticks.forDays(1))));
-  }
-
-  // --- schizophrenic
-  private QueryString genTransactionFromQuery(TransactionID tid, String terminalId, String table) {
-    dbg.WARNING("genTransactionFromQuery(): tid="+tid.image()+", terminalId=" + terminalId + ", table="+table);
-    // if you don't have it, generate the appropriate storeid from the received terminalId
-    // if you don't have the time, find all txn's with that time
-    table = Safe.TrivialDefault(table, EMPTYSTRING).trim();
-    QueryString qs = QueryString.SelectAllFrom(table);
-    boolean knowTime = (Safe.parseLong(tid.time) != 0);
-    boolean knowCAID = (tid.caid != 0);
-    if(knowCAID && knowTime) {
-      qs.where().append(transactionIs(tid, table)); // this is sort of a test of transactionIs()
+  public boolean setDrawerid(Txnid txnid, Drawerid newdrawerid) {
+    TxnRow rec = getTxnRecordfromTID(txnid);
+    Drawerid olddrawerid = rec.drawerid();
+    // check to see if the txn and drawer have the same terminalid associated with them !!!
+    Terminalid termid = getTerminalForDrawer(newdrawerid);
+    if(termid.value() != rec.terminalid().value()) {
+      dbg.ERROR("Can't assign txnid " + txnid + " to drawer " + newdrawerid + " since they do not have the same terminalid!");
     } else {
-      if(knowCAID) {
-        qs.where().nvPair(table + "."+STOREID, tid.caid);
+      // change the drawerid
+      if(!olddrawerid.isValid()) { // then it is not set yet, so you can set it.
+        return setOrReleaseDrawerid(txnid, newdrawerid, olddrawerid);
       } else {
-        qs.comma(terminal.name()).
-        where().matching(table,"terminal",STOREID).
-        and().nvPair("terminal."+TERMINALID,terminalId.trim());
-      }
-      qs.and().nvPair(table + ".stan",tid.stan().trim());
-      if(knowTime) {
-        qs.and(TimeIs(tid.time.trim()));
+        dbg.ERROR("Can't assign txnid " + txnid + " to drawer " + newdrawerid + " since it is already assigned to " + olddrawerid + ".");
       }
     }
-    return qs;
+    return false;
   }
 
-  public static final TransactionID getTIDfromResultSet(ResultSet rs){
-    return TransactionID.New(DBMacros.getStringFromRS(TRANSTARTTIME, rs),
-    DBMacros.getStringFromRS("stan", rs),
-    DBMacros.getIntFromRS(STOREID, rs));
-  }
-
-  static final String tranAfter(Date cutoff){
-    return QueryString.Clause(TRANSTARTTIME+">").quoted(TransactionTime.forTrantime(cutoff)).toString();
-  }
-
-  static final String tranAfter(long cutoff){
-    return tranAfter(new Date(cutoff)).toString();
-  }
-
-  public static final ProcessingCode ProcessingCode(FinancialRequest freq){
-    return ProcessingCode.New(freq.sale.type);
-  }
-
-  /**
-   * @return query matching store,amount,account,and type of transaction
-   */
-  private QueryString findMatchingCore(LoginInfo linfo, FinancialRequest req){
-    String accountnum;
-    if(req instanceof CardRequest){
-      accountnum=((CardRequest) req).card.accountNumber.Image();
-    } else if(req instanceof CheckRequest){
-      MICRData stripe =((CheckRequest) req).check;
-      //the last term below is usually pretty stupid.
-      //obviously mainsail tacked check abilities onto the ass end of credit.
-      accountnum=stripe.Transit+stripe.Account+stripe.Serial;
+  public boolean releaseDrawerid(Txnid txnid) {
+    // change the drawerid
+    TxnRow rec = getTxnRecordfromTID(txnid);
+    Drawerid olddrawerid = rec.drawerid();
+    if(olddrawerid.isValid()) { // then it is set, so you can release it.
+      return setOrReleaseDrawerid(txnid, new Drawerid(), olddrawerid);
     } else {
-      accountnum="0";
+      dbg.ERROR("Can't release txnid " + txnid + " from drawer since it isn't assigned to one.");
     }
-    String poscode= ProcessingCode(req).Image();
-
-    return QueryString.//{
-      SelectAllFrom(tranjour.name()).
-      where().nvPair(STOREID,linfo.storeid).
-      and().nvPair(AMOUNT,req.Amount().Image("#0.00")).
-      and().nvPair(ACCOUNT,accountnum).
-      and().nvPair("processingcode",poscode);
-      //}
+    return false;
   }
 
   /**
-   * @return from any terminal in that store.
+   * leave private !!!
    */
-  QueryString findSimilar(LoginInfo linfo, FinancialRequest req){
-    return findMatchingCore(linfo,req).orderbydesc(TRANSTARTTIME);
+  private final boolean setOrReleaseDrawerid(Txnid txnid, Drawerid newdrawerid, Drawerid olddrawerid) {
+    int count = update(QS.genSetDrawerid(txnid, newdrawerid));
+    boolean ret = (count == 1);
+    if(!ret) {
+      dbg.ERROR("Update of txn " + txnid + " from drawer " + olddrawerid + " to drawer " + newdrawerid + " resulted in an update of " + count + " records!");
+    }
+    // recalc the drawer(s)
+    if(Drawerid.isValid(newdrawerid)) {
+      retotalClosedDrawer(newdrawerid); // recalc whether or not it worked ... just in case
+    }
+    if(Drawerid.isValid(olddrawerid)) {
+      retotalClosedDrawer(olddrawerid); // recalc whether or not it worked ... just in case
+    }
+    return ret;
   }
 
-/**
- * @return find an exact match, findSimilar+same time and terminal as well
- */
-  QueryString findExactly(LoginInfo linfo, FinancialRequest req){
-    return findMatchingCore(linfo,req).
-    and().nvPair(CARDACCEPTORTERMID,linfo.terminalName).
-    and().nvPair(CLIENTREFTIME, forTrantime(req.requestInitiationTime)).
-    orderbydesc(TRANSTARTTIME);//yes, compare client time, but order by server time-should only be one.
+  // update txns with NULL for the batchid where the batchid equals this one
+  // note that this MUST do this record-by-record since the database gets deadlocks with big UPDATE ... WHERE commands.
+  public final void clearBatchDetails(Batchid redoBatchid) { // be sure that batchid is good before calling this function!
+    // select the entire list of txnids to do this with into an int array (or something)
+    // give the array to a function who is responsible for setting them all to some value (null in this case)
+    // that function then calls another function to do each one
+    Txnid[] txns = (Txnid[]) getUniqueIdExtentArrayFromQuery(QS.genTxnidsForBatchid(redoBatchid), Txnid.class);
+    int changed = setTxnBatchids(txns, null);
+    // return changed; (if returns int)
   }
 
-  public TxnRow getTransactionForRetry(LoginInfo linfo, FinancialRequest req, boolean matchTime) {
-    TxnRow trans = null;
-    /** fields needed for query:
-    *    date+time (subtracting could cause the time to roll back to yesterday) (retrieved in query function, diff passed in),
-    *    amount (passed in),
-    *    TERMINALNAME (calc'd from LoginInfo passed in),
-    *    storeid (could have the same TERMINALNAME in two different stores) (calc'd from LoginInfo passed in),
-    *  what else?
-    */
-    Statement stmt = query(matchTime? findExactly(linfo,req): findSimilar(linfo,req));
+  public final int setTxnBatchids(Txnid[] idList, Batchid newBatchid) {
+    int changed = 0;
+    if(idList == null) {
+      //+++ bitch
+    } else {
+      Txnid txnid = new Txnid();
+      if(newBatchid == null) {
+        newBatchid = new Batchid();
+      }
+      int total = idList.length;
+      // order does not matter since we aren't using a transaction
+      for(int i = total; i-- > 0; ) {
+        txnid = idList[i];
+        int updatecount = update(QS.genSetTxnBatchid(txnid, newBatchid));
+        if(updatecount > ObjectX.INVALIDINDEX) {
+          changed += updatecount;
+        }
+      }
+      if(changed < total) {
+        service.PANIC("BATCH." + newBatchid + ".SET ERROR: " + changed + "<" + total);
+      }
+    }
+    return changed;
+  }
+
+  public void setBatchTotals(Batchid batchid, int count, int amount) {
+    update(QS.genSetBatchTotals(batchid, count, amount)); // update the batch record for this batchid
+  }
+
+  public TxnRow getBatchCursor(Batchid batchid, LocalTimeFormat ltf) {
+    // first, get the info from the batch indicated.
+    Statement stmt = null;
+    Terminalid terminalid = new Terminalid();
+    String toDate = null;
+    String title = null;
+    try {
+      stmt = query(QS.genBatchQuery(batchid));
+      ResultSet tqrs = getResultSet(stmt);
+      if(next(tqrs)) {
+        toDate = getStringFromRS(batch.batchtime, tqrs);
+        title = "Batch Submittal " + batchid + " at " + ltf.format(QS.tranUTC(toDate));
+      }
+    } catch(Exception e) {
+      dbg.Caught(e);
+    } finally {
+      closeStmt(stmt);
+    }
+    TxnRow trow = getFullBatchQuery(batchid);
+    if(trow != null) {
+      trow.setTitle(title);
+    }
+    return trow;
+  }
+
+  public Statement runStoreBatchQuery(Storeid storeid, boolean showEmptyFailures, TimeRange tr) {
+    return query(QS.genStoreBatchesQuery(storeid, showEmptyFailures, tr));
+  }
+
+  public final TxnRow getFullBatchQuery(Batchid batchid) {
+    return TxnRow.NewSet(query(QS.genFullBatchQuery(batchid)));
+  }
+
+///////////////////////
+//// SUBMITTALS
+  /**
+   * creates a batch, stuffing the termauthid in it,
+   * and setting the batchseq & termbatchnum in the termauth table,
+   * returning the batchid,
+   * along with stamping the txns
+   * & adding a txnrow to the AuthSubmitTxn so that it can step through its txns
+   *
+   * This code is already mutexed, so we don't have to mutex the getting and setting of things
+   * @return number of records (if zero, then the submittal will NOT happen, and the batch record will not be created)
+   */
+  public int newBatch(AuthSubmitTransaction submittal, LongRange batchSeqRange, Counter termbatchnumer, boolean auto) {
+    int foundRecords = 0; // 0 means that the thing WON'T be done!
+    int txncount = 0;
+    int txntotals = 0;
+    // find the proper termauthid from the termauth table, store timezone (use the date/time in the timezone of the store, per Beverly)
+    TermAuthid termauthid = new TermAuthid(getIntFromQuery(QS.genTermAuth(submittal.request.terminalid, submittal.request.authid)));
+    String batchtime = QS.forTrantime(submittal.request.batchtime);
+    submittal.request.termbatchnum = (int) termbatchnumer.value();
+    submittal.request.termauthid = termauthid;
+    // insert the batch record
+    Batchid batchid = getNextBatchid();
+    if(update(QS.genCreateBatch(termauthid, batchtime, submittal.request.termbatchnum, batchid
+                                /* incremented elsewhere */, auto)) != 1) {
+      dbg.ERROR("Unable to create new batch record: termauthid=" + termauthid + ", batchtime=" + batchtime + ", termbatchnumber=" + termbatchnumer.value());
+    } else {
+      submittal.request.setBatchid(batchid, batchSeqRange); // sets the batchSequence here
+      // stamp the txns with the batchid;
+      foundRecords = setTxnBatchids(batchid, submittal.request.terminalid, submittal.request.authid);
+      if(foundRecords == 0) {
+        // delete the batch record from the db!
+        if(update(QS.genDeleteBatch(batchid)) != 1) {
+          dbg.ERROR("Error attempting to delete batchid # " + batchid);
+        }
+      } else {
+        // set the now-known batchSequence
+        if(update(QS.genUpdateBatchseq(batchid, submittal.request.batchseq)) != 1) {
+          dbg.ERROR("Error attempting to update the batches [" + batchid + "] sequence #.");
+        }
+        // Get a TxnRow of all of the txns & attach to the submittal object
+        submittal.records = getBatch(batchid);
+      }
+    }
+    // return the number of records found
+    return foundRecords;
+  }
+
+  // update txns with the batchid where the txn matches the WHERE
+  // note that this MUST do this record-by-record since the database gets deadlocks with big UPDATE ... WHERE commands.
+  private final int setTxnBatchids(Batchid batchid, Terminalid terminalid, Authid authid) {
+    // select the entire list of txnids to do this with into an int array (or something)
+    // give the array to a function who is responsible for setting them all to some value (null in this case)
+    // that function then calls another function to do each one
+    Txnid[] txns = (Txnid[]) getUniqueIdExtentArrayFromQuery(QS.genGetBatchableTxns(terminalid, authid), Txnid.class);
+    return setTxnBatchids(txns, batchid);
+  }
+
+  /**
+   * This is currently only used for sending batches to authorizers.
+   * Therefore it will use an ascending list to pacify NPC.
+   * If you need to send descending to anyone, recode with that as a parameter
+   */
+  public TxnRow getBatch(Batchid batchid) {
+    return TxnRow.NewSet(query(QS.genGetBatch(batchid)));
+  }
+
+  // checks to see if the actinocode is D or F and if the count > 0
+  public final boolean canResubmitBatch(Batchid batchid) {
+    boolean ret = false;
+    Statement stmt = query(QS.genBatchQuery(batchid));
     if(stmt != null) {
       try {
         ResultSet rs = getResultSet(stmt);
         if(next(rs)) {
-          dbg.VERBOSE("found a potential retry's record");
-          trans=TxnRow.NewOne(rs);
-        } else {
-          dbg.VERBOSE("no potential retry");
-        }
-      } catch (Exception e) {
-        dbg.Caught(e);
-      } finally {
-        closeStmt(stmt);
-      }
-    }
-    return trans;
-  }
-
-  void insertStoreFromEnterprise(QueryString qs, int eid) {
-    qs.
-      and().nQuery(STOREID,store.name(),
-        QueryString.Clause(EMPTYSTRING).
-        where().nvPair(store.name()+".enterpriseid",eid));
-  }
-
-  public TxnRow findTransactionBy(int enterpriseID, TranjourFilter filter){
-    ResultSet rs = null;
-    // build the query string
-    QueryString clauses = QueryString.Clause(EMPTYSTRING).where(NoVoids());
-    insertStoreFromEnterprise(clauses,enterpriseID);
-    clauses.andRange(ACCOUNT,filter.card);
-    // handle the amounts
-    clauses.andRange(AMOUNT,filter.amount);
-    // handle the stans
-    clauses./*andModularRange*/andRange(STAN,filter.stan);
-    // handle the approvals
-    clauses.andRange("AUTHIDRESPONSE",filter.appr);
-    // handle the dates
-    clauses.andRange(TRANSTARTTIME,filter.time);
-    return TxnRow.NewSet(query(QueryString.Select("transtarttime, *").from(tranjour.name()).append(clauses).orderbydesc("1")));
-  }
-
-  protected static final String unescape(String escaped) {
-    return Safe.unescapeAll(escaped);
-  }
-
-  static final StoreInfo storeFromRS(ResultSet rs){
-    StoreInfo si = new StoreInfo();
-
-    String name        = getStringFromRS("storename", rs);
-    String address1    = getStringFromRS("address1", rs);
-    String city        = getStringFromRS("city", rs);
-    String state       = getStringFromRS("state", rs);
-    String country     = getStringFromRS("country", rs);
-    si.setNameLocation(name, address1, city, state, country);
-    si.setIdentificationCode(getStringFromRS(STOREID, rs));
-    si.timeZoneName = getStringFromRS("javatz",rs);
-    si.slim=getLimitsFromRS(rs);
-    return si;
-  }
-
-  static final StandinLimit getLimitsFromRS(ResultSet rs) {
-    return new StandinLimit(new RealMoney(getStringFromRS("STANDINLIMIT", rs)),
-    new RealMoney(getStringFromRS("STORESTANDINTOTAL", rs)));
-  }
-
-  static final ReceiptFormat receiptInfoFromRS(ResultSet rs){
-    ReceiptFormat newone= new ReceiptFormat();
-    // unescape is needed for embedded '\n's in the receipt headers and footers
-    newone.Header  = unescape(getStringFromRS("receiptHeader", rs)); // "siNet POS services\n9420 Research Blvd.\nAustin,TX 78759"; // +++ get this!
-    newone.Tagline = unescape(getStringFromRS("receiptTagline", rs)); //"Bringing the Net\nto your business"; // +++ get this!
-
-    newone.TimeFormat=Safe.OnTrivial(unescape(getStringFromRS("receiptTimeFormat", rs)).trim(), ReceiptFormat.DefaultTimeFormat);
-    newone.showSignature=getBooleanFromRS("receiptShowSig", rs); // defaults to false
-    newone.abide  = Safe.OnTrivial(getStringFromRS("receiptabide", rs), newone.abide);
-    return newone;
-  }
-
-  static final TerminalCapabilities termcapFromRS(ResultSet rs){
-    EasyCursor ezp=new EasyCursor();
-    ezp.setBoolean(TerminalCapabilities.freePassKey , getBooleanFromRS(store.freepass.name(), rs));  //#lubys#, but Taco probably wouldn't mind.
-    ezp.setBoolean(TerminalCapabilities.autoApproveKey, getBooleanFromRS(store.autoapprove.name(), rs));  //#lubys# must be true, taco would be surprised! but still probably wouldn't mind
-//the followin gdo not yet have database fields behind them:
-    ezp.setBoolean(TerminalCapabilities.creditAllowedKey,getBooleanFromRS(store.creditallowed.name(), rs)); // +++ make this default to false AFTER it is added to the database as true for everyone
-    // begin cheecks
-    ezp.setBoolean(TerminalCapabilities.checksAllowedKey,getBooleanFromRS(store.checksallowed.name(), rs));
-    ezp.setBoolean(TerminalCapabilities.alwaysIDKey,true);
-// end checks
-// needed for debit
-    ezp.setBoolean(TerminalCapabilities.debitAllowedKey,getBooleanFromRS(store.debitallowed.name(), rs));
-// end debit
-// needed for debit push
-    ezp.setBoolean(TerminalCapabilities.pushDebitKey,false);
-    ezp.setString(TerminalCapabilities.debitPushThresholdKey,"$0.00");//of course this can be cents. // INTEGER
-// end debit push
-    ezp.setBoolean(TerminalCapabilities.autoCompleteKey,/*true testing:*/false); //
-
-    return new TerminalCapabilities(ezp);
-  }
-
-  static final StoreConfig storeFig(ResultSet rs){
-    StoreConfig cfg=new StoreConfig();
-    cfg.si= storeFromRS(rs);
-    cfg.receipt= receiptInfoFromRS(rs);
-    cfg.termcap= termcapFromRS(rs);
-    return cfg;
-  }
-
-  /**
-  * available fields: (excluding deprecated and stupid ones)
-  * terminalid char 32 NOT NULL
-  * storeid INTEGER NOT NULL
-  * modelcode char 4 NOT NULL
-  * terminalname char 8 NOT NULL
-  */
-  static final TerminalInfo TermFromRS(ResultSet rs){
-    TerminalInfo newone=new TerminalInfo(getIntFromRS(TERMINALID, rs));
-    newone.setNickName(getStringFromRS(TERMINALNAME, rs));
-    newone.equipmenthack=getStringFromRS("modelcode", rs);
-    dbg.VERBOSE("TermFromRS:"+newone.toSpam());
-    return newone;
-  }
-
-  /**
-  * @return query for appliance info
-  */
-  static final QueryString ApplianceInfoQry(String applianceID){
-    return
-    QueryString.SelectAllFrom(store.name()).
-    comma(terminal.name()).
-    where(ApplianceIs(applianceID)); //
-  }
-
-  /**
-  * @return multiple terminal connection
-  */
-  public ConnectionReply getApplianceInfo(String applianceID) {
-    Statement apple = query(ApplianceInfoQry(applianceID)); // appliance query, returns all terminals for this appliance
-    ConnectionReply tlr = new ConnectionReply(applianceID);
-    if(apple != null) {
-      try {
-        ResultSet rs = getResultSet(apple);
-        if(rs != null && next(rs)) {
-          //pick store info off of first terminal, will be the same for all
-          tlr.cfg= storeFig(rs);
-          tlr.add(TermFromRS(rs));
-          while(next(rs)){//each one is a terminal
-            tlr.add(TermFromRS(rs));
+          String actioncode = getStringFromRS(batch.actioncode, rs);
+          int count = getIntFromRS(batch.txncount, rs);
+          if( (count > 0) && (StringX.equalStrings(actioncode, ActionCode.Declined) || StringX.equalStrings(actioncode, ActionCode.Failed))) {
+            ret = true;
           }
-          //in the future we investigate hardware table and build "testpos.properties" here.
-          tlr.status.setto(ActionReplyStatus.Success);//moved here so that we can make variants.
         }
-      } catch (Exception t) {
-        dbg.ERROR("Exception getting terminal login info!");
-        dbg.Caught(t);
-      } finally {
-        closeStmt(apple);
-      }
-    }
-    return tlr;
-  }
-
-  public static final QueryString genLogApplianceUpdate(
-      String applName, String revision, long requestInitiationTime, long srvrTime, long freeMemory,
-      long totalMemory, int activeCount, int activeAlarmsCount, int txnCount, int rcptCount) {
-    boolean includeCounts = ((txnCount != -1) && (rcptCount != -1));
-    QueryString qsr = QueryString.Update("appliance").Clause("set").
-      Open("rptRevision").
-      comma("rptApplTime").
-      comma("rptTime").
-      comma("rptFreeMem").
-      comma("rptTtlMem").
-      comma("rptThreadCount").
-      comma("rptAlarmCount");
-    if(includeCounts) {
-      qsr = qsr.comma("rptStoodTxn").comma("rptStoodRcpt");
-    }
-    qsr = qsr.
-      Close().
-      Values(revision).
-      comma(forTrantime(requestInitiationTime)).
-      comma(forTrantime(srvrTime)).
-      comma(""+freeMemory).
-      comma(""+totalMemory).
-      comma(""+activeCount).
-      comma(""+activeAlarmsCount);
-    if(includeCounts) {
-      qsr = qsr.comma(""+txnCount).comma(""+rcptCount);
-    }
-    qsr = qsr.
-      Close().
-      where().nvPair("applname", applName);
-    return qsr;
-  }
-
-  public void logApplianceUpdate(String applName, String revision, long requestInitiationTime, long srvrTime, long freeMemory, long totalMemory, int activeCount, int activeAlarmsCount, int txnCount, int rcptCount) {
-    update(genLogApplianceUpdate(applName, revision, requestInitiationTime, srvrTime, freeMemory, totalMemory, activeCount, activeAlarmsCount, txnCount, rcptCount));
-  }
-
-  public static final QueryString genApplianceTerminalStore(String applName) {
-    return QueryString.
-    Select("storename").comma("terminalname").
-    from("terminal").comma("store").comma("appliance").
-    where().nvPair("applname", applName).
-    and().matching("appliance", "terminal", "applianceid").
-    and().matching("store", "terminal", "storeid");
-  }
-
-  public String getApplianceTerminalStore(String applName) {
-    Statement stmt = query(genApplianceTerminalStore(applName));
-    String ret = "error extracting appliance info from database";
-    if(stmt != null) {
-      try {
-        String store = null;
-        String terminals = "";
-        ResultSet rs = getResultSet(stmt);
-        while(next(rs)) {
-          if(store == null) {
-            store = getStringFromRS("storename", rs);
-          }
-          terminals += getStringFromRS("terminalname", rs);
-        }
-        ret = "Store: "+store+"\nTerminals: "+terminals;
-      } catch (Exception ex) {
+      } catch(Exception ex) {
         dbg.Caught(ex);
       } finally {
         closeStmt(stmt);
@@ -1370,58 +971,410 @@ public class PayMateDB extends DBMacros implements DBConstants, Database {
     return ret;
   }
 
-  public QueryString genApplianceRowQuery() {
-    return QueryString.
-      Select("applianceid").comma("applname").comma("storeid").comma("storename").comma("rptRevision").
-      comma("rptApplTime").comma("rptTime").comma("rptFreeMem").comma("rptTtlMem").comma("rptThreadCount").
-      comma("rptAlarmCount").comma("rptStoodTxn").comma("rptStoodRcpt").
-      from("appliance").comma("store").
-      where().matching("appliance", "store", "storeid").
-      orderbyasc("storeid").comma("applname");
+  public void finishBatch(AuthSubmitTransaction submittal, LongRange authseqRange, Counter termbatchnumer) { // +++ @@@ mutex ??? - should probably mutex in AuthSubmitTransaction where you set the values in the object, too, or only do that through this function (pass the values as parameters to the function)
+    if(submittal.response.statusUnknown()) {
+      // if actioncode is trivial, set it and authrespmsg to error states in the submittal record
+      submittal.response.setTrio(ActionCode.Failed, /* don't change this one */ submittal.response.authcode(), StringX.TrivialDefault(submittal.response.message(), "PM->HOST COMM ERR"));
+    }
+    dbg.ERROR("updating batch: " + submittal);
+    if(Batchid.isValid(submittal.request.batchid())) {
+      // save the actioncode and authrespmsg to the database
+      if(update(QS.genUpdateBatchStatus(submittal.request.batchid(), String.valueOf(submittal.response.action()), submittal.response.message())) != 1) {
+        // if there was an error saving it
+        dbg.ERROR("finishBatch(): Error closing out batch & writing batch status to DB: batchid=" + submittal.request.batchid() + ", actioncode=" + submittal.response.action() + ", rrn=" + submittal.response.authrrn());
+      }
+      if(submittal.response.isApproved()) {
+        // if the submission succeeded; reset the sequence number and increment the batch number for the termauth
+        int newauthseq = (int) authseqRange.low() - 1; // set to LOW-1 so that the next increment will start with LOW
+        if(update(QS.genUpdateTermauthInfo(submittal.request.termauthid, (int) termbatchnumer.incr(), newauthseq)) != 1) { // batch number is incremented here ONLY
+          // if there was an error saving it
+          dbg.ERROR("finishBatch(): Error updating termauth values [writing to DB] -- termauth=" + submittal.request.termauthid);
+        } else {
+          dbg.ERROR("finishBatch(): updated the batch num.");
+        }
+      } else {
+        dbg.ERROR("finishBatch(): Not incrementing the batchnum since the batch was not approved!");
+      }
+    } else {
+      dbg.ERROR("finishBatch(): Batch was not submitted, so no record in DB!");
+    }
   }
 
-  public ApplianceRow getApplianceRowQuery() {
-    return ApplianceRow.NewSet(query(genApplianceRowQuery()));
+  public int getBatchNumberValue(Authid authid, Terminalid terminalid) {
+    return getIntFromQuery(QS.genGetBatchNumberValue(authid, terminalid));
   }
 
-  //SELECT storename FROM terminal, store where terminal.storeid=store.storeid and applianceid='0060EF218533'
-  private final QueryString StorenameQuery(String applianceId) {
-    return QueryString.Select("storename").
-      from(store.name()).
-      comma(terminal.name()).
-      where().matching(store.name(),terminal.name(),terminal.STOREID).
-      and().nvPair(terminal.applianceid.name(), applianceId);
+//// END SUBMITTALS
+///////////////////////
+
+  public final Terminalid getTerminalForBatch(Batchid batchid) {
+    Statement stmt = null;
+    Terminalid ret = null;
+    try {
+      stmt = query(QS.genTerminalAndAuthForBatch(batchid));
+      if(stmt != null) {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          ret = new Terminalid(getIntFromRS(terminal.terminalid, rs));
+        }
+      }
+    } catch(Exception e) {
+      dbg.Caught(e);
+    } finally {
+      closeStmt(stmt);
+      return ret;
+    }
   }
 
-  public String getStorenameForAppliance(String applianceId){
-    return getStringFromQuery(StorenameQuery(applianceId));
+  public final Terminalid getTerminalForDrawer(Drawerid drawerid) {
+    return new Terminalid(getIntFromQuery(QS.genTerminalidFromDrawerid(drawerid)));
   }
 
-  // SELECT terminalid, terminalname FROM terminal WHERE applianceid = '0060EF218533' order by terminalname asc
-  private final QueryString ApplianceTerminalsQuery(String applianceId) {
-    return QueryString.Select(terminal.terminalid.name()).comma(terminal.terminalname.name()).
-      from(terminal.name()).
-      where().nvPair(terminal.applianceid.name(), applianceId).
-      orderbyasc(terminal.terminalname.name());
+  public final Authid getAuthForBatch(Batchid batchid) {
+    Statement stmt = null;
+    Authid ret = null;
+    try {
+      stmt = query(QS.genTerminalAndAuthForBatch(batchid));
+      if(stmt != null) {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          ret = new Authid(getIntFromRS(authorizer.authid, rs));
+        }
+      }
+    } catch(Exception e) {
+      dbg.Caught(e);
+    } finally {
+      closeStmt(stmt);
+      return ret;
+    }
   }
 
-  // format elsewhere, just return a TextList +++
-  private static final String div = "<BR>"; // ", "
-  public String getTerminalsForAppliance(String applianceId){
-    String ret = "";
-    Statement apple = query(ApplianceTerminalsQuery(applianceId)); // appliance query, returns all terminals for this appliance
+  public final Terminalid getTerminalForTermauth(TermAuthid termauthid) {
+    Statement stmt = null;
+    Terminalid ret = null;
+    try {
+      stmt = query(QS.genTerminalAndAuthForTermauth(termauthid));
+      if(stmt != null) {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          ret = new Terminalid(getIntFromRS(terminal.terminalid, rs));
+        }
+      }
+    } catch(Exception e) {
+      dbg.Caught(e);
+    } finally {
+      closeStmt(stmt);
+      return ret;
+    }
+  }
+
+  public final Authid getAuthForTermauth(TermAuthid termauthid) {
+    Statement stmt = null;
+    Authid ret = null;
+    try {
+      stmt = query(QS.genTerminalAndAuthForTermauth(termauthid));
+      if(stmt != null) {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          ret = new Authid(getIntFromRS(authorizer.authid, rs));
+        }
+      }
+    } catch(Exception e) {
+      dbg.Caught(e);
+    } finally {
+      closeStmt(stmt);
+      return ret;
+    }
+  }
+
+  public final Terminalid getTerminalForTxnid(Txnid txnid) {
+    return new Terminalid(getIntFromQuery(QS.genTerminalForTxnid(txnid)));
+  }
+
+  public final TxnRow getDrawerQuery(Drawerid drawerid, Terminalid terminalid, boolean onlyContribute) {
+    return TxnRow.NewSet(query(QS.genDrawerQuery(drawerid, terminalid, onlyContribute)));
+  }
+
+  // concatenates the paytype code and institution code to create a 3-char string for SubTotaller use
+  public TextList getStorePayInst(Storeid storeid) {
+    TextList tl = new TextList();
+    Statement stmt = query(QS.genStorePayInst(storeid));
+    if(stmt != null) {
+      ResultSet rs = getResultSet(stmt);
+      while(next(rs)) {
+        String pt = getStringFromRS(storeauth.paytype, rs);
+        int len = StringX.lengthOf(pt);
+        switch(len) {
+          case 0: {
+            pt = " ";
+          }
+          break; case 1: {
+            // fine; leave alone
+          }
+          break; default: {
+            // > 1; shouldn't ever be
+            pt = StringX.left(pt, 1);
+          }
+        }
+        tl.add(pt + getStringFromRS(storeauth.institution, rs));
+      }
+    } else {
+      dbg.ERROR("Error getting store institutions for storeid=" + storeid);
+      return null;
+    }
+    return tl;
+  }
+
+  /**
+   * close One terminal's drawer.
+   */
+  public Drawerid closeDrawer(Terminalid Tid, Associateid associd, boolean auto) {
+    if(associd == null) {
+      associd = new Associateid();
+    }
+    Drawerid drawerid = getNextDrawerid();
+    update(QS.genCreateCloseDrawer(Tid, Now(), associd, drawerid, auto)); // stuffs the drawerid
+    if(drawerid.isValid()) {
+      // stamp the txns
+      Txnid[] txns = (Txnid[]) getUniqueIdExtentArrayFromQuery(QS.genGetDrawerableTxns(Tid), Txnid.class);
+      int total = txns.length;
+      int count = 0;
+      for(int i = total; i-- > 0; ) {
+        int changed = update(QS.genSetDrawerid(txns[i], drawerid));
+        if(changed > ObjectX.INVALIDINDEX) {
+          count += changed;
+        }
+      }
+      dbg.WARNING("Stamped " + count + " txns for drawer closing: " + drawerid + ".");
+    }
+    retotalClosedDrawer(drawerid);
+    return drawerid;
+  }
+
+  public final void retotalClosedDrawer(Drawerid drawerid) {
+    // get the numbers
+    Statement stmt = null;
+    int count = 0;
+    int amount = 0;
+    try {
+      stmt = query(QS.genGetDrawerTotals(drawerid));
+      if(stmt != null) {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          count = getIntFromRS(QS.COUNTER, rs);
+          amount = getIntFromRS(QS.SUMER, rs);
+        }
+      }
+    } catch(Exception e) {
+      dbg.Caught(e);
+    } finally {
+      closeStmt(stmt);
+    }
+    update(QS.genSetDrawerTotals(drawerid, count, amount));
+  }
+
+  public UTC getPendingStartTime(Terminalid terminalid) {
+    return QS.tranUTC(getPendingStartTimeStr(terminalid));
+  }
+
+  public String getPendingStartTimeStr(Terminalid terminalid) {
+    return getStringFromQuery(QS.genPendingStartTimeQuery(terminalid));
+  }
+
+  // gets all txns that match that clientreftime -- BE CAREFUL!  Only supposed to be used by the ReceiptAgent
+  public
+  /* package */ TxnRow getTxnsForTime(String clientreftime) {
+    dbg.WARNING("getTxnsForTime(): clientreftime=" + clientreftime);
+    return TxnRow.NewSet(query(QS.genTxnsForTime(clientreftime)));
+  }
+
+  public TxnRow getTxnRecordfromTID(Terminalid terminalId, String clientreftime) {
+    dbg.WARNING("getTransactionFromQuery(): terminalId=" + terminalId + ", clientreftime=" + clientreftime);
+    if(!Terminalid.isValid(terminalId)) {
+      return null;
+    } else {
+      Txnid id = new Txnid(getIntFromQuery(QS.genTransactionFromQuery(terminalId, clientreftime)));
+      return getTxnRecordfromTID(id);
+    }
+  }
+
+  public Txnid getTxnid(Terminalid terminalId, STAN stan) {
+    return new Txnid(getIntFromQuery(QS.genTxnid(terminalId, stan)));
+  }
+
+  public Txnid getTxnidFromAuthrrn(Terminalid terminalId, String authrrn) {
+    return new Txnid(getIntFromQuery(QS.genTxnid(terminalId, authrrn)));
+  }
+
+  /**
+   * @return tref after finding its txnid
+   */
+  public TxnReference getTxnid(TxnReference tref) {
+    if(STAN.isValid(tref.STAN())) { // no point searching if there is no STAN
+      tref.txnId = new Txnid(getIntFromQuery(QS.genTxnid(tref.termid, tref.STAN())));
+    }
+    return tref;
+  }
+
+  /**
+   * @return record referenced by txnid stored in some other record
+   * @todo go through history table if not found in txn.
+   */
+  public TxnRow getTxnRecordfromTID(Txnid txnid) {
+    TxnRow rec = TxnRow.NewOne(getRecordProperties(txn, txnid));
+    if(rec != null) {
+      rec.authattempt = loadAuthAttempt(rec.txnid());
+    }
+    return rec;
+  }
+
+  // pass it either an AuthAttemptid or a Txnid
+  public final AuthAttempt loadAuthAttempt(UniqueId id) {
+    AuthAttempt attempt = new AuthAttempt();
+    loadAuthAttempt(attempt, query(QS.AuthAttempt(id)));
+    return attempt;
+  }
+
+  private final void loadAuthAttempt(AuthAttempt attempt, Statement stmt) {
+    // here,load the authrequest and authresponse into the record
+    if(stmt != null) {
+      try {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          byte[] attemptreq = DataCrypt.databaseDecode(getStringFromRS(authattempt.authrequest, rs), attempt.id);
+          attempt.setAuthRequest(attemptreq);
+          attempt.setEncodedAuthResponse(getStringFromRS(authattempt.authresponse, rs));
+        }
+      } catch(Exception ex) {
+        dbg.Caught(ex);
+      } finally {
+        closeStmt(stmt);
+      }
+    }
+  }
+
+  public Txnid getVoidForOriginal(Txnid original) {
+    return new Txnid(getIntFromQuery(QS.genFindVoidForOriginal(original)));
+  }
+
+  // dupcheck
+  public TxnRow getTransactionForRetry(Terminalid terminalid, PaymentRequest req) {
+    // this has to get back an array and then check each one to see if it matches (the card is in question here)!
+    Txnid[] ids = (Txnid[]) getUniqueIdExtentArrayFromQuery(QS.genFindExactly(terminalid, req), Txnid.class);
+    for(int i = ids.length; i-- > 0; ) {
+      Txnid id = ids[i];
+      if(id.isValid()) {
+        dbg.VERBOSE("found a potential retry's record");
+        TxnRow trans = TxnRow.NewOne(getRecordProperties(txn, id));
+        if(StringX.equalStrings(trans.card().accountNumber.Image(), req.card.accountNumber.Image())) {
+          return trans;
+        }
+      }
+    }
+    return null;
+  }
+
+  // search screen
+  public TxnRow findTransactionsBy(Storeid storeid, TxnFilter filter, int limit) {
+    return TxnRow.NewSet(query(QS.genFindTransactionsBy(filter, storeid).orderbydesc(1).limit(limit)));
+  }
+
+  // +++ eventually put someplace like the StoreInfo class?
+  // --- I don't want to put StoreInfo knowledge on the pristine Store class / business package ... unless we move that class into that package, or better yet, just use the store object
+  static final StoreInfo getStoreInfo(Store store) {
+    StoreInfo si = new StoreInfo();
+    String name = store.storename;
+    String address1 = store.address1;
+    String city = store.city;
+    String state = store.state;
+    String country = store.country;
+    si.setNameLocation(name, address1, city, state, country);
+    si.timeZoneName = store.timeZoneStr();
+    si.type = store.merchanttype;
+    si.slim = new StandinLimit(new RealMoney(store.silimit), new RealMoney(store.sitotal));
+    si.enauthonly = store.enauthonly;
+    si.enmodify = store.enmodify;
+    return si;
+  }
+
+  static final ReceiptFormat receiptInfoFromRS(Store store) {
+    ReceiptFormat newone = new ReceiptFormat();
+    // unescape is needed for embedded '\n's in the receipt headers and footers
+    newone.Header = StringX.unescapeAll(store.receiptheader);
+    newone.Tagline = StringX.unescapeAll(store.receipttagline);
+    newone.TimeFormat = StringX.OnTrivial(StringX.unescapeAll(store.receipttimeformat).trim(), ReceiptFormat.DefaultTimeFormat);
+    newone.showSignature = store.receiptshowsig; // defaults to false
+    newone.abide = StringX.OnTrivial(store.receiptabide, newone.abide);
+    return newone;
+  }
+
+  static final TerminalCapabilities termcapFromRS(Store store) {
+    EasyCursor ezp = new EasyCursor();
+    // credit
+    ezp.setBoolean(TerminalCapabilities.creditAllowedKey, store.creditallowed);
+    // checks
+    ezp.setBoolean(TerminalCapabilities.checksAllowedKey, store.checksallowed);
+    ezp.setBoolean(TerminalCapabilities.alwaysIDKey, store.alwaysid);
+    // debit
+    ezp.setBoolean(TerminalCapabilities.debitAllowedKey, store.debitallowed);
+    // debit push
+    ezp.setBoolean(TerminalCapabilities.pushDebitKey, store.pushdebit);
+    ezp.setLong(TerminalCapabilities.debitPushThresholdKey, store.debitpushthreshold); // cents
+    // misc
+    ezp.setBoolean(TerminalCapabilities.autoCompleteKey, store.autocomplete);
+    ezp.setBoolean(TerminalCapabilities.freePassKey, store.freepass); //#lubys#, but Taco probably wouldn't mind.
+    ezp.setBoolean(TerminalCapabilities.autoApproveKey, store.autoapprove); //#lubys# must be true, taco would be surprised! but still probably wouldn't mind
+    ezp.setBoolean(TerminalCapabilities.autoQueryKey, store.autoquery);
+    ezp.setBoolean(TerminalCapabilities.enMerchRefKey, store.enmerchref);
+    ezp.setBoolean(TerminalCapabilities.enAutoLogoutKey, store.enautologout);
+    ezp.setString(TerminalCapabilities.MerchRefPromptKey, store.merchreflabel); // it could be null
+    return new TerminalCapabilities(ezp);
+  }
+
+  public final StoreConfig getStoreConfig(Store store) {
+    StoreConfig cfg = new StoreConfig();
+    cfg.si = getStoreInfo(store);
+    cfg.receipt = receiptInfoFromRS(store);
+    cfg.termcap = termcapFromRS(store);
+    cfg.sigcapThreshold.setto(store.sigcapthresh);
+    return cfg;
+  }
+
+  /**
+   * @return multiple terminal connection, null if appliance not found
+   */
+  public ConnectionReply getApplianceInfo(Applianceid applianceid) {
+    ConnectionReply tlr = null;
+    Appliance appliance = ApplianceHome.Get(applianceid);
+    if(appliance != null) {
+      tlr = new ConnectionReply(appliance.applname);
+      Store store = StoreHome.Get(appliance.storeid);
+      tlr.cfg = getStoreConfig(store);
+      tlr.status.setto(ActionReplyStatus.Success); //moved here so that we can make variants.
+      // appliance query, returns all terminals for this appliance
+      Terminalid[] terms = (Terminalid[]) getUniqueIdExtentArrayFromQuery(QS.genTerminalsforAppliance(applianceid), Terminalid.class);
+      for(int i = terms.length; i-- > 0; ) {
+        tlr.add(getTerminalInfo(terms[i]));
+        //in the future we investigate hardware table and build "testpos.properties" here.
+      }
+    }
+    return tlr;
+  }
+
+  public final Applianceid[] getAppliances(Storeid storeid) {
+    return(Applianceid[]) getUniqueIdExtentArrayFromQuery(QS.genApplianceRowQuery(storeid), Applianceid.class);
+  }
+
+  public TextList getTerminalsForAppliance(Applianceid applianceid, boolean withids) {
+    TextList ret = new TextList();
+    Statement apple = query(QS.genApplianceTerminalsQuery(applianceid)); // appliance query, returns all terminals for this appliance
     if(apple != null) {
       try {
         ResultSet rs = getResultSet(apple);
-        if(rs != null) {
-          while(next(rs)){//each one is a terminal; get rid of this next block when we have an appliances table! ---
-            if(Safe.NonTrivial(ret)) {
-              ret += div;
-            }
-            ret += rs.getString(terminal.terminalname.name()).trim()+"/"+rs.getString(terminal.terminalid.name());
-          }
+        while(next(rs)) { //each one is a terminal; get rid of this next block when we have an appliances table! ---
+          ret.add( (withids ? getStringFromRS(terminal.terminalid, rs) + ":" : "") + getStringFromRS(terminal.terminalname, rs));
         }
-      } catch (Exception t) {
+      } catch(Exception t) {
         dbg.ERROR("Exception getting appliance terminals info!");
         dbg.Caught(t);
       } finally {
@@ -1431,82 +1384,54 @@ public class PayMateDB extends DBMacros implements DBConstants, Database {
     return ret;
   }
 
-  /**
-   * Temporary until we get the tables fixed up
-   */
-  public QueryString genTerminalsForStore(int storeid) {
-    return QueryString.
-      Select("").append("enterprisename").comma("storename").comma(terminal.terminalname.name()).
-      comma("modelcode").
-      comma(enterprise.fieldname(ENTERPRISEID)).
-      comma(terminal.fieldname(terminal.storeid)).
-      comma(terminal.terminalid.name()).
-      from(terminal.name()).comma(store.name()).comma(enterprise.name()).
-      where("").nvPair(terminal.fieldname(STOREID), storeid).
-      and().matching(store.name(),enterprise.name(),ENTERPRISEID).
-      and().matching(terminal.name(),store.name(),terminal.storeid.name()).
-//      and(terminal.terminalid.name()).not().in().parenth(QueryString.Select(ASSOCIATEID).from("associate")).
-      orderbyasc(terminal.terminalname.name());
-  }
-  public TerminalPendingRow getTerminalsForStore(int storeid) {
-    Statement stmt =null;
+  public TerminalPendingRow getTerminal(Terminalid terminalid) {
+    Statement stmt = null;
     try {
-      stmt = query(genTerminalsForStore(storeid));
-    } catch(Exception arf){
-      dbg.ERROR("Swallowed in getTerminalsForEnterprise:"+arf);
+      stmt = query(QS.genTerminalPendingRow(terminalid));
+    } catch(Exception arf) {
+      dbg.ERROR("Swallowed in getTerminal:" + arf);
     } finally {
       return TerminalPendingRow.NewSet(stmt);
     }
   }
-  public QueryString genTerminalPendingRow(int terminalid) {
-    return QueryString.
-    Select("").append(terminal.terminalid.name()).comma(terminal.terminalname.name()).
-    comma(terminal.fieldname(terminal.storeid)).
-    comma(enterprise.fieldname(ENTERPRISEID)).
-    comma(enterprise.fieldname("ENTERPRISENAME")).
-    comma(terminal.fieldname("MODELCODE")).
-    comma(store.fieldname("storename")).
-    from(terminal.name()).comma(store.name()).comma(enterprise.name()).
-    where("").nvPair(terminal.fieldname(terminal.terminalid), terminalid).
-    and().matching(store.name(),enterprise.name(),ENTERPRISEID).
-    and().matching(terminal.name(),store.name(),terminal.storeid.name()).
-//    and(terminal.terminalid.name()).not().in().parenth(QueryString.Select(ASSOCIATEID).from("associate")).
-    orderbyasc(terminal.terminalname.name());
-  }
-  public TerminalPendingRow getTerminalPendingRow(int terminalid) {
-    TerminalPendingRow row =null;
+
+  public TerminalPendingRow getTerminalsForStore(Storeid storeid) {
     Statement stmt = null;
     try {
-      stmt = query(genTerminalPendingRow(terminalid));
-      ResultSet rs = getResultSet(stmt);
-      if(next(rs)) {
-        row = TerminalPendingRow.NewOne(rs);
-      }
-    } catch(Exception arf){
-      dbg.ERROR("Swallowed in getTerminalPendingRow:"+arf);
+      stmt = query(QS.genTerminalsForStore(storeid));
+    } catch(Exception arf) {
+      dbg.ERROR("Swallowed in getTerminalsForStore:" + arf);
     } finally {
-      closeStmt(stmt);
-      return row;
+      return TerminalPendingRow.NewSet(stmt);
     }
   }
 
+  public Terminalid[] getTerminalidsForStore(Storeid storeid) {
+    if(Storeid.isValid(storeid)) {
+      return(Terminalid[]) getUniqueIdExtentArrayFromQuery(QS.genTerminalidsForStore(storeid), Terminalid.class);
+    }
+    return new Terminalid[0];
+  }
+
   // get the totals for this drawer:
-  public void getTerminalTotals(TerminalPendingRow tpr) {
-    // Get last closing time.  Use drawerid's in the txn to prevent this query!
-    tpr.lastCloseTime(getPendingStartTimeStr(new TerminalID(Safe.parseInt(tpr.terminalid), Safe.parseInt(tpr.storeid))));
+  public void getTerminalPendingTotals(TerminalPendingRow tpr) {
+    Terminalid terminalid = new Terminalid(tpr.terminalid);
+    tpr.lastCloseTime(getPendingStartTimeStr(terminalid)); // for display
     tpr.apprAmount(0);
     tpr.apprCount(0);
-    Statement stmt = query(genTerminalTotal(tpr.storeid, tpr.terminalName, tpr.lastCloseTime()));
+    Statement stmt = query(QS.genTerminalPendingTotal(terminalid));
     if(stmt != null) {
       try {
         ResultSet rs = getResultSet(stmt);
         if(next(rs)) {
-          int count = getIntFromRS("counter", rs);
-          long amount = (long)(getDoubleFromRS("sumer", rs) * 100);
+          int count = getIntFromRS(QS.COUNTER, rs);
+          long amount = getLongFromRS(QS.SUMER, rs);
+          String lasttxntime = getStringFromRS(QS.LASTTXNTIME, rs);
           tpr.apprCount(count);
           tpr.apprAmount(amount);
+          tpr.lastTxnTime(lasttxntime);
         }
-      } catch (Exception e) {
+      } catch(Exception e) {
         dbg.Caught(e);
       } finally {
         closeStmt(stmt);
@@ -1514,1487 +1439,1535 @@ public class PayMateDB extends DBMacros implements DBConstants, Database {
     }
   }
 
-  public CardSubtotalsRow getDrawerCardSubtotals(int bmid) {
-    // +++ part of this code is duplicated elsewhere in this class; find it and make one function out of it
-    Statement stmt = null;
-    int terminalid = 0;
-    int storeid    = 0;
-    String toDate  = null;
-    try {
-      stmt = query(genBookmarkQuery(bmid));
-      if(stmt != null) {
-        ResultSet tqrs = getResultSet(stmt);
-        next(tqrs);
-        terminalid= getIntFromRS(drawer.terminalid.name()      , tqrs);
-        storeid   = getIntFromRS(drawer.storeid.name()         , tqrs);
-        toDate    = getStringFromRS(drawer.transtarttime.name(), tqrs);
+  // These are a kludge.  We need SS2 to do this right!
+  public UTC getLastAutoDrawerTime(Storeid storeid) {
+    Terminalid[] tids = getTerminalidsForStore(storeid);
+    String bigtime = tids.length > 0 ? getStringFromQuery(QS.genLastAutoDrawerQuery(tids)) : "";
+    return QS.tranUTC(bigtime);
+  }
+
+  public UTC getLastAutoDepositTime(Storeid storeid) {
+    Terminalid[] tids = getTerminalidsForStore(storeid);
+    TextList tl = new TextList(tids.length);
+    for(int i = tids.length; i-- > 0; ) {
+      TermAuthid[] taids = getTermauthids(tids[i]);
+      for(int j = taids.length; j-- > 0; ) {
+        tl.add(taids[j].toString());
       }
-    } catch (Exception e) {
-      dbg.Caught(e);
-    } finally {
-      closeStmt(stmt);
-      stmt = null;
     }
-    // then, use that info to get the info for that closing and the previous drawer closing for that terminal
-    TimeRange tr = PayMateDB.TimeRange().setStart(LocalTimeFormat.genesis); // from the beginning of paymate (0 fucksup)
-    tr.setEnd(toDate); // until the closing of the drawer
-    QueryString qs = QueryString.
-    SelectAllFrom(drawer.name()).
-    where().nvPair(drawer.terminalid.name(), terminalid).
-    timeInRange(tr).orderbydesc(drawer.transtarttime.name());
-    TerminalID T = null;
-    try {
-      stmt = query(qs);
-      // then, run the query to get the records from tranjour
-      T = new TerminalID(terminalid, storeid);
-      //make a standard tranStartTime range & start it off going from start of company through now.
-      tr=ForAllTime();
-      ResultSet rs = getResultSet(stmt);//all closings for this terminal
-      if(rs == null) {
-        dbg.ERROR("result set is null!");
-      } else {
-        for(int i = 0;next(rs) && (i < 2); ++i) {
-          String str = getStringFromRS(drawer.transtarttime.name(), rs);
-          if(i==0){
-            tr.setEnd(str);
-          } else if(i==1){
-            tr.setStart(str); // too few records means it starts at paymate's genesis
-          }
-        }
-      }
-    } catch (Exception e) {
-      dbg.Caught(e);
-    } finally {
-      closeStmt(stmt); // don't need this one anymore
-    }
-    TerminalInfo tinfo = getTerminalInfo(terminalid);
-    // now we have a time range and a Terminalid.  Let's gen the report now ...
-    return CardSubtotalsRow.NewSet(query(genDrawerCardSubtotals(storeid,tinfo.getNickName(),tr)));
+    String bigtime = tl.size() > 0 ? getStringFromQuery(QS.genLastAutoBatchQuery(tl)) : "";
+    return QS.tranUTC(bigtime);
   }
 
-  public CardSubtotalsRow getUnsettledCardSubtotals(int storeid, String terminalname, Date starttime) {
-    TimeRange ranger = ForAllTime().setStart(starttime);
-    Statement q = query(genDrawerCardSubtotals(storeid, terminalname, ranger));
-    if(q == null) {
-      dbg.ERROR("getUnsettledCardSubtotals: q = null!");
-    }
-    return CardSubtotalsRow.NewSet(q);
+  // get last time this termauth closed
+  public String getTermAuthLastSubmit(TermAuthid termauthid) {
+    return getStringFromQuery(QS.genTermAuthLastSubmit(termauthid));
   }
 
-/////////////////////////////////////
-//////// Receipts
+  // here on down is the new auth bill report ...
 
-  // +++ need to code this so can also return a list of errors ?
-  // +_+ what are the restrictions here?  Can any user do this?
-  // (currently, anybody who can login at all can get ANY receipt in the system, if they know the path to it)
-  // +++ remove the terminalID requirement here?
-  // this works :
-  public String getReceipt(TransactionID tid, int terminalID) {
-    boolean knowCAID = (tid.caid != 0);
-    QueryString qs = QueryString.Select("receiptfile").from("receipt");
-    if(knowCAID){
-      qs.where().nvPair("receipt."+STOREID,tid.caid);
-    } else {
-      // +_+ this might be wrong, I think I just fixed it, though
-      qs.comma("terminal").
-      where().matching("receipt","terminal",STOREID).
-      and().nvPair("terminal."+TERMINALID,terminalID);
-    }
-    qs.and().nvPair("stan",tid.stan()).
-    and(TimeIs(tid.time));
-    return  getStringFromQuery(qs);
-  }
-
-  public TextList logReceipt(TransactionID tid, String filepath, String who, String terminalId) {
+  public TextList getUsedTtPtIn(Authid authid, Storeid storeid, TimeRange daterange) {
+    Statement stmt = query(QS.genUsedTtPtIn(authid, storeid, daterange));
     TextList tl = new TextList();
-    // first, check to see if there is a transaction macthing that tid
-    TxnRow txn = getTranjourRecordfromTID(tid, terminalId);
-    if(txn == null) {
-      tl.add("Transaction not found: " + tid.image());
-    } else {
-      // if so, check to see if the file in filepath exists
-      File file = new File(filepath);
-      if(!file.exists() || !file.isFile()) {
-        tl.add("File not found: " + filepath);
-      } else {
-        // if so, insert the record in the receipt table
-        QueryString qs = QueryString.Insert("receipt").
-        Open(STOREID).   comma("stan").
-        comma(TRANSTARTTIME).   comma("receiptfile").
-        Close().
-        Values(""+tid.caid).       commaQuoted(tid.stan()).
-        commaQuoted(tid.time).  commaQuoted(filepath).
-        Close();
-        int success = update(qs);
-        if(success < 1) {
-          tl.add("Error inserting the record into the database!  File '" +
-          filepath + "' belongs to tid '" + tid.image() +
-          "'.  Tell someone who can fix it!");
-        } else {
-          // and return a successful operation (null)
+    if(stmt != null) {
+      try {
+        ResultSet rs = getResultSet(stmt);
+        PayInfo pi = new PayInfo();
+        while(next(rs)) {
+          pi.clear();
+          pi.tt = getStringFromRS(txn.transfertype, rs);
+          pi.pt = getStringFromRS(txn.paytype, rs);
+          pi.in = getStringFromRS(txn.institution, rs);
+          tl.add(pi.cat());
         }
+      } catch(Exception ex) {
+        dbg.Caught(ex);
+      } finally {
+        closeStmt(stmt);
       }
     }
-    //    return (tl.size() > 0) ? (TextList)null : tl;//this caused an exception, and is assbackwards to boot
     return tl;
   }
 
-  // +++ make with QueryString!  (or toss)
-  private static final QueryString genPossibleMSDupsQuery(String sincedate) {
-    return QueryString.Clause(
-        "SELECT transtarttime[1,8] as tdate, store.storename, cardacceptortermid as term,  cardholderaccount as card, expirationdate as exp, transactionamount as amt, "+
-        "count(transactionamount) as N1,  count(transtarttime[1,8]) as N2,  min(stan) as stan1,  max(stan) as stan2,  min(tranjour.stoodinstan) as sistan1,  max(tranjour.stoodinstan) as sistan2,  max(tranjour.clientreftime) as last_date, max(voidtransaction) as V1,  "+
-        "min(voidtransaction) as V2, min(actioncode) as A1, max(actioncode) as A2, min(transtarttime) as time1, max(transtarttime) as time2 "+
-        "from tranjour, paytype, store "+
-        "where not store.storeid = '000000000076001' "+//+++
-        "and store.storeid = txn.storeid and "+
-        "paytype.storeid = txn.storeid and "+
-        "paytype.paymenttypecode = tranjour.paymenttypecode and "+
-        "messagetype = '0200'  and "+
-        "not processingcode = '200030'  "+
-        "and transtarttime > '" + sincedate + "'  "+
-        "and transactionamount > 0.01  "+
-        "group by storename, cardacceptortermid, cardholderaccount, expirationdate,  transactionamount, transtarttime[1,8] "+
-        "having count(transactionamount) > 1 "+
-        "and count(transtarttime[1,8]) > 1  "+
-        "and not (max(actioncode) = min(actioncode) and max(actioncode) in ('D', 'S'))"+
-        "order by 1 desc, 2 asc, 3 desc"
-    );
+  public void getOpenBatchPendingTotals(DepositRow deposit) {
+    TermAuthid termauthid = new TermAuthid(deposit.termauthid);
+    deposit.setLastBatchtime(getTermAuthLastSubmit(termauthid));
+    deposit.apprAmount(0);
+    deposit.apprCount(0);
+    Statement stmt = query(QS.genTermAuthPendingTotal(termauthid));
+    if(stmt != null) {
+      try {
+        ResultSet rs = getResultSet(stmt);
+        if(next(rs)) {
+          int count = getIntFromRS(QS.COUNTER, rs);
+          long amount = getLongFromRS(QS.SUMER, rs);
+          String lasttxntime = getStringFromRS(QS.LASTTXNTIME, rs);
+          deposit.apprCount(count);
+          deposit.apprAmount(amount);
+          deposit.lastTxnTime(lasttxntime);
+        }
+      } catch(Exception e) {
+        dbg.Caught(e);
+      } finally {
+        closeStmt(stmt);
+      }
+    }
   }
 
-  public Statement getPossibleMSDups(String sincedate) {
-    return query(genPossibleMSDupsQuery(sincedate));
+  public AuthStoreFullRow getFullAuthStore(Authid authid, Storeid storeid) {
+    Statement stmt = query(QS.genFullAuthStore(authid, storeid));
+    return AuthStoreFullRow.NewSet(stmt);
   }
+
+  public TermBatchReportRow getTermBatchReport(TextList termauthidinlist, TimeRange daterange) {
+    Statement stmt = query(QS.genTermBatchReport(termauthidinlist, daterange));
+    return TermBatchReportRow.NewSet(stmt);
+  }
+
+  public boolean getTermsInfoForStores(Storeid storeid, Authid authid, TermBatchReportTermInfoList termInfoList, TextList tl) {
+    Statement stmt = query(QS.genTermsInfoForStores(storeid, authid));
+    if(stmt != null) {
+      try {
+        ResultSet rs = getResultSet(stmt);
+        Terminalid termid = null;
+        String terminalname = null;
+        String authtermid = null;
+        TermAuthid termauthid = null;
+        while(next(rs)) {
+          termid = new Terminalid(getStringFromRS(terminal.terminalid, rs));
+          terminalname = getStringFromRS(terminal.terminalname, rs);
+          authtermid = getStringFromRS(termauth.authtermid, rs);
+          termauthid = new TermAuthid(getStringFromRS(termauth.termauthid, rs));
+          termInfoList.add(termid, terminalname, authtermid, termauthid);
+          tl.assurePresent(String.valueOf(termauthid));
+        }
+      } catch(Exception ex) {
+        dbg.Caught(ex);
+      } finally {
+        closeStmt(stmt);
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public boolean getBatchTxnCounts(Batchid batchid, SubTotaller totaller) {
+    // get the totals from the database:
+    // 1 run this query: SELECT paytype, institution, transfertype, count(txnid) from txn where txn.batchid = [batchid] and authendtime > '2'  group by paytype, institution, transfertype order by paytype, institution, transfertype
+    Statement stmt = query(QS.genBatchTxnCounts(batchid));
+    if(stmt != null) {
+      try {
+        ResultSet rs = getResultSet(stmt);
+        // 2 skip through its records and add up the totals
+        PayInfo pi = new PayInfo();
+        while(next(rs)) {
+          pi.clear();
+          pi.tt = getStringFromRS(txn.transfertype, rs);
+          pi.pt = getStringFromRS(txn.paytype, rs);
+          pi.in = getStringFromRS(txn.institution, rs);
+          totaller.add(pi.cat(), getIntFromRS("counter", rs));
+        }
+      } catch(Exception ex) {
+        dbg.Caught(ex);
+      } finally {
+        closeStmt(stmt);
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public void setSignature(TxnReference tref, Hancock signature) {
+    Txnid id = tref.txnId;
+    TxnRow trow = null;
+    if(!Txnid.isValid(id)) {
+      id = getTxnid(tref).txnId;
+    }
+    if(!Txnid.isValid(id)) {
+      service.PANIC("Unable to find txn for receipt: " + tref);
+    } else {
+      trow = getTxnRecordfromTID(id);
+      if(trow != null) {
+        trow.setSignature(signature);
+        int i = setRecordProperties(txn, id, trow.toProperties());
+        if(i != 1) {
+          String note = (i == 0) ? "signature probably already existed" : "unknown error";
+          service.PANIC("Possible error storing signature for txn=" + id + ", i=" + i + ", " + note);
+        } else {
+          // everything went fine
+        }
+      } else {
+        service.PANIC("Error finding txnrow for storing signature for txnid=" + id);
+      }
+    }
+  }
+
+  public Hancock getSignature(Txnid id) {
+    if(Txnid.isValid(id)) {
+      TxnRow row = getTxnRecordfromTID(id);
+      return(row != null) ? row.getSignature() : null;
+    } else {
+      return null;
+    }
+  }
+
+  public Statement getDups(String sincedate) {
+    return query(QS.genDupCheck(sincedate));
+  }
+
+  public int getMaxPk(TableProfile tp) {
+    return getIntFromQuery(QS.genMaxId(tp.primaryKey.field));
+  }
+
+  public EasyProperties getStoreTxnTotals() {
+    return rowsToProperties(QS.genStoreTxnCounts(), store.storeid.name(), "txncount");
+  }
+
+  public TxnRow getLastStoreTxn(Storeid storeid) {
+    return TxnRow.NewSet(query(QS.genLastStoreTxn(storeid)));
+  }
+
+//  /*package*/ QueryString webONLYpreInsert(TableProfile tp) {
+//    if(tp != null) {
+//      // first, determine if one of the fields is a primary index
+//      PrimaryKeyProfile pkp = tp.primaryKey;
+//      UniqueId primarykey = null;
+//      if(pkp != null) { // if a primary is found, generate a key for it
+//        primarykey = new UniqueId(getIntFromQuery(QS.genSelectNextVal(pkp.field)));
+//      }
+//      // go through the fields and insert default values for those that have it
+//      // and insert the key for the primary key field
+//      return QS.genDefaultsInsert(tp, primarykey);
+//    }
+//    return null;
+//  }
+//
+//  public String webONLYpreInsert(String table) {
+//    TableProfile tp = tableProfileFromName(table);
+//    if(tp != null) {
+//      QueryString qs = webONLYpreInsert(tp);
+//      return qs != null? StringX.replace(qs.toString(), "'''", "'") : "Error creating insert for table " + table + "!";
+//    } else {
+//      return "Definition for table " + table + " not found!";
+//    }
+//  }
+//
+//  public int webONLYUpdate(String query, UniqueId id) throws Exception {
+//    return update(QueryString.Clause().cat(query), true);
+//  }
+//
+//  public Statement webONLYQuery(String query) throws Exception {
+//    return query(QueryString.Clause().cat(query), true);
+//  }
 
   //////////////////////////////////////////
   // validator stuff
 
-  // +++ eventually an enumeration?
-  private static final int DONE = 0;
-  private static final int ALREADY = 1;
-  private static final int FAILED = 2;
+  private Monitor PayMateDBclassMonitor = null;
+  private static boolean mustValidate = false;
 
-  private Monitor PayMateDBclassMonitor = new Monitor("PayMateDB.class");
-
-  private static final Tracer trc = new Tracer(PayMateDB.class.getName()+".Validator");
-
-  public static final boolean init(DBConnInfo dbc, PrintStream backupPs) {
-    DBMacros.init(backupPs);
-    return Validate(dbc);
+  public static final synchronized boolean init(DBConnInfo dbc, boolean isProduction, boolean shouldValidate) {
+    boolean ret = false;
+    try {
+      // SS2
+      prepareSinetTables();
+      PayMateDBDispenser.init(dbc); // initialize the dispenser
+      smartVacuumer = new SmartVacuumer(new PayMateDBDispenser());
+      DBMacros.init(); // initialize the parent class
+      PayMateDB db = PayMateDBDispenser.getPayMateDB();
+      mustValidate = isProduction || shouldValidate;
+      ret = db.validate(); // on test systems, we can turn shouldValidate to fales to prevent it
+      if(smartVacuumer != null) {
+        smartVacuumer.up(); // bring up the smart vacuumer
+      } else {
+        // +++ BITCH LIKE HELL!!!
+      }
+    } catch(Exception ex) {
+      dbg.Caught(ex);
+    } finally {
+      return ret;
+    }
   }
 
-  public static final boolean Validate(DBConnInfo dbc) {
-    PayMateDB db = new PayMateDB(dbc);
-    db.validate();
-    return db.validated();
-  }
+  public static SmartVacuumer smartVacuumer = null;
 
-  protected final void validate() {
-    // +++ have a profile that we use to pass all of the functions like fieldExists() that is kept up-to-date and refreshes parts of itself when needed. (listener?)
+  TextList validatorPanicMsgs = new TextList();
+
+  protected final boolean validate() {
+    StopWatch sw = new StopWatch();
+    // +++ have a profile that we use to pass all of the functions like
+    // fieldExists() that is kept up-to-date and refreshes parts of itself
+    // when needed. (listener?)
     try {
       PayMateDBclassMonitor.getMonitor();
       if(validated()) {
-        return;
+        return true; //why check it again? validated();
       }
-      dbg.ERROR("Validating database ...");
-      super.validate();
-      // +++ make this behave as:
-      /*
-      add fields
-      add tables
-      transmute/create/stuff data for any fields newly added // +++ that can be done by creating an array of "newlyCreated" that can be skipped through to trigger data stuffing events
-      drop fields
-      drop tables
-      */
-      // +++ can be done by comparing a list of "desired" to "exists"
-
-      // informix (serial): You must apply a unique index to this column to prevent duplicate serial numbers.
-
-      liberty4();
-
-      // +++ later, drop receipt table in favor of new storage mechanism
-      // +++ switch to integers for all id's
-
-      // place the date here for any new ones you add ...
-//    update(QueryString.Clause("UPDATE STATISTICS HIGH")); // should always complete, no need to check return value; might take minutes
-
-      validated(true);
-    } catch (Exception e) {
-      trc.Caught(e);
+      boolean validated = mustValidate ? doValidation() : true;
+      validated(validated);
+    } catch(Exception e) {
+      dbv.Caught(e);
     } finally {
-      trc.Exit();
       PayMateDBclassMonitor.freeMonitor();
+      service.PANIC("Validator completed after " + DateX.millisToTime(sw.Stop()) + ", issues[" + validatorPanicMsgs.size() + "]:", validatorPanicMsgs);
+      startCaretakers();
     }
+    return validated();
   }
 
-/*
->>KEEP (; some are temporary):
->>1+14+14+8+6+16+8+28+4+2+40+4+14+16+6+2+6+2+1+6+76+37+14+2+10+14+1=352
->>actioncode
->>authendtime - want to start using these
->>authstarttime - want to start using these
->>authorizername
->>authidresponse
->>cardacceptorid - for now
->>cardacceptortermid - for now
->>cardholderaccount
->>expirationdate
->>hostresponsecode (only need this or responsecode?)
->>hosttracedata // put stuff from cs in it
->>messagetype
->>stoodinstan // has our standin stuff in it
->>clientreftime // has our standin stuff in it
->>originalstan
->>paymenttypecode
->>processingcode
->>responsecode (only need this or hostresponsecode?)
->>standinindicator - want to start using this instead of the modify* fields
->>stan // for now
->>track1data
->>track2data
->>tranendtime
->>transactiontype CR/DB/etc
->>transactionamount
->>transtarttime
->>voidtransaction
-*/
+  private static boolean ALLOWDELETEFIELDS = true;
+  private static boolean ALLOWDELETETABLES = true;
+  private static boolean ALLOWDELETEINDEXES = true;
+  // used both before and after validation (foreground and background) ...
+  private static final ColumnVector defaultNewFields = new ColumnVector();
 
-  private final void liberty4() {
-dbg.ERROR("VALIDATING AUTHORIZER ...");
-    validateAuthorizer();
-dbg.ERROR("VALIDATING CARD ..."); // only for looking up paytype+institution for cards
-    // cardid SERIAL [PK]
-    // paytype CHAR(2) index
-    // institute CHAR(2) index
-    // lowbin CHAR(6) index + ...
-    // highbin CHAR(6) ... + index
-    if(tableExists("bin")) {
-      update(QueryString.Clause("rename table bin to card"));
-    }
-    dropField("card", "comparelength");
-    dropField("card", "checkexpdateflag");
-    dropField("card", "manentryallowflag");
-    dropField("card", "authorizername_2");
-    dropField("card", "authorizername_3");
-    dropField("card", "validcardlength_1");
-    dropField("card", "validcardlength_2");
-    dropField("card", "validcardlength_3");
-    dropField("card", "modcheck");
-    dropField("card", "modifyemployee");
-    dropField("card", "modifydatetime");
-    if(fieldExists("card", "authorizername_1")) {
-      update(QueryString.Clause("RENAME COLUMN card.authorizername_1 TO authorizername"));
-    }
-    if(fieldExists("card", "lowbinnumber")) {
-      update(QueryString.Clause("RENAME COLUMN card.lowbinnumber TO lowbin"));
-    }
-    if(fieldExists("card", "highbinnumber")) {
-      update(QueryString.Clause("RENAME COLUMN card.highbinnumber TO highbin"));
-    }
-    if(fieldExists("card", "authorizername") && fieldExists("card", "transactiontype")) {
-      update(QueryString.Clause("delete from card where not transactiontype='CR' or not authorizername='MAVERICK'"));
-    }
-    dropField("card", "authorizername");
-    if(!fieldExists("card", "cardid")) {
-      int rowsub = getIntFromQuery(QueryString.Clause("select min(rowid) from card"))-1;
-      update(QueryString.Clause("alter table card add cardid integer"));
-      // populate it
-      update(QueryString.Clause("update card set cardid = rowid-"+rowsub));
-      update(QueryString.Clause("alter table card modify cardid serial")); // +++ keep fingers crossed
-      validatorAddPrimaryKey("cardpk", "card", "cardid");
-    }
-    if(fieldExists("card", "transactiontype")) {
-      update(QueryString.Clause("rename column card.transactiontype to paytype"));
-    }
-    if(fieldExists("card", "paymenttypecode")) {
-      update(QueryString.Clause("rename column card.paymenttypecode to institution"));
-    }
-    validatorAddIndex("cardpt", "card", "paytype");
-    validatorAddIndex("cardin", "card", "institution");
-    validatorAddIndex("cardbinrange", "card", "lowbin, highbin");
-dbg.ERROR("VALIDATING ENTERPRISE ...");
-    dropField("enterprise", "countrycode");
-    if(Safe.equalStrings("CHAR", getColumnDataType("enterprise", "enterpriseid"), true)) {
-      // enterpriseid ...
-        // convert to integer first, then subtract 99999 EVERYWHERE and THEN convert to serial!
-        // enterprise
-      update(QueryString.Clause("ALTER TABLE enterprise MODIFY enterpriseid INTEGER"));
-      update(QueryString.Clause("update enterprise set enterpriseid=(enterpriseid - 99999)"));
-        // associate
-      update(QueryString.Clause("ALTER TABLE associate MODIFY enterpriseid INTEGER NOT NULL"));
-      update(QueryString.Clause("update associate set enterpriseid=(enterpriseid - 99999)"));
-        // store
-      update(QueryString.Clause("ALTER TABLE store MODIFY enterpriseid INTEGER NOT NULL"));
-      update(QueryString.Clause("update store set enterpriseid=(enterpriseid - 99999)"));
-        // enterprise again
-      update(QueryString.Clause("ALTER TABLE enterprise MODIFY enterpriseid SERIAL"));
-    }
-    validatorAddPrimaryKey("enterprisepk", "enterprise", "enterpriseid");
-    dropIndex("ist_entid");
-    update(QueryString.Clause("alter table store add constraint FOREIGN KEY (enterpriseid) REFERENCES enterprise (enterpriseid) CONSTRAINT stfk_entid"));
-dbg.ERROR("VALIDATING HISTORY ...");
-    dropTable("history");
-dbg.ERROR("VALIDATING TERMINAL & DRAWER ...");
-    dropField("terminal", "termidforauth");
-    dropField(terminal.name(), associate.colorschemeid.name());
-      // and cleanup the incestuous terminal->associate link
-    update(QueryString.Clause("delete from terminal where " + (fieldExists("terminal", "p_terminalid") ? "p_" : "") + "terminalid in (select "+(fieldExists("associate", "loginname")?"loginname":"associateid")+" from associate)"));
-    // txnbookmark cleanup
-    if(tableExists("txnbookmark")) {
-      validatorAddIndex("bmi_caid", "txnbookmark", "CardAcceptorID");
-      dropField("txnbookmark", "enterpriseid");
-      dropField("TXNBOOKMARK", "EVENTTYPE");
-      update(QueryString.Clause("ALTER TABLE txnbookmark MODIFY bookmarkid SERIAL"));
-      update(QueryString.Clause("rename column txnbookmark.bookmarkid to drawerid"));
-      update(QueryString.Clause("rename table txnbookmark to drawer"));
-    }
-    // terminal
-    // change terminalid [in terminal and drawer] into a serial.
-    String [] termForn = {
-      "drawer",
-    };
-    String [] termFornIdx = {
-      "bmtermid",
-    };
-    String [] termFornFK = {
-      "bmtermid",
-    };
-    serializeExistingKey("terminal", "terminalid", termForn, "pk_terminalid", termFornIdx, termFornFK, "cardacceptorid, applianceid, terminalid", "CHAR");
-    // +++ some records in drawer might be orphaned!!!! Fix them !!!
-// +++ next time, after checking on the null drawer.terminalid's (to be sure they aren't critical):
-//    update(QueryString.Clause("delete from drawer where terminalid is null"));
-//    update(QueryString.Clause("alter table drawer modify terminalid integer not null"));
-// +++ on a different pass, delete the renamed fields:
-//     alter table terminal drop p_terminalid
-//     alter table drawer drop p_terminalid
-    validatorAddPrimaryKey("pkdr_drawerid", "drawer", "drawerid");
-    // misc little things
-    if(fieldExists("tranjour", "modifydatetime")) {
-      update(QueryString.Clause("rename column tranjour.modifydatetime to STOODINSTAN"));
-    }
-    if(fieldExists("tranjour", "modifyemployee")) {
-      update(QueryString.Clause("rename column tranjour.modifyemployee to CLIENTREFTIME"));
-    }
-    // +++ maybe test for these ?
-    update(QueryString.Clause("alter table tranjour modify originalstan integer"));
-    if(fieldExists("tranjour", "systemtraceauditno")) {
-      update(QueryString.Clause("alter table tranjour modify systemtraceauditno integer not null"));
-      update(QueryString.Clause("rename column tranjour.systemtraceauditno to STAN"));
-    }
-    if(fieldExists("receipt", "systemtraceauditno")) {
-      update(QueryString.Clause("alter table receipt  modify systemtraceauditno integer not null"));
-      update(QueryString.Clause("rename column receipt.systemtraceauditno to STAN"));
-    }
-dbg.ERROR("VALIDATING ASSOCIATE ...");
-    dropField("associate", "managerkey");
-    if(!fieldExists(associate.name(), associate.colorschemeid.name())) {
-      validatorAddField(associate, associate.colorschemeid);
-      update(QueryString.Clause("update associate set colorschemeid='MONEY'"));
-    }
-    validatorAddIndex("ai_encodedpw", "associate", "encodedpw");
-    dropTableConstraint("storeaccess", "pk_sid_assid"); // ignore any exceptions on this about not existing
-    String [] assForn = {
-      "drawer",
-      "storeaccess",
-    };
-    String [] assFornIdx = {
-      "bmassocid",
-      "ipk_associdsa",
-    };
-    String [] assFornFK = {
-      null,
-      null,
-    };
-    dropIndex("ipk_enteridass");
-    dropIndex("ipk_associateid");
-    serializeExistingKey("associate", "associateid", assForn, "pk_associd", assFornIdx, assFornFK, "enterpriseid, associateid", "CHAR");
-    // +++ some records in drawer & storeaccess might be orphaned!!!! Fix them !!!
-    if(fieldExists("associate", "p_associateid")) {
-      update(QueryString.Clause("rename column associate.p_associateid to loginname"));
-    }
-    update(QueryString.Clause("delete from storeaccess where associateid is null"));
-    // ignore exception about not existing on this:
-    update(QueryString.Clause("alter table ASSOCIATE add constraint FOREIGN KEY (enterpriseid) REFERENCES enterprise (enterpriseid) CONSTRAINT asfk_entid"));
-    update(QueryString.Clause("alter table drawer add constraint FOREIGN KEY (associateid) REFERENCES associate (associateid) CONSTRAINT drfk_assid"));
-dbg.ERROR("VALIDATING SERVICECFG ...");
-    validateServicecfg();
-dbg.ERROR("VALIDATING STORE ...");
-    dropIndex("if1_store");
-    dropIndex("if2_store");
-    dropIndex("if3_store");
-    dropIndex("if4_store");
-    dropIndex("if5_store");
-    dropField("store", "mbrusagegroup");
-    dropField("store", "nonmbrusagegroup");
-    dropField("store", "activitygroup");
-    dropField("store", "membergroup");
-    dropField("store", "policygroup");
-    dropField("store", "addeddatetime");
-    dropField("store", "storenumber");
-    dropField("store", "countrycode");
-    dropField("store", "region");
-    dropField("store", "currencycode");
-    dropField("store", "logonstatus");
-    dropField("store", "storecutinsaf");
-    dropField("store", "controllertype");
-    dropField("store", "chkrlogonpinreqd");
-    dropField("store", "mgrlogonpinreqd");
-    dropField("store", "inputtimeout");
-    dropField("store", "processtimeout");
-    dropField("store", "messagetimeout");
-    dropField("store", "maxpinretries");
-    dropField("store", "negcheckprovider");
-    dropField("store", "negcheckmbrcode");
-    dropField("store", "msopermode");
-    dropField("store", "companyid");
-    dropField("store", "modifyemployee");
-    dropField("store", "modifydatetime");
-    validatorAddIndex("si_name", "STORE", "storename");
-    validatorAddMissingFields(store);
-    mergeEnterpriseStoreAndStore();
-    update(QueryString.Clause("delete from store where cardacceptorid IN ('000000000200001', '000000000100001')"));
-      // +++ next time: drop table enterprisestore, or do it manually later if all goes well
-      // deprecate store 999 (for now; we will create again later)
-    String [] store999 = {"store", "paytype", "storeaccess", "receipt","terminal","tranjour","drawer"};
-    for(int i = store999.length; i-->0;) {
-      String store999table = store999[i];
-      update(QueryString.Clause("delete from " + store999table + " where cardacceptorid = '000000000999001'"));
-    }
-    String [] storeForn = {
-      "drawer",
-      "storeaccess",
-      "terminal",
-      "paytype",
-    };
-    String [] storeFornIdx = {
-      "ipk_store",
-    };
-    String [] storeFornFK = {
-      null,
-      null,
-    };
-    serializeExistingKey("store", "cardacceptorid", storeForn, "pk_store", storeFornIdx, storeFornFK, "enterpriseid, storename", "CHAR");
-    // +++ some records in drawer, storeaccess, terminal, and paytype might be orphaned!!!! Fix them !!!
-    // now, all tables will have both p_cardacceptorid and storeid fields
-    // store.standinlimit
-    if(fieldExists("store", "standinlimit")) {
-      update(QueryString.Clause("rename column store.standinlimit TO oldsilimit"));
-      update(QueryString.Clause("alter table store add silimit integer"));
-      update(QueryString.Clause("update store set silimit = oldsilimit*100"));
-    } // +++ kill oldsilimit later
-    // store.storestandintotal
-    if(fieldExists("store", "storestandintotal")) {
-      update(QueryString.Clause("rename column store.storestandintotal TO oldstoresitotal"));
-      update(QueryString.Clause("alter table store add sitotal integer"));
-      update(QueryString.Clause("update store set sitotal = sitotal*100"));
-    } // +++ kill oldstoresitotal later
-dbg.ERROR("VALIDATING APPLIANCE ...");
-    // applianceid SERIAL(4)
-    // applname    CHAR(32)
-    // storeid     INTEGER(4)
-    // rptRevision CHAR(12)
-    // rptTime     CHAR(14) // to be consistent
-    // rptApplTime CHAR(14) // to be consistent
-    // rptFreeMem  INTEGER(4)
-    // rptTtlMem   INTEGER(4)
-    // rptThreadCount INTEGER(4)
-    // rptAlarmCount  INTEGER(4)
-    // rptStoodTxn    INTEGER(4)
-    // rptStoodRcpt   INTEGER(4)
-    if(!tableExists("appliance")) {
-      update(QueryString.Clause("create table appliance (applianceid SERIAL, applname CHAR(32), storeid INTEGER, rptRevision CHAR(12), rptApplTime CHAR(14), rptTime CHAR(14), rptFreeMem INTEGER, rptTtlMem INTEGER, rptThreadCount INTEGER, rptAlarmCount INTEGER, rptStoodTxn INTEGER, rptStoodRcpt INTEGER)"));
-      // ignore bitches about the next line
-      update(QueryString.Clause("alter table appliance add constraint FOREIGN KEY (storeid) REFERENCES store (storeid) CONSTRAINT apfk_storeid"));
-    }
-    validatorAddPrimaryKey("appliancepk", "appliance", "applianceid");
-    // temporarily fix the terminal table
-    if(Safe.equalStrings(getColumnDataType("appliance", "applianceid"), "CHAR")) {
-      update(QueryString.Clause("rename column terminal.applianceid TO applname"));
-    }
-    if(fieldExists("terminal", "storeid")) {
-      update(QueryString.Clause("rename column terminal.storeid TO oldstoreid"));
-    }
-    if(!fieldExists("terminal", "applianceid")) {
-      addField("terminal", "applianceid", "integer");
-      // ignore bitches about the next line
-      update(QueryString.Clause("alter table terminal add constraint FOREIGN KEY (applianceid) REFERENCES appliance (applianceid) CONSTRAINT tefk_applid"));
-    }
-    // populate the appliance table ...
-    if(getIntFromQuery(QueryString.Clause("select count(*) from appliance")) < 1) {
-      Statement stmt = query(QueryString.Clause("select distinct applname, oldstoreid from terminal"));
-      if(stmt != null) {
-        try {
-          ResultSet rs = getResultSet(stmt);
-          if(rs != null) {
-            while(next(rs)) {
-              String applname = getStringFromRS("applname", rs);
-              int storeid = getIntFromRS("oldstoreid", rs);
-              UniqueId id = new UniqueId();
-              update(QueryString.Clause("insert into appliance (applname, storeid) values ('"+applname+"', "+storeid+")"), id);
-              update(QueryString.Clause("update terminal set applianceid = "+id.value()+" where applname='"+applname+"' and oldstoreid="+storeid+""), id);
-              // +++ check for duplicates later, and then do the NOT NULL and UNIQUE stuff
-            }
-          } else {
-            dbg.ERROR("!!!! RESULTSET IS NULL!!!");
-          }
-        } catch (Exception ex) {
-          dbg.Caught(ex);
-        } finally {
-          closeStmt(stmt);
-        }
+  private boolean doValidation() throws Exception {
+    /*
+     As you do this, add lines to a textlist as to what you did...
+     Skip through the spec'd tables list:
+      Per table, check to see if spec'd table exists.
+        If not, create it and add it to the ModifiedTables list.
+        If so,
+          Check its fields [create lists of missing, wrong, and extra fields].
+            If any fields need to be modified, backup table.
+            Create/modify fields.
+            Add it to the ModifiedTables list.
+          Check the primary key
+            If a primary key exists, but doesn't match the one we need (even if we don't need one), drop it.
+            If no primary key exists, create it.
+          Check the foreign keys
+            If any foreign keys exist that we don't need, drop them.
+            If any of the needed foreign keys don't exist, create them.
+          Check the indexes
+            If any indexes exist that aren't needed, drop them.
+            If any of the needed indexes don't exist, create them.
+     See if any tables need content modifications
+     Delete fields in the DeleteFields list
+      For any table in the list, add it to the modified tables list
+     Skip through the reality tables list:
+      Per table, see if it shouldn't exist
+      If it shouldn't,
+        delete it
+     If there are any lines in the textlist, be sure to send them in a panic!
+     */
+    // profile what exists:
+    dbg.ERROR("Validating database ...");
+    System.out.println("PayMateDB.doValidateStart: current logging looks like this:\nLogswitches:\n" + LogSwitch.listLevels() + "\nPrintforks:\n" + PrintFork.asProperties());
+    prevalidate();
+    DatabaseProfile dbp = profileDatabase("mainsail", ALLTABLES, true /* sort */);
+    TableVector modifiedTables = new TableVector();
+    ColumnVector dropFields = new ColumnVector();
+    ColumnVector setNullFields = new ColumnVector();
+    dbv.mark("Validating tables, spec'd->reality ...");
+    for(int i = tables.length; i-- > 0; ) {
+      TableProfile tpspecd = tables[i];
+      dbv.mark("Validating " + tpspecd + " existence...");
+      TableProfile tpreality = dbp.tableFromName(tpspecd.name());
+      boolean exists = (tpreality != null);
+      if(!exists) {
+        // Table does not exist, create it
+        int done = validateAddTable(tpspecd);
+        validatePrintln("Spec'd table " + tpspecd + " DID NOT exist and was " + (done == DONE ? "" : (done == ALREADY ? "ALREADY " : "NOT ")) + "CREATED!");
+        // refresh this table's reality ...
+        DatabaseProfile dbptemp = profileDatabase("mainsail", tpspecd.name(), false);
+        tpreality = dbptemp.tableFromName(tpspecd.name());
+        exists = (tpreality != null);
+      } else {
+        // don't do anything
       }
-    }
-dbg.ERROR("VALIDATING STOREAUTH ..."); // was PAYTYPE
-    // storeauthid serial
-    // storeid integer [FK: store.storeid]
-    // paytype CHAR(2)
-    // institution CHAR(2)
-    // authid INTEGER [FK: authorizer.authid]
-    // authmerchid CHAR(?) from where?  [id for the store with that authorizer]
-    // authtermid CHAR(?) from where?
-    // maxtxnlimit INTEGER
-    dropIndex("if2_paytype");
-    dropField("paytype", "cashbacklimit");
-    dropField("paytype", "floorlimits");
-    dropField("paytype", "standinlimit");
-    dropField("paytype", "pinlessresub");
-    dropField("paytype", "settleinstid");
-    dropField("paytype", "cardtype");
-    dropField("paytype", "modifyemployee");
-    dropField("paytype", "modifydatetime");
-    dropField("paytype", "transpriority");
-    validatorAddIndex("pti_name", "paytype", "paymenttypename");
-    if(tableExists("paytype")) {
-      update(QueryString.Clause("rename table paytype to STOREAUTH"));
-    }
-    if(fieldExists("storeauth", "paymenttypecode")) {
-      update(QueryString.Clause("rename column storeauth.paymenttypecode to institution"));
-    }
-    if(fieldExists("storeauth", "transactiontype")) {
-      update(QueryString.Clause("rename column storeauth.transactiontype to paytype"));
-    }
-    if(fieldExists("storeauth", "merchantid")) {
-      update(QueryString.Clause("rename column storeauth.merchantid to authmerchid"));
-    }
-    if(!fieldExists("storeauth", "storeauthid")) {
-      int rowsub = getIntFromQuery(QueryString.Clause("select min(rowid) from storeauth"))-1;
-      update(QueryString.Clause("alter table storeauth add storeauthid integer"));
-      // populate it
-      update(QueryString.Clause("update storeauth set storeauthid = rowid-"+rowsub));
-      update(QueryString.Clause("alter table storeauth modify storeauthid serial"));
-      validatorAddPrimaryKey("storeauthpk", "storeauth", "storeauthid");
-    }
-    update(QueryString.Clause("alter table storeauth add constraint FOREIGN KEY (storeid) REFERENCES store (storeid) CONSTRAINT safk_storeid"));
-    if(!fieldExists("storeauth", "authid")) {
-      update(QueryString.Clause("alter table storeauth add authid integer"));
-      // populate it
-      int authid = getIntFromQuery(QueryString.Clause("select authid from authorizer where authname='MAVERICK'"));
-      update(QueryString.Clause("update table storeauth set authid="+authid));
-    }
-    if(fieldExists("store", "authtermid")) {
-      update(QueryString.Clause("rename column store.authtermid to oldtermid"));
-    }
-    if(!fieldExists("storeauth", "authtermid")) {
-      update(QueryString.Clause("alter table storeauth add authtermid CHAR(10)"));
-      Statement stmt = query(QueryString.Clause("select distinct oldtermid, storeid from store"));
-      if(stmt != null) {
-        try {
-          ResultSet rs = getResultSet(stmt);
-          if(rs != null) {
-            while(next(rs)) {
-              String oldtermid = getStringFromRS("oldtermid", rs);
-              int storeid = getIntFromRS("storeid", rs);
-              update(QueryString.Clause("update storeauth set authtermid = '"+oldtermid+"' where storeid="+storeid));
-              // +++ check for duplicates later, and then do the NOT NULL and UNIQUE stuff
-            }
-          } else {
-            dbg.ERROR("!!!! RESULTSET IS NULL!!!");
-          }
-        } catch (Exception ex) {
-          dbg.Caught(ex);
-        } finally {
-          closeStmt(stmt);
-        }
-      }
-      // +++ later, delete authtermid from store
-    }
-    if(fieldExists("storeauth", "maxtransamount")) {
-      update(QueryString.Clause("rename column storeauth.maxtransamount to oldmax"));
-    }
-    if(!fieldExists("storeauth", "maxtxnlimit")) {
-      update(QueryString.Clause("alter table storeauth add maxtxnlimit integer"));
-      update(QueryString.Clause("update storeauth set maxtxnlimit=oldmax*100"));
-      // +++ delete oldmax later
-    }
-
-/*
-DONE:
-APPLIANCE
-ASSOCIATE
-AUTHORIZER
-CARD
-DRAWER
-ENTERPRISE
-SERVICECFG
-STORE + ENTERPRISESTORE [except for dropping ENTERPRISESTORE]
-STOREAUTH
-TERMINAL
-
-
-TODO:
-A) Create the TXN table [and TXNHIST table later; identical except that txnid is SERIAL in TXN and INTEGER in TXNHIST]
-txnid SERIAL(4)
-authid INTEGER(4)
-terminalid INTEGER(4)
-drawerid INTEGER(4)
-institution CHAR(2)
-stoodinstan INTEGER(4)
-clientreftime CHAR(14)
-paytype CHAR(2)
-transfertype CHAR(2)
-manual CHAR(1)
-responsecode CHAR(2) [was hostresponsecode: use hostreponsecode if available, else use responsecode]
-transactionamount INTEGER(4)
-actioncode CHAR(1)
-authstarttime CHAR(14)
-authendtime CHAR(14)
-authresponsemsg CHAR(16) +++ need to check other authorizers for what length is needed.
-approvalcode CHAR(6) [was authidresponse]
-authseq INTEGER(4)
-authtermid CHAR(10) ?
-cardholderaccount CHAR(19) [was 28; truncate where have to]
-expirationdate CHAR(4)
-authtracedata CHAR(40)
-originalstan INTEGER(4)
-paytype CHAR(2)
-responsecode CHAR(2) ?
-stan INTEGER(4)
-track1data CHAR(77) [was 76]
-track2data CHAR(37)
-transtarttime CHAR(14)
-tranendtime CHAR(14)
-voided CHAR(1) [was voidtransaction]
-//    validatorAddIndex("ti_termname", "tranjour", "cardacceptortermid");
-//    validatorAddIndex("ti_acctnum", "tranjour", "cardholderaccount");
-//    validatorAddIndex("ti_modempl", "tranjour", "modifyemployee");
-//    validatorAddIndex("ti_proccode", "tranjour", "processingcode");
-//    validatorAddIndex("ti_amount", "tranjour", "transactionamount");
-//    validatorAddIndex("ti_action", "tranjour", "actioncode");
-//    validatorAddIndex("ti_authname", "tranjour", "authorizername");
-//    validatorAddIndex("ti_mdt", "tranjour", "modifydatetime");
-//    validatorAddIndex("ti_paytype", "tranjour", "paymenttypecode");
-//    validatorAddIndex("ti_stan", "tranjour", "systemtraceauditno");
-//    validatorAddIndex("ti_tranend", "tranjour", "tranendtime");
-//    validatorAddIndex("ti_voided", "tranjour", "voidtransaction");
-//    validatorAddIndex("ti2_transtart", "tranjour", "transtarttime");
-
-B) Skip through the old TRANJOUR table, inserting and translating its records into the TXN table, while renaming receipt files.
-   1) Convert the AUTHORIZERNAME to the new AUTHID [do this by looking up the text in the authorizer table, defaulting to PAYMATE if it isn't found, and translating the MAVERICK one to CARDSYSTEMS]
-   2) Convert the CARDACCEPTORID + CARDACCEPTORTERMID fields into the new TERMINALID field by looking them up in the terminals table.
-   3) Convert the STOODINSTAN [MODIFYDATETIME?] field to an INTEGER (by converting it in code first, since some values have text in them).
-   4) Convert the CLIENTREFTIME [MODIFYEMPLOYEE?] field from CHAR(16) to CHAR(14)
-   5) Convert the MESSAGETYPE + PROCESSINGCODE + posentrymode fields to new fields, dropping all check txns along the way
-     TRANSACTIONTYPE -> PAYTYPE
-     MESSAGETYPE -> 400 = transfertype of reversal
-     PROCESSINGCODE -> 200030 = transfertype of sale
-                       003000 = transfertype of return
-     posentrymode -> ?1? = manual of T, all others F
-   6) Remove the responsecode field [and just use hostresponsecode?]?
-   7) TRANSACTIONAMOUNT: Convert to integer cents from decimal dollars
-   8) add drawerid
-   9) TXN/TXNHIST needs: storeid, authid, paytypecode, instid, transfertype [sale, return, reversal, reentry; done with an enumeration in code], manual [aka entrysource, boolean], etc.
-  10) Use the info from the old table and the inserted TXNID from the new table to rename the receipt file, in place.  If it fails, LOG IT (but move on)! (Don't deal with compression right now.)
-C) Do all the drawer work ...
-D) INSTITUTION [do with enumeration extension]: institution [PC/GC/IC/AE/DS/DC/MC/VS/...], mintxnlimit [eg: $1 for DS, AE, etc.]
-  . in subsequent release, create a table for this and add a mintxnamount field [eg: $1.00 for DS/AE].
-E) PAYTYPE [do with enumeration extension, drop table]: paytype [CR/DB/OD/SV/ID/EB/CK...]
-F) Create ALL of those primarykeys, foreignkeys, and indexes!
-    associate needs a unique index based on associateid+loginname
-    validatorAddIndex("isa_stas", "storeaccess", "storeid, associateid");
-G) Put all of the NOT NULL constraints on the foreign-key-linked fields (etc).
-H) Fixup these queries: tranjour.terminalid ----> terminal.applianceid ----> appliance.storeid
-  . Cheap terminals page eg:
-  select terminal.*
-  from terminal, appliance
-  where terminal.applianceid = appliance.applianceid
-  and storeid = 4
-  order by terminalname asc
-  . Cheap, useless eg:
-  select tranjour.*
-  from tranjour, terminal, appliance
-  where terminal.applianceid = appliance.applianceid
-  and tranjour.terminalid = terminal.terminalid
-  and storeid=4
-  order by transtarttime desc
-
-HAVE TO: create a new pending table & translate everything from tranjour into it, adding the txnid serial field before stuffing.
-CANNOT DO THIS: alter table tranjour modify txnid serial
-HAVE TO: drop the receipt table and rename all the files since creating a new receipt table is a waste of time, and since the info in the receipt table is not going to be in use anymore
-
-LATER:
-. Eventually, we may want to create separate records in a different table for every attempt we make to authorize a txn with the authorizer.  The hosttracedata[40], authstarttime[14], authendtime[14], authidresponse[6], and hostresponsecode[2] would go there.
-. Eventually, we may want to DROP the track data when moving txns into TXNHIST.
-. Need to make colorscheme table and/or have the ColorSchemeID be shorter. This could be accomplished in many ways WITHOUT creating a table.
-*/
-  }
-
-  /**
-   * Eventually do these things in a more "standardized" way
-   */
-  private void validateAuthorizer() {
-    // authorizer:
-    // authid SERIAL; primary key: authidpk
-    // authname CHAR(8); unique index: iuau_name // for reporting on screens
-    // authclass CHAR(80); index: iau_class // the long classname for class loading later, eventually make smaller by making it relative to net.paymate.authorizer?
-    if(!tableExists("authorizer")) {
-      update(QueryString.Clause("create table authorizer (authid SERIAL, authname CHAR(8), authclass CHAR(80)"));
-    } else {
-      dropField("authorizer", "servername");
-      dropField("authorizer", "authorizerstatus");
-      dropField("authorizer", "reversaltype");
-      dropField("authorizer", "description");
-      dropField("authorizer", "lastdowntime");
-      dropField("authorizer", "recinstidcode");
-      dropField("authorizer", "securityrelcntrl");
-      dropField("authorizer", "retryinterval");
-      dropField("authorizer", "resubinterval");
-      dropField("authorizer", "resubmittallimit");
-      dropField("authorizer", "revresubinterval");
-      dropField("authorizer", "revresublimit");
-      dropField("authorizer", "reconcilationflag");
-      dropField("authorizer", "recontime");
-      dropField("authorizer", "hostrecontime");
-      dropField("authorizer", "forwardinstidcode");
-      dropField("authorizer", "modifyemployee");
-      dropField("authorizer", "modifydatetime");
-      dropIndex("authorizer_key");
-      dropIndex("network");
-    }
-    // validate the individual fields
-    // authid:
-    if(!fieldExists("authorizer", "authid")) {
-      update(QueryString.Clause("delete from authorizer")); // remove all records (we will stuff later)
-      update(QueryString.Clause("alter table authorizer add authid serial")); // add the serial field
-    }
-    // authname
-    if(!fieldExists("authorizer", "authname") && fieldExists("authorizer", "authorizername")) {
-      update(QueryString.Clause("rename column authorizer.authorizername to authname"));
-    }
-    // authclass
-    if(!fieldExists("authorizer", "authclass")) {
-      update(QueryString.Clause("alter table authorizer add authclass CHAR(80)")); // large classnames; no biggy, few rows
-    }
-    // primary/foreign keys and indexes:
-    validatorAddPrimaryKey("authidpk", "authorizer", "authid");
-    validatorAddIndex("iuau_name", "authorizer", "authname"); // +++ make it unique !!!
-    validatorAddIndex("iau_class", "authorizer", "authclass");
-    // ensure proper content:
-    if(fieldExists("authorizer", "authclass") && fieldExists("authorizer", "authid") && (getIntFromQuery(QueryString.Clause("select count(*) from authorizer")) < 2)) {
-      update(QueryString.Clause("insert into authorizer (authname, authclass) values ('PAYMATE', 'net.paymate.authorizer.NullAuthorizer')"));
-      update(QueryString.Clause("insert into authorizer (authname, authclass) values ('MAVERICK', 'net.paymate.authorizer.cardSystems.CardSystemsAuth')"));
-    }
-  }
-
-  private void validateServicecfg() {
-    //SERVICECFG:
-    //. servicecfgid SERIAL; primarykey: servicecfgpk
-    //. servicename  CHAR(16); index
-    //. paramname    CHAR(16); index
-    //. paramvalue   CHAR(320)
-    // unique index: servicename+paramname
-    if(!tableExists("servicecfg")) {
-      update(QueryString.Clause("create table servicecfg (servicecfgid serial, servicename CHAR(16), paramname CHAR(16), paramvalue CHAR(320)"));
-    }
-    // primarykeys and indexes:
-    validatorAddPrimaryKey("servicecfgpk", "servicecfg", "servicecfgid");
-    validatorAddIndex("isc_svcname", "servicecfg", "servicename");
-    validatorAddIndex("isc_paramname", "servicecfg", "paramname");
-    validatorAddIndex("isc_svcparam", "servicecfg", "servicename, paramname"); // +++ needs to be unique???
-    // ensure proper content:
-    if(getIntFromQuery(QueryString.Clause("select count(*) from servicecfg")) < 1) {
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('MAVERICK', 'timeout', '35000')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('MAVERICK', 'connectPort', '2010')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('MAVERICK', 'connectIPAddress', '207.247.99.115 207.247.99.116')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('MAVERICK', 'buffersize', '1024')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('MAVERICK', 'lowseq', '1')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('MAVERICK', 'highseq', '9999')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('CONNECTIONSERVER', 'receiptPath', '/receipts')"));
-      boolean isSolaris = OS.isSolaris();
-      String servername = (isSolaris ? "helios" : (OS.isWin2K() ? "spore" : "andysomething"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'computername', '"+servername+"')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'backupPath', '/data/backups')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'newsFile', 'data/config/news')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'statusMacid', '"+(isSolaris?"HELIOSSERVER":"unknownSrvr")+"')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'statusServer', '64.92.151.10')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'statusIntervalMs', '"+(isSolaris?60000:0)+"')"));
-      update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('USERSESSION', 'defaultColorscheme', '"+(isSolaris?"MONEY":"TRANQUILITY")+"')"));
-      String [] grouplists = {
-        "alertList",
-        "bootupList",
-        "staleAppliance",
-      };
-      for(int i = grouplists.length; i-->0;) {
-        try {
-          String cc = "";
-          try {
-            File listfile=new File(File.separator + "paymate.cfg",grouplists[i]);
-            BufferedReader burf=new BufferedReader(new FileReader(listfile));
-            String oneaddress;
-            while((oneaddress=burf.readLine())!=null){//defering substance check allows for blank lines
-              if(Safe.hasSubstance(oneaddress)&&oneaddress.charAt(0)!='#'){//must be in first column of file
-                cc += ((Safe.NonTrivial(cc)) ? "," : "")+oneaddress.trim();
+      // ^ if table doesn't exist, create it, then validate it below
+      // (some things are not set correctly on creation)
+      if(exists) {
+        // table exists, ok
+        dbv.mark("Validating " + tpspecd + " fields...");
+        dbv.VERBOSE("Spec'd table " + tpspecd + " EXISTS, and will have its contents checked.");
+        ColumnProfile[] columnsSpecd = tpspecd.columns();
+        for(int coli = columnsSpecd.length; coli-- > 0; ) {
+          ColumnProfile colspecd = columnsSpecd[coli];
+          ColumnProfile colreal = tpreality.column(colspecd.name());
+          if(colreal == null) {
+            boolean added = validateAddField(colspecd) != FAILED;
+            validatePrintln("Spec'd column " + colspecd.fullName() + " DID NOT exist and was " + (added ? "" : "NOT ") + "ADDed!");
+            if(added) { // get it anew
+              colreal = profileTable(tpspecd).column(colspecd.name());
+// Also, since PG doesn't enforce default and notnull content when a field is created,
+// we must do it now.  So, be sure to change all entries to the defaults for the field, if one exists.
+// Otherwise, if you set the default and notnull later,
+// the notnull may not take since the default didn't cause the filling of the fill at field creation time.
+              if(colspecd.columnDef != null) {
+                // will set the defaults for this and other columns when done with this table
+                defaultNewFields.add(colspecd);
               }
             }
-          } catch (Exception e2) {
-            dbg.Caught(e2);
           }
-          String servicename = "unset";
-          if(grouplists[i].equalsIgnoreCase("alertList")) {
-            servicename = "MAVERICK";
-          } else if (grouplists[i].equalsIgnoreCase("bootupList")) {
-            servicename = "CONNECTIONSERVER";
-          } else if (grouplists[i].equalsIgnoreCase("staleAppliance")) {
-            servicename = "APPLIANCETRACKER";
-          }
-          update(QueryString.Clause("insert into servicecfg (servicename, paramname, paramvalue) values ('"+servicename+"', '"+grouplists[i]+"', '"+cc+"')"));
-        } catch (Exception e) {
-          dbg.Caught(e);
-        }
-      }
-    }
-  }
+          if(colreal != null) {
+            // Here, need to check each element of the field independently
+            // type
+            // @PG@ Note that in PG, to change a TYPE
+            // @PG@ you create a new (temp-named) field, copy the data over, then kill the old field and rename the new field to the old fieldname
+            if(!colspecd.sameTypeAs(colreal)) { //    if(!StringX.equalStrings(colspecd.type(), colreal.type(), true)) {
+              validatePrintln("ValidateColumn: type mismatch! S[" + colspecd.fullName() + "]:" + colspecd.type() + ", R[" + colreal.fullName() + "]:" + colreal.type() + (changeFieldType(colreal, colspecd) ? "" : " NOT") + " Modified!");
 
-  private final void serializeExistingKey(String primaryTable, String fieldName, String [] secondaryTable, String primaryTableConstraint, String [] secondaryTableIndexe, String [] secondaryTableConstraint, String skiporder, String oldtype) {
-    try {
-      String testedtype = getColumnDataType(primaryTable, fieldName);
-      dbg.ERROR("oldtype = " + oldtype + ", testedtype = " + testedtype);
-      if(Safe.equalStrings(oldtype, testedtype, true)) {
-        if(secondaryTable.length != secondaryTableConstraint.length) {
-          dbg.ERROR("secondaryTable.length != secondaryTableConstraint.length  !!");
-        } else {
-          if(Safe.NonTrivial(primaryTableConstraint)) {
-            dropTableConstraint(primaryTable, primaryTableConstraint);
-          }
-          for(int i = secondaryTable.length; i-->0;) {
-            String constraint = secondaryTableConstraint[i];
-            if(Safe.NonTrivial(constraint)) {
-              dropTableConstraint(secondaryTable[i], constraint);
             }
-          }
-          for(int i = secondaryTableIndexe.length; i-->0;) {
-            dropIndex(secondaryTableIndexe[i]);
-          }
-          String tmpname = "P_"+fieldName;
-          update(QueryString.Clause("rename column "+primaryTable+"."+fieldName+" to "+tmpname));
-          for(int i = secondaryTable.length; i-->0;) {
-            update(QueryString.Clause("rename column "+secondaryTable[i]+"."+fieldName+" to "+tmpname));
-          }
-          update(QueryString.Clause("alter table "+primaryTable+" add "+fieldName+" integer")); // +++ make serial
-          for(int i = secondaryTable.length; i-->0;) {
-            update(QueryString.Clause("alter table "+secondaryTable[i]+" add "+fieldName+" integer" /* +++ not null*/));
-          }
-          Statement sus = query(QueryString.Clause("select * from "+primaryTable+(Safe.NonTrivial(skiporder) ? " order by " + skiporder : "")));
-          if(sus != null) {
-            try {
-              ResultSet rs = getResultSet(sus);
-              int idometer = 0;
-              while(next(rs)) {
-                String id = getStringFromRS(tmpname, rs);
-                String ext = " set " + fieldName + " = " + (++idometer) + " where " + tmpname + " = '" + id + "'";
-                update(QueryString.Clause("update " + primaryTable + ext));
-                for(int i = secondaryTable.length; i-->0;) {
-                  update(QueryString.Clause("update " + secondaryTable[i] + ext));
+            //
+            // size does not need to be checked now that we are using unlimited-length text fields.
+            //
+            // nullable
+            if(!colspecd.sameNullableAs(colreal)) {
+              setNullFields.add(colspecd); // deal with this after setting default values
+              validatePrintln("ValidateColumn: nullable mismatch! S[" + colspecd.fullName() + "]:" + colspecd.nullable() + ", R[" + colreal.fullName() + "]:" + colreal.nullable() + " - to be modified later ...");
+            }
+            // default value
+            if(!colspecd.sameDefaultAs(colreal)) {
+              String right = "S[" + colspecd.fullName() + "]:'" + colspecd.columnDef + "', R[" + colreal.fullName() + "]:'" + colreal.columnDef + "'";
+              // if SPECd autoincrement +++ and REALdefault starts with 'nextval(',it matched!
+              if(colspecd.autoIncrement()) {
+                if(colreal.columnDef.startsWith("nextval(")) {
+                  dbg.WARNING("ValidateColumn: default mismatch due to SERIAL stuff " + right);
+                } else {
+                  validatePrintln("ValidateColumn: WARNING - default mismatch, but assuming it is due to SERIAL stuff " + right);
                 }
+              } else {
+                validatePrintln("ValidateColumn: default mismatch! " + right + (changeFieldDefault(colspecd) ? "" : " NOT") + " Modified!");
               }
-            } catch (Exception ie) {
-              dbg.Caught(ie);
-            } finally {
-              closeStmt(sus);
             }
           }
-          update(QueryString.Clause("alter table "+primaryTable+" modify "+fieldName+" serial"));
-          String pkname = "pka_"+fieldName;
-          validatorAddPrimaryKey(pkname, primaryTable, fieldName);
-          for(int i = secondaryTable.length; i-->0;) {
-            String fkname = "fka_"+fieldName;
-            update(QueryString.Clause("alter table "+secondaryTable[i]+" add constraint FOREIGN KEY ("+fieldName+") REFERENCES "+primaryTable+" ("+fieldName+") CONSTRAINT "+fkname));
-          }
-          // +++ on a different pass, delete the renamed fields
         }
-      }
-    } catch (Exception e3) {
-      dbg.Caught(e3);
-    }
-  }
-
-  private final void mergeEnterpriseStoreAndStore() {
-    Statement sus = null;
-    try {
-      if(tableExists("enterprisestore")) {
-        sus = query(QueryString.Clause("select * from store"));
-        if(sus != null) {
-          ResultSet rs = getResultSet(sus);
-          while(next(rs)) {
-            String caid = getStringFromRS("cardacceptorid", rs);
-            update(QueryString.Clause(
-"UPDATE store SET "+
-"(debitallowed, checksallowed, creditallowed, authtermid, autoapprove, enterpriseid, freepass, javatz, receiptabide, receiptheader, receiptshowsig, receipttagline, receipttimeformat, storehomepage, stanometer) = " +
-"('F'         , 'F'          , 'T'          , (SELECT authtermid, autoapprove, enterpriseid, freepass, javatz, receiptabide, receiptheader, receiptshowsig, receipttagline, receipttimeformat, storehomepage, stanometer FROM enterprisestore " +
-"WHERE cardacceptorid='" + caid + "')) WHERE cardacceptorid='" + caid + "'"
-));
+        ColumnProfile[] columnsReal = tpreality.columns();
+        // skip through reality and find extra fields
+        int dropFieldsPre = dropFields.size();
+        for(int coli = columnsReal.length; coli-- > 0; ) {
+          ColumnProfile colreal = columnsReal[coli];
+          ColumnProfile colspecd = tpspecd.column(colreal.name());
+          if(colspecd == null) {
+            dropFields.add(colreal);
           }
         }
+        if(dropFields.size() > dropFieldsPre) {
+          dbg.ERROR("The following extra fields were found:" + dropFields);
+          // don't dropFields now; drop them later [after content validation, in case they are needed for it]!
+        } else {
+          dbg.VERBOSE("Table " + tpspecd.name() + " fields are okay.");
+        }
+      } else {
+        validatePrintln("Spec'd table " + tpspecd + " DID NOT exist.  Looks like we tried to create it but couldn't!");
       }
-    } catch (Exception e) {
-      dbg.Caught(e);
-    } finally {
-      if(sus != null) {
-        closeStmt(sus);
+    } // end for each table
+    // make any changes needed to content. [this includes setting defaults in all new fields of existing tables]
+    validateContent(defaultNewFields);
+    // NOW handle notnull setting for new fields, mostly (only after setting defaults)
+    for(int setnuli = setNullFields.size(); setnuli-- > 0; ) {
+      ColumnProfile colspecd = setNullFields.itemAt(setnuli);
+      validatePrintln("ValidateColumnNull: S[" + colspecd.fullName() + "]:" + colspecd.nullable() + " - setting " + (changeFieldNullable(colspecd) ? "" : " NOT") + " Modified!");
+    }
+    // delete fields in the deletefields list & add their table to the modifiedtables list
+    for(int coli = dropFields.size(); coli-- > 0; ) {
+      ColumnProfile colspecd = dropFields.itemAt(coli);
+      boolean wasDropped = ALLOWDELETEFIELDS ? dropField(colspecd) : false;
+      validatePrintln("Existing field " + colspecd.fullName() + " DOES NOT have a profile spec'd, and has " + (wasDropped ? "" : "NOT ") + "been DROPPED!" + (wasDropped ? "" : " You may need to do it by hand."));
+    }
+    // Skip through the reality tables list:
+    dbv.mark("Validating table existence, reality->spec'd ...");
+    // reprofiling so that we can pickup the changes made above ...
+    dbp = profileDatabase("mainsail", ALLTABLES, true /* sort */);
+    for(int i = dbp.size(); i-- > 0; ) {
+      // Per table, see if it shouldn't exist
+      TableProfile tpreality = dbp.itemAt(i);
+      dbv.mark("Validating " + tpreality + " necessity ...");
+      TableProfile tpspecd = tableProfileFromName(tpreality.name());
+      DatabaseMetaData dbmd = getDatabaseMetadata();
+      if(tpspecd == null) {
+        // If it shouldn't, delete it
+        boolean dropped = ALLOWDELETETABLES ? dropTable(tpreality.name()) : false;
+        validatePrintln("Existing table " + tpreality + " DOES NOT have a profile spec'd, and has " + (dropped ? "" : "NOT ") + "been DROPPED!");
+      } else {
+        // check to see if it has any indexes or keys that are NOT in the spec'd tables & delete them.
+        ResultSet rs = null;
+        // check primary key
+        dbv.mark("Validating " + tpreality + " primary key...");
+        rs = dbmd.getPrimaryKeys(null, null, tpreality.name());
+        if(next(rs)) {
+          String oldPrimaryKey = getStringFromRS("PK_NAME", rs);
+          if(!StringX.equalStrings(tpspecd.primaryKey.name, oldPrimaryKey, true)) { // +++ constants like this need to be put somewhere +++
+            // DROP THE PRIMARY KEY !!!
+            boolean dropped = dropTableConstraint(tpreality.name(), oldPrimaryKey);
+            validatePrintln("Existing Primary Key " + tpreality.name() + "." + oldPrimaryKey + " IS INVALID and has " + (dropped ? "" : "NOT ") + "been DROPPED!");
+          } else {
+            // +++ check the content of the primary key, too [mod if needed]!
+          }
+        }
+        closeRS(rs);
+        // check foreign key
+        dbv.mark("Validating " + tpreality + " foreign keys...");
+        rs = dbmd.getImportedKeys(null, null, tpreality.name());
+        while(next(rs)) {
+          // since PG puts CRAP at the end of the string ...
+          String oldForeignKey = extractFKJustName(getStringFromRS("FK_NAME", rs));
+          boolean needed = false;
+          // create a get for this +++
+          if(tpspecd.foreignKeys != null) {
+            for(int fki = tpspecd.foreignKeys.length; fki-- > 0; ) {
+              ForeignKeyProfile fkp = tpspecd.foreignKeys[fki];
+              if(StringX.equalStrings(fkp.name, oldForeignKey, true)) {
+                needed = true;
+                break;
+              }
+            }
+          }
+          if(!needed) {
+            boolean dropped = dropTableConstraint(tpreality.name(), oldForeignKey);
+            validatePrintln("Existing Foreign Key " + tpreality.name() + "." + oldForeignKey + " IS INVALID and has " + (dropped ? "" : "NOT ") + "been DROPPED!");
+          } else {
+            // +++ check the content of the foreign key, too [mod if needed]!
+          }
+        }
+        closeRS(rs);
+        // check indexes
+        dbv.mark("Validating " + tpreality + " indexes...");
+        rs = dbmd.getIndexInfo(null, null, tpreality.name(), false, false
+                               /*true -- testing !!!*/);
+        while(next(rs)) {
+          String realindex = getStringFromRS("INDEX_NAME", rs);
+          boolean needed = false;
+          // +++ create a get() for this ...
+          if(tpspecd.indexes != null) {
+            for(int ii = tpspecd.indexes.length; ii-- > 0; ) {
+              IndexProfile ip = tpspecd.indexes[ii];
+              if(StringX.equalStrings(ip.name, realindex, true)) {
+                needed = true;
+                break;
+              }
+            }
+          }
+          // check to see if it is for a primary key
+          if(!needed && (tpspecd.primaryKey != null) && StringX.equalStrings(tpspecd.primaryKey.name, realindex, true)) {
+            needed = true; // don't try to get rid of our primary key indexes
+          }
+          if(!needed) {
+            boolean dropped = ALLOWDELETEINDEXES ? dropIndex(realindex, tpreality.name()) : false;
+            validatePrintln("Existing Index " + realindex + " IS INVALID and has " + (dropped ? "" : "NOT ") + "been DROPPED!");
+          } else {
+            // +++ check the content of the index, too [mod if needed]!
+          }
+        }
+        closeRS(rs);
       }
     }
-  }
-
-/*
-  // installed for liberty1 (at least)
-  private final void liberty1() {
-    // first you may have to deal with the constraints
-    dropTableConstraint("RespCode", "f1_RespCode");
-    dropTableConstraint("Tranjour", "f1_Tranjour");
-    dropTableConstraint("Activity_List", "f1_Activity_List");
-    dropTableConstraint("Customers", "f1_Customers");
-    dropTableConstraint("Store", "f1_Store");
-    dropTableConstraint("Store", "f2_Store");
-    dropTableConstraint("Store", "f3_Store");
-    dropTableConstraint("Store", "f4_Store");
-    dropTableConstraint("Store", "f5_Store");
-    dropTableConstraint("Settlement_Stores", "f1_Settlement_Sto");
-    dropTableConstraint("Settlement_Stores", "f2_Settlement_Sto");
-    dropTableConstraint("PayType", "f1_PayType");
-    dropTableConstraint("PayType", "f2_PayType");
-    dropTableConstraint("Bad_Check_History", "f1_Bad_Check_Hist");
-    dropTableConstraint("Bad_Check_History", "f2_Bad_Check_Hist");
-    dropTableConstraint("Bad_Check_History", "f3_Bad_Check_Hist");
-    dropTableConstraint("Bad_Check_History", "f4_Bad_Check_Hist");
-    dropTableConstraint("Bad_Check_History", "f5_Bad_Check_Hist");
-    dropTableConstraint("Payment_History", "f1_Payment_Histor");
-    dropTableConstraint("Payment_History", "f2_Payment_Histor");
-    dropTableConstraint("Check_Events", "f1_Check_Events");
-    dropTableConstraint("Check_Events", "f2_Check_Events");
-    dropTableConstraint("Check_Events", "f3_Check_Events");
-    dropTableConstraint("Check_Events", "f1_Check_Event_Lo");
-    dropTableConstraint("ID_List", "f1_ID_List");
-    dropTableConstraint("ID_List", "f2_ID_List");
-    dropTableConstraint("ID_Priority", "f1_ID_Priority");
-    dropTableConstraint("ID_Priority", "f2_ID_Priority");
-    dropTableConstraint("Member_cc", "f1_Member_cc");
-    dropTableConstraint("Member_cmnt", "f1_Member_cmnt");
-    dropTableConstraint("Members", "f1_Members");
-    dropTableConstraint("Members", "f2_Members");
-    dropTableConstraint("Members", "f3_Members");
-    dropTableConstraint("Members", "f4_Members");
-    dropTableConstraint("Members", "f5_Members");
-    dropTableConstraint("Member_Detail", "fp_Member_Detail");
-    dropTableConstraint("Member_Checks", "f1_Member_Checks");
-    dropTableConstraint("Member_Checks", "f2_Member_Checks");
-    dropTableConstraint("Demographics", "fp_Demographics");
-    dropTableConstraint("Negative_IDs", "f1_Negative_IDs");
-    dropTableConstraint("Negative_IDs", "f2_Negative_IDs");
-    dropTableConstraint("Negative_Vendors", "f1_Negative_Vendo");
-    dropTableConstraint("Negative_Vendors", "f2_Negative_Vendo");
-    dropTableConstraint("Payment_IDs", "f1_Payment_IDs");
-    dropTableConstraint("Payment_IDs", "f2_Payment_IDs");
-    dropTableConstraint("Positive_IDs", "f1_Positive_IDs");
-    dropTableConstraint("Positive_IDs", "f2_Positive_IDs");
-    dropTableConstraint("Required_Sets", "f1_Required_Sets");
-    dropTableConstraint("Required_IDs", "f1_Required_IDs");
-    dropTableConstraint("Required_IDs", "f2_Required_IDs");
-    dropTableConstraint("Required_IDs", "f3_Required_IDs");
-    dropTableConstraint("Usage_Limits", "f1_Usage_Limits");
-    dropTableConstraint("Usage_Limits", "f1_Usage_Limits");
-    dropTableConstraint("ACH_Members", "f1_ACH_Members");
-    dropTableConstraint("ACH_Members", "f2_ACH_Members");
-    dropTableConstraint("ACH_Members", "f3_ACH_Members");
-    dropTableConstraint("ACH_Batches", "f1_ACH_Batches");
-    dropTableConstraint("GC_History", "f1_GC_History");
-    dropTableConstraint("GC_Reissues", "f1_GC_Reissues");
-    dropTableConstraint("GC_Reissues", "f2_GC_Reissues");
-    // drop all of those tables we don't want (77 tables):
-    dropTable("ACH_BATCHES");// (empty)
-    dropTable("ACH_BUILD_BATCHES");// (empty)
-    dropTable("ACH_CODES");// (contents will probably end up in sourcecode)
-    dropTable("ACH_CONFIGURATIONS");// (1 entry, looks like ACH group settings)
-    dropTable("ACH_ENTRIES");// (empty)
-    dropTable("ACH_MEMBERS");// (empty)
-    dropTable("ACH_SETTLEMENT");// (empty)
-    dropTable("ACH_STATUS");// (9 entries will end up in code)
-    dropTable("ACH_TYPES");// (8 entries will end up in code)
-    dropTable("ACTION_CODES");// (6 entries will end up in code)
-    dropTable("ACTIVITY_GROUPS");// (3 unused entries; was for linking activitygroup settings to stores)
-    dropTable("ACTIVITY_LIST");// (ditto, see above)
-    dropTable("BAD_CHECK_CODES");// (47 entries will end up in code)
-    dropTable("BAD_CHECK_HISTORY");// (empty, will rebuild later if needed)
-    dropTable("BATCHMGT");// (replacing with the txnbookmark table)
-    dropTable("CARD_TYPES");// (6 entries will be in code)
-    dropTable("CHECK_EVENT_LOG");// (will redesign if needed later)
-    dropTable("CHECK_EVENTS");// (another hostreponse -> clientresponse mapper)
-    dropTable("CHECK_TYPES");// (will end up in code)
-    dropTable("COMMANDS");// (database scripts)
-    dropTable("CONFIGURATION");// (system configs; we are replacing with our own soon)
-    dropTable("CUSTOMERS");// (redesign when needed)
-    dropTable("DBHISTORY");// (more scripting crap)
-    dropTable("DEACTIVATEDCODES");// (will end up in code)
-    dropTable("DEMOGRAPHICS");// (empty)
-    dropTable("DRIVERSLIC");// (masks; will end up in code, but need to save to file for extraction later)
-    dropTable("EMPLOYEE");// (unused except for mainsail direct use)
-    dropTable("EVENTLOG");// (unused except by mainsail)
-    dropTable("EVENTS");// (mainsail mapping; unneeded)
-    dropTable("GC_ACCOUNTS");// (1; gift certificates; will redesign when needed)
-    dropTable("GC_CONFIGURATION");// (ditto)
-    dropTable("GC_HISTORY");// (ditto)
-    dropTable("GC_REISSUES");// (empty, ditto)
-    dropTable("GC_VALUES");// (ditto, will end up in code)
-    dropTable("GC_VENDORS");// (will redo, empty)
-    dropTable("GEOGRAPHICS");// (ditto)
-    dropTable("ID_LIST");// (will redo when needed)
-    dropTable("ID_PRIORITY");// (ditto)
-    dropTable("ID_TYPES");// (redo later; in code)
-    dropTable("INQUIRIES");// (redo later)
-    dropTable("ISOFLDS");// (not used)
-    dropTable("KEYTABLE");// (redo later)
-    dropTable("MEMBER_CC");// (empty, unused)
-    dropTable("MEMBER_CCAVAIL");// (ditto)
-    dropTable("MEMBER_CHECKS");// (ditto)
-    dropTable("MEMBER_CMNT");// (ditto)
-    dropTable("MEMBER_CMNTTYPE");// (ditto)
-    dropTable("MEMBER_DETAIL");// (ditto)
-    dropTable("MEMBER_GROUPS");// (1, unused)
-    dropTable("MEMBER_TYPES");// (3, unused)
-    dropTable("MEMBERS");// (2, unused)
-    dropTable("NEGATIVE_IDS");// (empty)
-    dropTable("NEGATIVE_VENDORS");// (empty)
-    dropTable("PAYMENT_HISTORY");// (unused)
-    dropTable("PAYMENT_IDS");// (unused, redo when needed)
-    dropTable("POLICY_GROUPS");// (unused)
-    dropTable("POSITIVE_IDS");// (unused)
-    dropTable("REASON_CODES");// (will end up in code, not needed right now; equivalent of our ActionReplyStatus)
-    dropTable("RECON");// (empty)
-    dropTable("RECON_CODES");// (unused, will end up in code)
-    dropTable("REQUIRED_IDS");// (unused)
-    dropTable("REQUIRED_SETS");// (unused)
-    dropTable("RESPCODE");// (in code) -- or should be (I think I checked these, and we have them)
-    dropTable("RETCHECK");// (empty)
-    dropTable("SAFQUEUE");// (empty; mainsail standin only)
-    dropTable("SCHEDULEDJOBS");// (unused; scripting)
-    dropTable("SETTLEMENT_CODES");// (unused)
-    dropTable("SETTLEMENT_FILES");// (empty)
-    dropTable("SETTLEMENT_INST");// (1 bogus; unused)
-    dropTable("SETTLEMENT_STORES");// (empty)
-    dropTable("STAN");// (used for mainsail internals only, we don't need it)
-    dropTable("STATES");// (unused; in code)
-    dropTable("STORE_AUTHORIZERS");// (putting into stores table)
-    dropTable("STOREBATCH");// (do our own later / txnbookmark)
-    dropTable("USAGE_GROUPS");// (1; unused)
-    dropTable("USAGE_LIMITS");// (1; unused; redo when we need it)
-    dropTable("VENDOR_CODES");// (empty)
-    // drop all of those tranjour fields we don't want (saves 245 bytes per row):
-    dropField("tranjour", "acquireridcode");
-    dropField("tranjour", "altidtype");
-    dropField("tranjour", "batchnumber");// - will add back in later as a different data type
-    dropField("tranjour", "cashbackamount");
-    dropField("tranjour", "checktype");
-    dropField("tranjour", "demomodeindicator");
-    dropField("tranjour", "employeenumber");
-    dropField("tranjour", "eventnumber");
-    dropField("tranjour", "hostprocessingcode");
-    dropField("tranjour", "hostsettlementdate");
-    dropField("tranjour", "laterespindicator");// - not even sure what this was for
-    dropField("tranjour", "logtodisktimer");// - not even sure what this was for; use for "receipt" logging
-//time? ?????
-//posconditioncode ?
-//posentrymode ?
-    dropField("tranjour", "postracedata");
-    dropField("tranjour", "recinstidcode");
-    dropField("tranjour", "retrievalrefno");
-    dropField("tranjour", "reversalindicator");
-    dropField("tranjour", "reversaltype");
-    dropField("tranjour", "servername");// ? maybe put "helios" in here?
-    dropField("tranjour", "settleinstid");
-    dropField("tranjour", "settlementdate");// - will add later with different data type
-    dropField("tranjour", "settlementfile");
-    dropField("tranjour", "switchdatetime");
-//    dropField("tranjour", "timeoutindicator");// - if still not approved, indicates we need to retry
-    dropField("tranjour", "transactiondate");
-    dropField("tranjour", "transactiontime");
-    dropField("tranjour", "transgtrid");
-    dropField("tranjour", "transmissiontime");
-    dropField("tranjour", "vouchernumber");
-    // drop all of those other fields we don't want:
-    dropField("associate", "addedemployee");
-    dropField("associate", "addeddatetime");
-    dropField("associate", "modifyemployee");
-    dropField("associate", "modifydatetime");
-    dropField("enterprise", "addedemployee");
-    dropField("enterprise", "addeddatetime");
-    dropField("enterprise", "modifyemployee");
-    dropField("enterprise", "modifydatetime");
-//    dropField("enterprisestore", "addedemployee");
-//    dropField("enterprisestore", "addeddatetime");
-//    dropField("enterprisestore", "modifyemployee");
-//    dropField("enterprisestore", "modifydatetime");
-    dropField("receipt", "modifyemployee");
-    dropField("receipt", "modifydatetime");
-    dropField("receipt", "addeddatetime");
-    dropField("receipt", "addedemployee");
-    dropField("storeaccess", "addedemployee");
-    dropField("storeaccess", "addeddatetime");
-    dropField("storeaccess", "modifyemployee");
-    dropField("storeaccess", "modifydatetime");
-    dropField("terminal", "addedemployee");
-    dropField("terminal", "addeddatetime");
-    dropField("terminal", "modifyemployee");
-    dropField("terminal", "modifydatetime");
-    // other unused fields
-    dropField("enterprise", "associateid");
-//    dropField("enterprisestore", "daylightsavings");
-//    dropField("enterprisestore", "weblogo");
-    dropField("terminal", "browsable");
-    dropField("terminal", "printermodel");
-
-    // liberty1: added new authorization to tranjour
-//    validatorAddField(tranjour, tranjour.authstat);
-    // liberty1: added new authtermid to tranjour
-    validatorAddField(tranjour, tranjour.authtermid);
-    // liberty1
-    validatorAddField(store, store.autoapprove);
-    validatorAddField(store, store.freepass);
-    validatorAddField(store, store.authtermid);
-    stuffAuthTermId();
-    // liberty1: added new authseq to tranjour
-    validatorAddField(tranjour, tranjour.authseq);
-  }
-*/
-
-  // +++ generalize and move into DBMacros!
-  private final boolean dropTableConstraint(String tablename, String constraintname) {
-    String functionName = "dropTableConstraint";
-    int success = FAILED;
-    String toDrop = "drop constraint " + tablename + "." + constraintname;
-    try {
-      trc.Enter(functionName);
-      trc.mark(toDrop);
-      success = (tableExists(tablename)) ?
-                update(QueryString.Clause("ALTER TABLE " + tablename + " DROP CONSTRAINT " + constraintname)) :
-                ALREADY;
-    } catch (Exception e) {
-      // muffle
-      //trc.Caught(e);
-    } finally {
-      trc.ERROR(functionName + ": '" + toDrop +
-        ((success == ALREADY) ?
-         " Can't perform since table doesn't exist." :
-         ((success==DONE)?
-          "' Succeeded!":
-          "' FAILED!  Constraint probably didn't exist.")));
-      trc.mark("");
-      trc.Exit();
-      return (success!=FAILED);
+    // Do these last so that they don't affect speed!
+    // For each table spec'd, go through and see if any indexes and keys are NOT in the reality tables.  Add them.
+    DatabaseMetaData dbmd = getDatabaseMetadata();
+    for(int i = tables.length; i-- > 0; ) {
+      TableProfile tpspecd = tables[i];
+      // check primary key
+      dbv.mark("Validating " + tpspecd + " primary key...");
+      int done = validateAddPrimaryKey(tpspecd.primaryKey);
+      conditionalValidatePrintln("Specified table " + tpspecd + (done == DONE ? " ADDed" : (done == ALREADY ? " ALREADY had" : " could NOT add")) + " primary key " + tpspecd.primaryKey.name + "!", done);
+      // check indexes
+      dbv.mark("Validating " + tpspecd + " indexes...");
+      if(tpspecd.indexes != null) {
+        for(int ii = tpspecd.indexes.length; ii-- > 0; ) {
+          IndexProfile ip = tpspecd.indexes[ii];
+          done = validateAddIndex(ip);
+          conditionalValidatePrintln("Specified table " + tpspecd + (done == DONE ? " ADDed" : (done == ALREADY ? " ALREADY had" : " could NOT add")) + " index " + ip.name + "!", done);
+        }
+      }
     }
+    // Check the foreign keys
+    // For each table spec'd, go through and see if any indexes and keys are NOT in the reality tables.  Add them.
+    for(int i = tables.length; i-- > 0; ) {
+      TableProfile tpspecd = tables[i];
+      int done;
+      dbv.mark("Validating " + tpspecd + " foreign keys...");
+      if(tpspecd.foreignKeys != null) {
+        for(int fki = tpspecd.foreignKeys.length; fki-- > 0; ) {
+          ForeignKeyProfile fkp = tpspecd.foreignKeys[fki];
+          done = validateAddForeignKey(fkp);
+          conditionalValidatePrintln("Specified table " + tpspecd + (done == DONE ? " ADDed" : (done == ALREADY ? " ALREADY had" : " could NOT add")) + " foreign key " + fkp.name + "!", done);
+        }
+      }
+    }
+    postvalidate();
+    dbg.ERROR("Database validated.");
+    return true;
   }
 
-//  private final void stuffAuthTermId() {
-//    String functionName = "stuffAuthTermId";
-//    String tablename = store.name();
-//    String fieldname = store.authtermid.name();
-//    try {
-//      trc.Enter(functionName);
-//      trc.mark("Stuffing field " + tablename + "." + fieldname);
-//      if(fieldExists(tablename, fieldname)) {
-//        Statement stores = null;
-//        TextList storesToFix = new TextList();
-//        try {
-//          stores = query(QueryString.Select(STOREID).from(store.name()).where().isEmpty(store.authtermid.name()));
-//          ResultSet rs = getResultSet(stores);
-//          while(next(rs)) {
-//            String caid = getStringFromRS("cardacceptorid", rs);
-//            storesToFix.add(caid);
-//          }
-//        } catch (Exception e) {
-//          trc.Caught(e);
-//        } finally {
-//          closeStmt(stores);
-//        }
-//        if(storesToFix.size() == 0) {
-//          dbg.ERROR("No stores need authtermid set.");
-//        } else {
-//          for(int istore = storesToFix.size(); istore-->0; ) {
-//            Statement termstmt = null;
-//            String caid = storesToFix.itemAt(istore);
-//            try {
-//              termstmt = query(QueryString.Clause("select distinct termidforauth from terminal where cardacceptorid='"+caid+"'"));
-//              ResultSet termrs = getResultSet(termstmt);
-//              if(next(termrs)) {
-//                String authtermid = getStringFromRS("termidforauth", termrs);
-//                trc.ERROR((update(QueryString.Clause("update store set authtermid = '" + authtermid + "' where cardacceptorid='"+caid+"'"))>0 ? "SUCCEEDED" : "DID NOT SUCCEED") +" in updating authtermid in store for cardacceptorid="+caid);
-//              } else {
-//                trc.ERROR("No terminal.termidforauth records found for fixing store '" + caid + "'.  This store might not have any terminals.");
-//              }
-//            } catch (Exception e) {
-//              trc.Caught(e);
-//            } finally {
-//              closeStmt(termstmt);
-//            }
-//          }
-//        }
-//      }
-//    } catch (Exception e) {
-//      trc.Caught(e);
-//    } finally {
-//      trc.Exit();
+  public static final synchronized void startBackgroundValidator() {
+    if(bv == null) {
+      bv = new BackgroundValidator(new PayMateDBDispenser());
+    }
+    if(mustValidate) {
+      bv.up();
+    }
+    service.PANIC("BackgroundValidator " + (bv.isUp() ? "" : "NOT ") + "started!");
+  }
+
+  private static BackgroundValidator bv = null;
+
+  // Performed BEFORE any other validation!
+  private void prevalidate() {
+    dbv.mark("prevalidate");
+//    // if you rename fields here for later use,
+//    // rename their indexes in the table profile so new ones get created
+//    if(!fieldExists(txn.name(), paytypeconvert.name())) {
+//       renameField(txn.name(), txn.paytype.name(), paytypeconvert.name()); // check return value ?
+//    }
+//    changeFieldNullable(paytypeconvert); // turn off the notnulls!
+//    if(!fieldExists(txn.name(), transfertypeconvert.name())) {
+//       renameField(txn.name(), txn.transfertype.name(), transfertypeconvert.name()); // check return value ?
+//    }
+//    changeFieldNullable(transfertypeconvert); // turn off the notnulls!
+//    if(!fieldExists(storeauth.name(), sapaytypeconvert.name())) {
+//      renameField(storeauth.name(), storeauth.paytype.name(), sapaytypeconvert.name()); // check return value ?
+//    }
+//    changeFieldNullable(sapaytypeconvert); // turn off the notnulls!
+
+    // card table will be recreated and stuffed later ...
+    dropTable(card.name()); // check return value ?
+  }
+
+  // Performed BETWEEN adding/modifying tables/fields and deleting tables/fields.
+  private void validateContent(ColumnVector defaultNewFields) {
+    dbv.mark("validateContent");
+    // +++ what are the postgresql rules for adding a serial field to an existing table ???
+    rebuildCardTable(); // MMM: pre 20020502, but I don't remember when
+    // sets default values of new fields for every record, plus sets other values of interest, upon need
+    allTablesAllExistingRows(service, GenericTableProfile.cfgType);
+    // +++ delete all indexes here so that they will get recreated?
+  }
+
+  // move all of this stuff to DBValidator class, and extend for DBBGValidator
+
+  private static double interTableSleepfor = 10.0; // seconds +++ get from configs
+  private static long interRowSleepIncr = 1; // ms +++ get from configs
+  private static int sleepJumpTxnCount = 10000; // increase the sleep by interRowSleepIncr every this many rows
+  public static int thistablecount = 0; // how many records have been processed in this table
+  public static long totalmaxid = 0; // roughly how many records will be processed
+  public static long totaltablecount = 0; // how many records have been processed in previous tables
+  private static StopWatch elapsed = new StopWatch(false);
+
+  public static String bgvalidatorStatus() {
+    // what percentage are we done?
+    long rowsdone = Math.max(thistablecount + totaltablecount, 1L /*prevents/0*/);
+    // when will we be done?
+    long elapsedms = elapsed.millis();
+    long avg = elapsedms / rowsdone;
+    long millisLeft = (avg * totalmaxid) - elapsedms;
+    UTC when = UTC.New(UTC.Now().getTime() + millisLeft);
+    LocalTimeFormat ltf = LocalTimeFormat.New(TimeZone.getTimeZone("America/Chicago"), ReceiptFormat.DefaultTimeFormat);
+    LedgerValue lv = new LedgerValue("##0.0"); // hidden pennies
+    long donage = (long) Math.floor(1000.0 * rowsdone / Math.max(totalmaxid, 1L /*prevents/0*/)) * 10; // extra 10 is for the hidden pennies in the format
+    lv.setto(donage);
+    return lv.Image() + "% -> " + ltf.format(when);
+  }
+
+  private void allTablesAllExistingRows(Service logger, TableType typeToUse) {
+    allTablesAllExistingRows(logger, typeToUse, new Accumulator(), new Accumulator());
+  } // stub for when we don't care about the accumulators
+
+  // this function will be run both during validation and afterwards,
+  // on the background validator, while the system is up and running!
+  // be sure to code it with that in mind!
+  private void allTablesAllExistingRows(Service logger, TableType typeToUse, Accumulator reads, Accumulator writes) {
+    // This next code handles setting values for all tables whose fields need changing.
+    // You can plugin code to set a certain field values for each records in a table,
+    // plus it will automatically set the default value for a
+    // new field in every record of an existing table.
+    //
+    // set defaults for all new fields in ALL RECORDS!
+    // since we have no idea of the size of this table,
+    // we should actually get the key of each record in this table
+    // then flip through and change every one!
+    // if this table has a million records, that will take a very long time.
+    // however, if this table does have a million records,
+    // using a single query to make the change for all records
+    // will result in a long query that will fail.
+    // we can't have that.
+    // let's face it.  db validation can take a very long time.
+    // We only want to flip through all fields of a table ONCE.  Let's do it here.
+    if(typeToUse == null) {
+      logger.println("allTablesAllExistingRows typeToUse is null!");
+      return;
+    }
+    boolean checkingLogs = typeToUse.is(TableType.log);
+    int rowSleep = 0;
+    Class[] functionParameters = {
+        EasyProperties.class, EasyProperties.class, UniqueId.class,
+    };
+    Class myclass = this.getClass();
+    Object[] paramlist = {
+        null, null, null, };
+    EasyProperties before = null;
+    TextList msgsToLog = new TextList();
+    elapsed.Start();
+    LocalTimeFormat ltf = LocalTimeFormat.New(TimeZone.getTimeZone("America/Chicago"), ReceiptFormat.DefaultTimeFormat);
+    TableRowCleanerVector trcv = new TableRowCleanerVector();
+    // for each table in the database,
+    for(int tpi = tables.length; tpi-- > 0; ) {
+      if(checkingLogs && bv.shouldstop()) {
+        break;
+      }
+      TableProfile tp = tables[tpi];
+      logger.println("Processing table " + tp.name() + ".");
+      // check to see what default values need to be set and put them into a properties
+      EasyProperties newDefaults = new EasyProperties(); // must make new every time!
+      for(int cpi = defaultNewFields.size(); cpi-- > 0; ) {
+        ColumnProfile cp = defaultNewFields.itemAt(cpi);
+        if(cp.table().compareTo(tp) == 0) {
+          newDefaults.setString(cp.name(), cp.columnDef);
+          logger.println("Setting default of '" + cp.columnDef + "' for new column '" + cp + "' ...");
+        }
+      }
+      // check to see if there is code to handle the records, too
+      Method m = null;
+      String tableFunction = ("fix" + tp.name() + "row").toLowerCase();
+      try {
+        m = myclass.getDeclaredMethod(tableFunction, functionParameters);
+      } catch(Exception e) {
+        logger.println("Exception trying to find function " + tableFunction + ". Assuming it doesn't need work.");
+      }
+      boolean hasFunction = (m != null);
+      boolean hasDefaults = (newDefaults.size() > 0);
+      // if either has content, must flip through all records
+      if(hasFunction || hasDefaults) {
+        if(!tp.type.equals(typeToUse)) {
+          logger.println("Skipping table " + tp.name() + ", as its type[" + tp.type.Image() + "] does not match the type we are checking[" + typeToUse.Image() + "]." + "\nIt would " + (hasFunction ? "" : "NOT ") + "have run a function!" +
+                         "\nIt would need the following defaults set: \n" + newDefaults.asParagraph(","));
+        } else { // this is not the correct table type
+          try {
+            TableRowCleaner trc = new TableRowCleaner();
+            trc.hasDefaults = hasDefaults;
+            trc.hasFunction = hasFunction;
+            trc.m = m;
+            trc.table = tp;
+            trc.pk = tp.primaryKey.field;
+            trc.maxid = getMaxPk(trc.table);
+            trc.newDefaults = newDefaults;
+            trcv.add(trc);
+          } catch(Exception e) {
+            dbg.Caught(e);
+          }
+        } // if this is the correct table type
+      } // if this table has anything to work on
+    } // end for every table
+    // now the list is built.
+    // decide how many records will be processed (very approximately)
+    totalmaxid = 0;
+    for(int tpi = trcv.size(); tpi-- > 0; ) {
+      totalmaxid += trcv.itemAt(tpi).maxid;
+    }
+    totaltablecount = 0;
+    thistablecount = 0;
+    for(int tpi = 0; tpi < trcv.size(); tpi++) { // these need to happen in the correct order
+      int changes = 0;
+      TableRowCleaner trc = trcv.itemAt(tpi);
+      try {
+        logger.println("Beginning allTablesAllExistingRows for " + trc.table.name() + ".\nIt " + (trc.hasFunction ? "DOES " : "does NOT ") + " have function.\n" + "It will need the following defaults set: \n" + trc.newDefaults.asParagraph(","));
+
+        // drop all indexes except primary key for this table? +++
+        // when rename a field, have to drop its index first?  foreign key, too? +++
+
+        // we MUST flip through every record to do this,
+        // even though it will take forever
+        // or else we could fail totally due to long transaction!
+        logger.println("Updating existing rows from id = " + trc.maxid + " to 1.");
+        int i = 0;
+        StopWatch sw = new StopWatch(false);
+        Accumulator times = new Accumulator();
+        StopWatch readsw = new StopWatch(false);
+        StopWatch writesw = new StopWatch(false);
+        EasyProperties after = new EasyProperties(); // need a new one
+        for(int idi = trc.maxid + 1; idi-- > 1; ) {
+          if(checkingLogs && bv.shouldstop()) {
+            break;
+          }
+//              sw.Reset();
+          sw.Start();
+          // take each index and update for that index
+          UniqueId id = new UniqueId(idi);
+          // does this whole record need to be loaded?  presume so if the function exists
+          // if so, load it into a temporary properties, and overwrite it with the defaults
+          // however, this record may not exist!!! Check first!
+          readsw.Start();
+          before = getRecordProperties(trc.table, id, trc.pk);
+          reads.add(readsw.Stop());
+          if(before.size() == 0) {
+            // skip this one
+            logger.println("Skipping " + trc.table.name() + "[" + idi + "] - doesn't exist.");
+          } else {
+            after.clear();
+            after.addMore(before); // that we can copy old values into
+            after.addMore(trc.newDefaults); // and then overload with new values
+            if(trc.hasFunction) {
+              // if not, just use the defaults properties
+              // then, call the function, if it exists, to overload the other properties
+              paramlist[0] = before;
+              paramlist[1] = after;
+              paramlist[2] = id;
+              trc.m.invoke(this, paramlist); // new values
+            }
+            writesw.Start();
+            i = setRecordProperties(before, trc.table, id, after, msgsToLog);
+            long time = writesw.Stop();
+            String pre = "allTablesAllExistingRows " + trc.table.name() + "[" + idi + "] ";
+            switch(i) {
+              case 0: {
+                logger.println(pre + "no changes needed.");
+              }
+              break; case 1: {
+                logger.println(pre + "record changed.");
+                changes++;
+                writes.add(time);
+              }
+              break; default: {
+                logger.println(pre + "should have received 0 or 1 on update, but got " + i);
+              }
+              break;
+            }
+            // log the changes.
+            logger.println(msgsToLog.toString());
+            msgsToLog.clear();
+          }
+          if( ( (thistablecount % sleepJumpTxnCount) == 0) && (thistablecount > 0)) {
+            if(checkingLogs) {
+              rowSleep += interRowSleepIncr; // add interRowSleepIncr ms to the rowsleep every 10000 records!
+            } else {
+              // leave it the same
+            }
+            { // this block allows for better variable cleanup
+              long avg = times.getAverage();
+              TextList tl = new TextList();
+              tl.add("GC()'ing after " + thistablecount + " records checked in table " + trc.table.name() + "...");
+              tl.add("Current average per row is " + avg + " ms.");
+              tl.add("Estimated total time is " + DateX.millisToTime(avg * trc.maxid) + ".");
+              long elapsedms = elapsed.millis();
+              tl.add("Elapsed time " + DateX.millisToTime(elapsedms) + ".");
+              long millisLeft = (avg * trc.maxid) - elapsedms;
+              UTC when = UTC.New(UTC.Now().getTime() + millisLeft);
+              tl.add("Estimated end time is " + ltf.format(when) + ".");
+              tl.add("Sleeping for " + rowSleep + " ms between rows.");
+              logger.PANIC("allTablesAllExistingRows status update:", tl);
+              logger.logFile.flush();
+            }
+            System.gc(); // hint, hint
+          }
+          ThreadX.sleepFor(rowSleep);
+          thistablecount++;
+          times.add(sw.Stop());
+        }
+        logger.println("allTablesAllExistingRows done, checked " + thistablecount + " and changed " + changes + " rows.");
+        if(checkingLogs && !bv.shouldstop()) { // means we are in the background
+          logger.println("Sleeping " + interTableSleepfor + " seconds between tables to give the system a break!");
+          ThreadX.sleepFor(interTableSleepfor);
+        }
+      } catch(Throwable ex) {
+        dbg.Caught(ex);
+        logger.println("allTablesAllExistingRows NOT done, only checked " + thistablecount + " and changed " + changes + " rows.");
+      }
+      totaltablecount += thistablecount;
+      thistablecount = 0;
+    } // for each table that needs cleaning
+    elapsed.Stop();
+  } // end allTablesAllExistingRows
+
+  // to create a function to handle every row in a table, write it like (this is for txn):
+  // private void fixtxnrow(EasyProperties before, EasyProperties after) {
+  //   write code to overwrite any field=value entries in the AFTER one,
+  //   using BEFORE as a reference
+  // } // it will get overwritten when you exit this function
+
+// terminal/appliance/store fix:
+//  private void fixterminalrow(EasyProperties before, EasyProperties after, UniqueId id) {
+//    int termstore = before.getInt(terminal.storeid.name());
+//    int applstore = getIntFromQuery(QueryString.Select(appliance.storeid).from(appliance).where().nvPair(appliance.applianceid, before.getInt(terminal.applianceid.name())));
+//    if(termstore != applstore) {
+//      after.setInt(terminal.storeid.name(), applstore);
 //    }
 //  }
 
-  private final int validatorAddMissingFields(TableProfile table) {
-    ColumnProfile [] cps = table.columns();
-    int count = 0;
-    for(int i = 0; i < cps.length; i++) {
-      count += validatorAddField(table, cps[i]);
+//  private void fixtxnrow(EasyProperties before, EasyProperties after, UniqueId id) {
+//    // CISP AND RECEIPTS
+//    // old:
+//    final String EXPIRATIONDATE = "expirationdate";
+//    final String TRACK1DATA = "track1data";
+//    final String TRACK2DATA = "track2data";
+//    final String CARDHOLDERACCOUNT = "cardholderaccount";
+//    final String TERMINALID = "terminalid";
+//    // check for new
+//    String echa = before.getString(txn.echa.name());
+//    String echn = before.getString(txn.echn.name());
+//    int cardhash = before.getInt(txn.cardhash.name());
+//    int cardlast4 = before.getInt(txn.cardlast4.name());
+//    // if no new, set them
+//    if((cardlast4 == 0) && (cardhash == 0) &&
+//       !StringX.NonTrivial(echn) && !StringX.NonTrivial(echa)) {
+//      Terminalid xid = new Terminalid(before.getString(TERMINALID));
+//      // get the data from the old fields
+//      MSRData card = new MSRData();
+//      card.setTrack(MSRData.T1, before.getString(TRACK1DATA));
+//      card.ParseTrack1();
+//      card.setTrack(MSRData.T2, before.getString(TRACK2DATA));
+//      card.ParseTrack2();
+//      card.accountNumber.setto(before.getString(CARDHOLDERACCOUNT));
+//      card.expirationDate.parseYYmm(before.getString(EXPIRATIONDATE));
+//      // set data in the new fields
+//      after.setInt(txn.cardhash.name(), card.accountNumber.cardHash());
+//      after.setInt(txn.cardlast4.name(), card.accountNumber.last4int());
+//      //encrypt the name
+//      after.setString(txn.echn.name(), TxnRow.EncodeCardholderName(card.person.CompleteName(), xid));
+//      // encrypt the card
+//      echa = TxnRow.encryptCardImage(card, xid);
+//      after.setString(txn.echa.name(), echa);
+//    }
+//    // import the receipts
+//    if( ! StringX.NonTrivial(before.getString(txn.signature.name())) ) {
+//      // since it is trivial, see if we can find one on disk!
+//      TxnReference tref = TxnReference.New(new Txnid(id.value()));
+//      TextList errors = new TextList();
+//      EasyCursor receipter = receiptAgent.loadReceipt(tref, errors);
+//      if(receipter != null) {
+//        Receipt receipt = new Receipt();
+//        receipt.load(receipter);
+//        Hancock signature = receipt.getSignature();
+//        String sig = TxnRow.HancockToString(signature);
+//        if(StringX.NonTrivial(sig)) {
+//          after.setString(txn.signature.name(), sig);
+//        }
+//      }
+//    }
+//    /////////////////////////// FTF/FORCE/TIPS stuff
+//
+//    // txn.transfertype - what is each txns transfertype?
+//    TransferType tt = new TransferType(before.getChar(txn.transfertype.name()));
+//    if(!tt.isLegal()) { // only set it if is needs setting
+//      tt = TransferTypeOld.from2digitCode(before.getString(transfertypeconvert.name()));
+//      after.setString(txn.transfertype.name(), String.valueOf(tt.Char()));
+//    }
+//
+//    // txn.paytype - what is each txns paytype?
+//    PayType ptB4 = new PayType(before.getChar(txn.paytype.name()));
+//    if(!ptB4.isLegal()) { // only set it if is needs setting
+//      PayType pt = PayTypeOld.from2digitCode(before.getString(paytypeconvert.name()));
+//      after.setString(txn.paytype.name(), String.valueOf(pt.Char()));
+//    }
+//
+//    // txn.authz - what needs authorizing? see the FTF spec table for this
+//    // from the old system, TT=SA,RT,QY, and TT=RV when actioncode = 'U'
+//    String ac = before.getString(txn.actioncode.name());
+//    boolean authz = before.getBoolean(txn.authz.name());
+//    boolean forceauthz = !authz &&
+//        (tt.is(TransferType.Sale) ||
+//        tt.is(TransferType.Return) ||
+//        tt.is(TransferType.Query) ||
+//        (tt.is(TransferType.Reversal) &&
+//         (StringX.equalStrings(ActionCode.Unknown, ac) ||
+//          StringX.equalStrings(ActionCode.Pending, ac))));
+//    // only change it if it needs to be true;
+//    // must include it either way to prevent it from being set to false by accident
+//    after.setBoolean(txn.authz.name(), forceauthz || authz);
+//
+//    // txn.settle - what needs settling?   see the FTF spec table for this
+//    // from the old system, only TT=SA or RT.
+//    boolean settle = before.getBoolean(txn.settle.name());
+//    boolean forcesettle = !settle &&
+//        (tt.is(TransferType.Sale) || tt.is(TransferType.Return));
+//    // only change it if it really needs to be true;
+//    // must include it either way to prevent it from being set to false by accident
+//    after.setBoolean(txn.settle.name(), forcesettle || settle);
+//
+//    // txn.settleop - what is each txns settleop? see the FTF spec table for this
+//    // all there are are RSQV, and those match our old transfertypes completely
+//    SettleOp sop = new SettleOp();
+//    sop.setto(before.getChar(txn.settleop.name()));
+//    if(!sop.isLegal()) { // only set it if we never have
+//      switch (tt.Value()) {
+//        case TransferType.Sale: {
+//          sop.setto(SettleOp.Sale);
+//        }
+//        break;
+//        case TransferType.Return: {
+//          sop.setto(SettleOp.Return);
+//        }
+//        break;
+//        case TransferType.Reversal: {
+//          sop.setto(SettleOp.Void);
+//        }
+//        break;
+//        case TransferType.Query: {
+//          sop.setto(SettleOp.Query);
+//        }
+//        break;
+//      }
+//      after.setChar(txn.settleop.name(), sop.Char());
+//    }
+//
+//    // txn.settleamount - what is each txns settleamount? see the FTF spec table for this
+//    // be sneaky and check for empty string!  set auth and settle equal for sales and returns
+//    String settleamtstr = before.getString(txn.settleamount.name());
+//    if(!StringX.NonTrivial(settleamtstr) && // only set it if it is trivial!
+//       (tt.is(TransferType.Sale) ||
+//        tt.is(TransferType.Return))) { // set it to auth amount if needed
+//      after.setInt(txn.settleamount.name(), before.getInt(txn.amount.name()));
+//    }
+//  }
+//
+//  private void fixstoreauthrow(EasyProperties before, EasyProperties after) {
+//    /////////////////////////// FTF/FORCE/TIPS stuff
+//
+//    // storeauth.paytype - what is each row's paytype?
+//    PayType ptB4 = new PayType(before.getChar(storeauth.paytype.name()));
+//    if(!ptB4.isLegal()) { // only set it if is needs setting
+//      PayType pt = PayTypeOld.from2digitCode(before.getString(sapaytypeconvert.name()));
+//      after.setString(storeauth.paytype.name(), String.valueOf(pt.Char()));
+//    }
+//  }
+
+  // Performed AFTER any other validation!
+  private void postvalidate() {
+    try {
+      dbv.mark("postvalidate");
+      vacuumFullCfgTables();
+    } catch(Exception ex) {
+      dbg.Caught(ex);
     }
-    return count;
   }
 
-  private final int validatorAddField(TableProfile table, ColumnProfile column) {
-    String functionName = "validatorAddField(fromProfile)";
-    int success = FAILED;
-    try {
-      trc.Enter(functionName);
-      trc.mark("Add field " + table.name() + "." + column.name());
-      if(!fieldExists(table.name(), column.name())) {
-        boolean did = addField(table, column);
-        success = (did ? DONE : FAILED);
-        trc.ERROR((did ? "Added" : "!! COULD NOT ADD") + " field " + table.name() + "." + column.name());
+  // performed in the background while everything else is happening.
+  // called by the BackgroundValidator
+  /* package */ void backgroundvalidate(Accumulator reads, Accumulator writes) {
+    // this function does NOT use the validation textlist to log errors, etc.
+    service.PANIC("Background validation starting...");
+    StopWatch sw = new StopWatch();
+    TextList bgvalErrors = new TextList();
+    allTablesAllExistingRows(bv, GenericTableProfile.logType, reads, writes);
+    service.PANIC("Background validation complete.  Took " + DateX.millisToTime(sw.Stop()) + ".", "VACUUM DATABASE FULL IS LIKELY NEEDED!");
+  }
+
+  private void conditionalValidatePrintln(String msg, int done) {
+    if(done == ALREADY) {
+      dbg.ERROR(msg);
+    } else {
+      validatePrintln(msg);
+    }
+  }
+
+  private void validatePrintln(String msg) {
+    dbv.ERROR(msg);
+    validatorPanicMsgs.add(msg);
+  }
+
+  private void rebuildCardTable() {
+    // delete card table and recreate it from BinEntry's
+    dbg.ERROR("Rebuilding card table");
+    int len = BinEntry.guesser.length; // less overhead to use locals
+    for(int i = 0; i < len; i++) { //# must retain order to deal with subranges ???  the select you do should use an index, which makes the insert order moot. ---
+      BinEntry be = BinEntry.guesser[i];
+      if(be.high == 0) { //undo a hack for manual entry of guessers.
+        be.high = be.low;
+      }
+      EasyCursor ezp = EasyCursor.makeFrom(be);
+      // gotta change fields to the db version thereof
+      ezp.setString(card.paytype.name(), String.valueOf(be.act.Char()));
+      ezp.setString(card.exp.name(), Bool.toString(be.expires));
+      ezp.setString(card.enMod10ck.name(), Bool.toString(be.enMod10ck));
+      Cardid id = getNextCardid();
+      update(QS.genCreateCard(ezp, id)); // +++ check return value?
+    }
+  }
+
+  public BinEntry getBinEntry(int cardbin) {
+    BinEntry ret = null;
+    Statement stmt = query(QS.genBinEntry(cardbin));
+    ResultSet rs = getResultSet(stmt);
+    if(next(rs)) {
+      int low = getIntFromRS(card.lowbin, rs);
+      int high = getIntFromRS(card.highbin, rs);
+      Institution inst = CardIssuer.getFrom2(getStringFromRS(card.institution, rs));
+      PayType paytype = new PayType(StringX.charAt(getStringFromRS(card.paytype, rs), 0));
+      AccountType act = AccountType.fromPayType(paytype);
+      boolean expires = getBooleanFromRS(card.exp, rs);
+      boolean enMod10ck = getBooleanFromRS(card.enMod10ck, rs);
+      ret = new BinEntry(low, high, inst, act, expires, enMod10ck);
+    } else {
+      // +++ bitch
+    }
+    return ret;
+  }
+
+  private boolean vacuumFullCfgTables() {
+    StopWatch sw = new StopWatch();
+    service.PANIC("Vacuuming FULL the config tables, but NOT vacuuming the log tables ...");
+    boolean ret = false;
+    TextList msgs = new TextList();
+    StopWatch tablesw = new StopWatch(false);
+    for(int i = tables.length; i-- > 0; ) {
+      TableProfile tp = tables[i];
+      if(tp.type.is(TableType.cfg)) {
+        tablesw.Start();
+        boolean tempret = vacuum(tp, true, true, true);
+        msgs.add("Vacuumed FULL " + tp.name() + " took " + DateX.millisToTime(tablesw.Stop()) + ".");
+        ret &= tempret;
       } else {
-        success = ALREADY;
-        trc.ERROR("Field " + table.name() + "." + column.name() + " already added.");
+        msgs.add("Skipped vacuuming FULL " + tp.name() + "; not cfg type.");
       }
-    } catch (Exception e) {
-      trc.Caught(e);
-    } finally {
-      if(success == FAILED) {
-        trc.ERROR(functionName + ":" + " FAILED!");
-      }
-      trc.mark("");
-      trc.Exit();
-      return success;
     }
+    service.PANIC("Completed vacuuming FULL the config tables only; took " + DateX.millisToTime(sw.Stop()) + ":", msgs);
+    return ret;
   }
 
-  private final int validatorAddField(String table, String field, String etc) {
-    String functionName = "validatorAddField";
-    int success = FAILED;
-    try {
-      trc.Enter(functionName);
-      trc.mark("Add field " + table + "." + field);
-      if(!fieldExists(table, field)) {
-        boolean did = addField(table, field, etc);
-        success = (did ? DONE : FAILED);
-        trc.ERROR((did ? "Added" : "!! COULD NOT ADD") + " field " + table + "." + field);
+  private boolean vacuum(TableProfile tp, boolean verbose, boolean analyze, boolean full) {
+    int i = update(QS.genVacuum(tp, verbose, analyze, full));
+    dbg.ERROR("Vacuum of " + tp.name() + " " + printIf(verbose, "verbose ") + printIf(analyze, "analyze ") + printIf(full, "full ") + "returned " + i);
+    return true;
+  }
+
+  private static final String printIf(boolean IF, String toPrint) {
+    return IF ? toPrint : "";
+  }
+
+  public boolean vacuumAnalyzeDatabase(boolean verbose, boolean analyze, boolean full, boolean vacuum) {
+    int i = update(QS.genVacuumAnalyzeDatabase(verbose, analyze, full, vacuum));
+    dbg.ERROR("Vacuum of entire database " + printIf(verbose, "verbose ") + printIf(analyze, "analyze ") + printIf(full, "full ") + printIf(vacuum, "vacuum ") + "returned " + i);
+    return true;
+  }
+
+  public StoreAuthid addStoreauth(Storeid storeid) {
+    return createStoreAuth(new Authid(1), "not set", "UK", 0, "UK", storeid, new Authid(1), "not set");
+  }
+
+  // add a storeauth entry for every authid and settleid in storeauth
+  // for other stores in this enterprise
+  public void fillStoreauths(Storeid storeid) {
+    Enterprise ent = StoreHome.Get(storeid).enterprise;
+    Enterpriseid entid = ent.enterpriseid();
+    Store[] stores = ent.stores.getAll();
+    Storeid[] storeids = new Storeid[stores.length];
+    for(int i = stores.length; i-- > 0; ) {
+      storeids[i] = stores[i].storeId();
+    }
+    StoreAuthid[] storeauthids = (StoreAuthid[]) getUniqueIdExtentArrayFromQuery(QS.genAllStoreAuths(storeids), StoreAuthid.class);
+    TextList used = new TextList();
+    for(int i = storeauthids.length; i-- > 0; ) {
+      EasyProperties ezp = getRecordProperties(storeauth, storeauthids[i]);
+      String authidstr = ezp.getString(storeauth.authid.name());
+      String settleidstr = ezp.getString(storeauth.settleid.name());
+      String forUsed = authidstr + "." + settleidstr;
+      if(used.contains(forUsed)) {
+        // not needing to add it
       } else {
-        success = ALREADY;
-        trc.ERROR("Field " + table + "." + field + " already added.");
+        // see if we need to add this combo
+        Authid authid = new Authid(authidstr);
+        String authmerchid = "not set";
+        String institution = ezp.getString(storeauth.institution.name());
+        int maxtxnlimit = ezp.getInt(storeauth.maxtxnlimit.name());
+        String paytype = ezp.getString(storeauth.paytype.name());
+        Authid settleid = new Authid(settleidstr);
+        String settlemerchid = "not set";
+        /* Storeauthid said = */createStoreAuth(authid, authmerchid, institution, maxtxnlimit, paytype, storeid, settleid, settlemerchid);
       }
-    } catch (Exception e) {
-      trc.Caught(e);
-    } finally {
-      if(success == FAILED) {
-        trc.ERROR(functionName + ":" + " FAILED!");
-      }
-      trc.mark("");
-      trc.Exit();
-      return success;
     }
   }
 
-  private final int validatorAddTable(TableProfile table) {
-    String functionName = "validatorAddTable";
-    int success = FAILED;
-    try {
-      trc.Enter(functionName);
-      trc.mark("Add table " + table.name());
-      if(!tableExists(table.name())) {
-        boolean did = createTable(table);
-        success = (did ? DONE : FAILED);
-        trc.ERROR((did ? "Added" : "!! COULD NOT ADD") + " table " + table.name());
+  public Terminalid addTerminal(Applianceid applid, Storeid storeid) {
+    return createTerminal("", null, applid, storeid, false);
+  }
+
+  public final StoreAccessid createStoreAccess(Storeid storeid, Associateid associateid, ClerkPrivileges sperms) {
+    StoreAccessid id = getNextStoreAccessid();
+    update(QS.genCreateStoreAccess(storeid, associateid, sperms, id));
+    return id;
+  }
+
+  private final StoreAuthid createStoreAuth(Authid authid, String authmerchid, String institution, int maxtxnlimit, String paytype, Storeid storeid, Authid settleid, String settlemerchid) {
+    StoreAuthid id = getNextStoreAuthid();
+    update(QS.genCreateStoreAuth(authid, authmerchid, institution, maxtxnlimit, paytype, storeid, settleid, settlemerchid, id));
+    return id;
+  }
+
+  private final Terminalid createTerminal(String modelcode, String terminalname, Applianceid applianceid, Storeid storeid, boolean dosigcap) {
+    Terminalid id = getNextTerminalid();
+    if(!StringX.NonTrivial(terminalname)) {
+      terminalname = "Term" + id;
+    }
+    update(QS.genCreateTerminal(modelcode, terminalname, applianceid, dosigcap, storeid, id));
+    return id;
+  }
+
+  public final void fillTermauths(Terminalid termid) {
+    // add a termauth entry for every authid and settleid in storeauth entries for the store that the terminal belongs to
+    // what is this terminal's store?
+    Storeid storeid = getStoreForTerminal(termid);
+    // get the list of all authids and settleids for that store
+    Authid[] authids = getAuthidsForStore(storeid);
+    // get a list of all authids for this terminal
+    AuthorizerRow row = getAuthidsForTerminal(termid);
+    // create any that aren't there
+    TextList alreadyThere = new TextList();
+    while(row.next()) {
+      Authid prospect = row.authid();
+      alreadyThere.assurePresent(prospect.toString());
+    }
+    for(int i = authids.length; i-- > 0; ) {
+      Authid prospect = authids[i];
+      if(alreadyThere.contains(prospect.toString())) {
+        // skip it
       } else {
-        success = ALREADY;
-        trc.ERROR("Table " + table.name() + " already added.");
+        createTermauth(prospect, termid, 1, "not set", 1);
       }
-    } catch (Exception e) {
-      trc.Caught(e);
-    } finally {
-      if(success == FAILED) {
-        trc.ERROR(functionName + ":" + " FAILED!");
-      }
-      trc.mark("");
-      trc.Exit();
-      return success;
     }
   }
 
-  // +++ generalize internal parts and move to DBMacros!
-  private final int validatorAddPrimaryKey(String constraintName, String tableName, String fieldExpression) {
-    String functionName = "validatorAddPrimaryKey";
-    int success = FAILED;
-    try {
-      trc.Enter(functionName);
-      trc.mark("Add Primary Key " + constraintName + " for " + tableName + ":" + fieldExpression);
-      if(!primaryKeyExists(tableName, constraintName)) {
-        QueryString qs = QueryString.PrimaryKeyConstraint(constraintName, tableName, fieldExpression);
-        if(update(qs) != -1) {
-          success = DONE;
-          trc.ERROR(functionName + ": SUCCEEDED!");
+  private final TermAuthid createTermauth(Authid authid, Terminalid terminalid, int termbatchnum, String authtermid, int authseq) {
+    TermAuthid id = getNextTermAuthid(); // generates id here for PG only
+    update(QS.genCreateTermauth(authid, terminalid, termbatchnum, authtermid, authseq, id));
+    return id;
+  }
+
+  private final TermAuthid getNextTermAuthid() {
+    return new TermAuthid(getIntFromQuery(QS.genSelectNextVal(termauth.termauthid)));
+  }
+
+  private final Terminalid getNextTerminalid() {
+    return new Terminalid(getIntFromQuery(QS.genSelectNextVal(terminal.terminalid)));
+  }
+
+  private final StoreAuthid getNextStoreAuthid() {
+    return new StoreAuthid(getIntFromQuery(QS.genSelectNextVal(storeauth.storeauthid)));
+  }
+
+  private final StoreAccessid getNextStoreAccessid() {
+    return new StoreAccessid(getIntFromQuery(QS.genSelectNextVal(storeaccess.storeaccessid)));
+  }
+
+  private final Txnid getNextTxnid() {
+    return new Txnid(getIntFromQuery(QS.genSelectNextVal(txn.txnid)));
+  }
+
+  private final Cardid getNextCardid() {
+    return new Cardid(getIntFromQuery(QS.genSelectNextVal(card.cardid)));
+  }
+
+  private final Drawerid getNextDrawerid() {
+    return new Drawerid(getIntFromQuery(QS.genSelectNextVal(drawer.drawerid)));
+  }
+
+  private final Batchid getNextBatchid() {
+    return new Batchid(getIntFromQuery(QS.genSelectNextVal(batch.batchid)));
+  }
+
+  private final AuthattemptId getNextAuthattemptId() {
+    return new AuthattemptId(getIntFromQuery(QS.genSelectNextVal(authattempt.authattemptid)));
+  }
+
+  private final Servicecfgid getNextServicecfgid() {
+    return new Servicecfgid(getIntFromQuery(QS.genSelectNextVal(servicecfg.servicecfgid)));
+  }
+
+  public EasyProperties getRecordProperties(TableProfile tp, UniqueId id, ColumnProfile ignoreColumn) {
+    return colsToProperties(QS.genSelectRecord(tp, id), ignoreColumn);
+  }
+
+  public EasyProperties getRecordProperties(TableProfile tp, UniqueId id) {
+    return getRecordProperties(tp, id, null /*tp.primaryKey.field*/);
+  }
+
+  public int setRecordProperties(TableProfile tp, UniqueId id, EasyProperties after) {
+    // check to see which ones need to be rewritten before blindly writing
+    EasyProperties before = getRecordProperties(tp, id, null);
+    return setRecordProperties(before, tp, id, after, null);
+  }
+
+  public int setRecordProperties(EasyProperties before, TableProfile tp, UniqueId id, EasyProperties after, TextList messages) {
+    ColumnProfile[] columns = tp.columns();
+    TextList afternames = after.allKeys(); // to check for missing falses (thanks to HTML)
+    EasyProperties changes = new EasyProperties();
+    ColumnProfile cp = null;
+    String name = null;
+    TextList changesToReport = new TextList();
+    for(int i = columns.length; i-- > 0; ) {
+      cp = columns[i];
+      name = cp.name();
+      if(cp == null) {
+        String report = "Skipping " + name + "; cp==null! VERY BAD!";
+        dbg.ERROR(report);
+        changesToReport.add(report);
+      } else if(cp.equals(tp.primaryKey.field)) {
+        String report = "Skipping " + name + "; PK.";
+        dbg.VERBOSE(report);
+        changesToReport.add(report);
+      } else {
+        // +++ eventually handle all datatypes independently, not just boolean
+        boolean isbool = cp.numericType().is(DBTypesFiltered.BOOL);
+        if(isbool) { // boolean has special issues to handle
+          if(!afternames.contains(name)) {
+            after.setBoolean(name, false); // this due to html's way of handling checkboxes!
+          }
+          boolean oldValue = before.getBoolean(name);
+          boolean newValue = after.getBoolean(name);
+          if(oldValue == newValue) {
+            dbg.VERBOSE("Skipping " + name + ", no change.");
+          } else {
+            changes.setBoolean(name, newValue);
+            dbg.WARNING("Adding " + name + ": b4[" + oldValue + "]!=@r[" + newValue + "].");
+            changesToReport.add("Converting " + name + " from [" + oldValue + "] to [" + newValue + "].");
+          }
+        } else {
+          String oldValue = before.getString(name);
+          String newValue = StringX.removeCRs(after.getString(name)); // remove CR's due to web crap
+          if(StringX.equalStrings(oldValue, newValue)) {
+            dbg.VERBOSE("Skipping " + name + ", no change.");
+          } else {
+            changes.setString(name, newValue); // and it might have changed due to CR removal
+            dbg.WARNING("Adding " + name + ": b4[" + oldValue + "]!=@r[" + newValue + "].");
+            changesToReport.add("Converting " + name + " from [" + oldValue + "] to [" + newValue + "].");
+          }
+        }
+      }
+    }
+    int ret;
+    String msg = "";
+    if(changes.size() == 0) {
+      msg = "No changes for " + tp.name() + "[" + id + "].";
+      ret = 0;
+    } else {
+      ret = update(QS.genUpdateRecord(tp, id, changes));
+      if(ret != 1) {
+        ret = FAILED;
+      }
+      msg = "Changing " + tp.name() + "[" + id + "]=" + ret + " : " + changesToReport.toString(); //changes.asParagraph(",");
+      // --- this is a hack to get stores and enterprises, etc., to reload themselves if they have been changed
+      // --- so that the storecron stuff works correctly, etc. ...
+      if(ret == 1) {
+        try {
+          PayMateTableEnum pte = new PayMateTableEnum(tp.name());
+          if(PayMateTableEnum.IsLegal(pte)) {
+            EntityBase eb = null;
+            EasyProperties ezp = null;
+            switch(pte.Value()) {
+              case PayMateTableEnum.enterprise: {
+                eb = EnterpriseHome.Get(new Enterpriseid(id.value()));
+              }
+              break; case PayMateTableEnum.store: {
+                eb = StoreHome.Get(new Storeid(id.value()));
+              }
+              break; case PayMateTableEnum.appliance: {
+                eb = ApplianceHome.Get(new Applianceid(id.value()));
+              }
+              break; case PayMateTableEnum.associate: {
+                eb = AssociateHome.Get(new Associateid(id.value()));
+              }
+              break;
+            }
+            if(eb != null) {
+              ezp = getRecordProperties(tp, id);
+              if(ezp != null) {
+                eb.setProps(ezp);
+                eb.loadFromProps();
+              } else {
+                // +++ ???
+              }
+            }
+          }
+        } catch(Exception ex) {
+          dbg.Caught(ex);
+        }
+      }
+    }
+    // don't scream about ANY statistics changes, PLEASE
+    if(messages == null) {
+      if(!tp.isLogType()) {
+        service.PANIC(msg);
+      } else {
+        dbg.WARNING(msg);
+      }
+    } else {
+      messages.add(msg);
+    }
+    return ret;
+  }
+
+  public EasyProperties getTableStats(TableProfile tbl) {
+    return colsToProperties(QS.genTableStats(tbl), null);
+  }
+
+  public EasyProperties getTablePages(TableProfile tbl) {
+    return colsToProperties(QS.genTablePages(tbl), null);
+  }
+
+  public boolean getStatsRowLevelEnabled() {
+    return StringX.equalStrings("on", getStringFromQuery(QS.genStatsRowLevel()), true
+                                /*ignorecase*/);
+  }
+
+  public int getDatabaseAge() { // +++ get this database name from somewhere!
+    return getIntFromQuery(QS.genDatabaseAge("mainsail"));
+  }
+
+  /////////////////////////////////////
+  // the new SS2 data stuff ...
+
+  public boolean loadEntity(EntityBase entity) {
+    // switch on the type here, and run the appropriate function on db,
+    SinetClass sclass = entity.getSinetClass();
+    TableProfile tp = tableProfileFromName(sclass.Image());
+    // +++ make the TableProfile classes use the SinetClass enumeration for their names?
+    // +++ since the database is just supposed to be a cacheof those classes anyway?
+    return entity.setProps(getRecordProperties(tp, entity.id(), tp.primaryKey.field));
+  }
+
+  public boolean storeEntity(EntityBase entity) {
+    // switch on the type here, and run the appropriate function on db,
+    SinetClass sclass = entity.getSinetClass();
+    TableProfile tp = tableProfileFromName(sclass.Image());
+    // +++ make the TableProfile classes use the SinetClass enumeration for their names?
+    // +++ since the database is just supposed to be a cacheof those classes anyway?
+    /*int something = */setRecordProperties(tp, entity.id(), entity.getProps());
+    return true;
+  }
+
+  // +++ add a notes field to all tables.  Pass a string in that allows us to put an entry into that notes field.
+  public UniqueId New(SinetClass sclass, UniqueId parentid) {
+    if(SinetClass.IsLegal(sclass)) {
+      TableProfile tp = SINETTABLES[sclass.Value()]; // maybe use the function that checks?
+      if(tp != null) {
+        ColumnProfile pk = tp.primaryKey.field;
+        if(pk != null) {
+          UniqueId id = new UniqueId(getIntFromQuery(QS.genSelectNextVal(pk)));
+          if(UniqueId.isValid(id)) {
+            QueryString qs = null;
+            // +++ @SS2 which items are NOT NULL and need to be set?
+            // check to see which fields are set to NOTNULL
+            // if that field is a PK, ignore it, as it will be set anyway
+            // if that field is NOT a PK, either take a passed-in value for it (Object.toString()?),
+            // or fabricate it based on its type
+            // this may or may not work!
+            switch(sclass.Value()) {
+              case SinetClass.Enterprise: // note that in this case parent is not really a parent
+              default: {
+                EasyProperties ezp = new EasyProperties();
+                ezp.setString(enterprise.enterprisename.name(), Now()); // give it an interesting name
+                qs = QueryString.Insert(tp, ezp, id); // put this into generic place in PMDBQS
+              }
+              break; case SinetClass.Appliance: {
+                // applname field can't be null!
+                qs = QS.genCreateAppliance("New Appliance " + UTC.Now().toString(), new Storeid(parentid.value()), new Applianceid(id.value()));
+              }
+// no persistence of appliance log data 20040523 !
+//              break; case SinetClass.ApplNetStatus: {
+//                qs = QS.genCreateApplNetStatus(new Applianceid(parentid.value()), id);
+//              }
+//              break; case SinetClass.ApplPgmStatus: {
+//                qs = QS.genCreateApplPgmStatus(new Applianceid(parentid.value()), id);
+//              }
+              break; case SinetClass.Associate: {
+                String loginname = "assoc" + id;
+                String password = String.valueOf(loginname.hashCode());
+                qs = QS.genCreateAssociate(parentid, loginname, password, id);
+              }
+              break; case SinetClass.Store: {
+                qs = QS.genCreateStore(new Enterpriseid(parentid.value()), "New Store " + id, id);
+              }
+              break;
+            }
+            if(qs != null) {
+              int inserted = update(qs);
+              // if(inserted == 1) { yadayada  +++ check return value?
+            } else {
+              service.PANIC("New(): No QS constructor for " + sclass.Image());
+            }
+            return id;
+          } else {
+            service.PANIC("New(): UniqueId is not valid (could not get next id for table " + tp + ") !");
+          }
+        } else {
+          service.PANIC("New(): Primary Key not found for TableProfile " + tp + " !");
         }
       } else {
-        success = ALREADY;
-        trc.ERROR("Primary Key " + constraintName + " for table " + tableName + " already added.");
+        service.PANIC("New(): TableProfile not found for SinetClass " + sclass + " !");
       }
-    } catch (Exception e) {
-      trc.Caught(e);
-    } finally {
-      if(success == FAILED) {
-        trc.ERROR(functionName + ": FAILED!");
-      }
-      trc.mark("");
-      trc.Exit();
-      return success;
+    } else {
+      service.PANIC("New(): SinetClass is illegal !");
     }
+    return null;
   }
 
-  // +++ generalize internal parts and move to DBMacros!
-  private final int validatorAddIndex(String indexName, String tableName, String fieldExpression) {
-    String functionName = "validatorAddIndex";
-    int success = FAILED;
+  public TableProfile tableProfileFromName(String tablename) {
+    for(int i = tables.length; i-- > 0; ) {
+      TableProfile tp = tables[i];
+      if(StringX.equalStrings(tp.name(), tablename, true /*ignoreCase*/)) {
+        return tp;
+      }
+    }
+    return null;
+  }
+
+  private TableProfile tableForSinetClass(SinetClass sclass) {
+    TableProfile ret = null;
     try {
-      trc.Enter(functionName);
-      trc.mark("Add Index " + indexName + " for " + tableName + ":" + fieldExpression);
-      if(!indexExists(indexName)) {
-        QueryString qs = QueryString.CreateIndex(indexName, tableName, fieldExpression);
-        if(update(qs) != -1) {
-          success = DONE;
-          trc.ERROR(functionName + ": SUCCEEDED!");
+      boolean isLegal = SinetClass.IsLegal(sclass);
+      dbg.ERROR("SinetClass[" + sclass + "] is " + (isLegal ? "" : "NOT ") + "legal.");
+      if(isLegal) {
+        int i = sclass.Value();
+        boolean inRange = (i < SINETTABLES.length);
+        dbg.ERROR("sclass.Value() of " + i + " is " + (inRange ? "" : "NOT ") + "in the range of SINETTABLES[" + SINETTABLES.length + "].");
+        if(inRange) {
+          ret = SINETTABLES[sclass.Value()];
+          dbg.ERROR("SINETTABLES[" + sclass.Value() + "]=" + ret);
         }
-      } else {
-        success = ALREADY;
-        trc.ERROR("Index " + indexName + " already exists!");
       }
-    } catch (Exception e) {
-      trc.Caught(e);
+    } catch(Exception ex) {
+      dbg.Caught(ex);
     } finally {
-      if(success == FAILED) {
-        trc.ERROR(functionName + ": FAILED!");
-      }
-      trc.mark("");
-      trc.Exit();
-      return success;
+      return ret;
     }
   }
 
-  //////////////////////////////////////////
-  //query debugger
-  public static final void spout(String s){
-    // +_+ use DBG!  No system.out in program if at all possible!
-    //==> this is for use by a main. A reasonable exception to the above rule.
-    // --- not considering the dbg's already exist once the program loads *and are outputting any errors that are being generated already*
-    // --- create a PrintFork to do your html'izing and use that.
-    System.out.print("<tr><td>");
-    System.out.println(s);
-    System.out.print("</td></tr>");
-  }
-  public static final void spout(QueryString s){
-    spout(s.toString());
-  }
-
-  public static final void main(String argv[]){
-    TerminalID T=new TerminalID(10000,5);
-    TimeRange ranger=TimeRange.Create("MMddHHmmss",TRANSTARTTIME);
-    ranger.setEnd(Safe.Now()).setStart(LocalTimeFormat.genesis);
-    LoginInfo li=new LoginInfo();
-    li.clerk.setName("%userid%").setPass("%rawpassword%");
-    li.enterpriseID=10000;
-    TxnRow reck= TxnRow.forTesting();
-
-    boolean all=(argv.length==0);
-    if(all){
-      argv=new String[1];
-      System.out.println("<table border>");
+  // this gets the id's in no particular order.  Tuff.
+  // ignore that.  now it gets them in descending numerical order
+  public UniqueId[] getIds(SinetClass sclass, Class uniqueidExtentClass) {
+    UniqueId[] ids = null;
+    TableProfile tp = tableForSinetClass(sclass);
+    if(tp == null) {
+      service.PANIC("getIds() does not yet have code to handle SinetClass " + sclass + " !");
+      return(UniqueId[]) java.lang.reflect.Array.newInstance(uniqueidExtentClass, 0);
+    } else {
+      ids = getUniqueIdExtentArrayFromQuery(QS.genid(tp).orderbydesc(tp.primaryKey.field), uniqueidExtentClass);
     }
-    for(int i=argv.length;i-->0;){
-      String methodname=argv[i];
-      if(!all){
-        spout(methodname+":");
-      }
-      if(all|| methodname.equalsIgnoreCase("tiftQuery")){//1
-        spout(tiftQuery(reck));
-      }
-      if(all|| methodname.equalsIgnoreCase("assocQry")){//1
-        spout(assocQry(li));
-      }
-      if(all||methodname.equalsIgnoreCase("upstan")){//1
-        spout(upstan(5,90210));
-      }
-      if(all|| methodname.equalsIgnoreCase("StoreIs")){//1
-        spout(StoreIs(5));
-      }
-      if(all|| methodname.equalsIgnoreCase("caidOfEnterprise")){//1
-        spout(caidOfEnterprise(10000));
-      }
-      if(all|| methodname.equalsIgnoreCase("TerminalNamed")){//1
-        spout(TerminalNamed("%termname%"));
-      }
-      if(all|| methodname.equalsIgnoreCase("AllTxnsButVoids")){//1
-        spout(NoVoids());
-      }
-      if(all|| methodname.equalsIgnoreCase("StoreAgrees")){//1
-        spout(StoreAgrees());
-      }
-      if(all|| methodname.equalsIgnoreCase("genStoresQuery")){//1
-        spout(genStoresQuery(10000));
-      }
-      if(all|| methodname.equalsIgnoreCase("genAssociatesQuery")){//1
-        spout(genAssociatesQuery(10000));
-      }
-      if(all|| methodname.equalsIgnoreCase("genStoreInfo")){//1
-        spout(genStoreInfo(5));
-      }
-      if(all|| methodname.equalsIgnoreCase("ApplianceInfoQry")){//1
-        spout(ApplianceInfoQry("%macidgoeshere%"));
-      }
-      if(all|| methodname.equalsIgnoreCase("genTerminal")){//1
-        spout(genTerminal(10000));
-      }
-      if(all|| methodname.equalsIgnoreCase("TerminalIs")){//1
-        spout(TerminalIs(10000));
-        spout(TerminalIs(T));
-      }
-      if(all|| methodname.equalsIgnoreCase("genEnterpriseFromTerminalQuery")){//1
-        spout(genEnterpriseFromTerminalQuery("%macidgoeshere%"));
-      }
-      if(all|| methodname.equalsIgnoreCase("genCloseShift")){//1
-        spout(genCloseShift(T,ranger,li));
-      }
-      if(all|| methodname.equalsIgnoreCase("timeClause")){//1
-        spout(timeClause(">=","%yyyymmddhhmss%"));
-      }
-      if(all|| methodname.equalsIgnoreCase("genStartTxn")){
-        spout(genStartTxn(reck));
-      }
-      if(!all){
-        spout( "not known");
-      }
-    }
-    if(all){
-      System.out.println("</table>");
-    }
+    return ids;
   }
 
+  ////////////////////////////////
+  // HardwareCfgMgr stuff
+
+  // +++ this func should return arrays so that the callers can decide what to do if it isn't unique
+  public Applianceid getApplianceByName(String applname) {
+    return new Applianceid(getIntFromQuery(QS.genApplianceId(applname)));
+  }
+
+// no persistence of appliance log data 20040523 !
+//  public ApplNetStatusid getLastApplNetStatus(Applianceid parent) {
+//    return new ApplNetStatusid(getIntFromQuery(QS.genLastApplNetStatus(parent)));
+//  }
+//
+//  public ApplPgmStatusid getLastApplPgmStatus(Applianceid parent, boolean connection) {
+//    return new ApplPgmStatusid(getIntFromQuery(QS.genLastApplPgmStatus(parent, connection)));
+//  }
 }
-//$Id: PayMateDB.java,v 1.37 2001/11/17 20:06:36 mattm Exp $
+
+class TableRowCleaner {
+  TableProfile table;
+  int maxid;
+  Method m;
+  boolean hasFunction;
+  boolean hasDefaults;
+  ColumnProfile pk;
+  EasyProperties newDefaults;
+}
+
+class TableRowCleanerVector extends Vector {
+  public TableRowCleaner itemAt(int index) {
+    return(TableRowCleaner) elementAt(index);
+  }
+}
+//$Id: PayMateDB.java,v 1.389 2004/05/23 19:02:47 mattm Exp $

@@ -6,32 +6,25 @@ package net.paymate.ivicm.ec3K;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: EC3K.java,v 1.24 2001/09/14 21:10:38 andyh Exp $
+* @version      $Id: EC3K.java,v 1.48 2003/07/27 05:35:03 mattm Exp $
+* <strike>@todo incorporate stxetxPacket.</strike>
+* @todo: this class is deprecated, gut it if it gets in the way of new stuff.
 */
 
 import net.paymate.ivicm.comm.*;
 import net.paymate.ivicm.*;
 import net.paymate.serial.*;
-
-import javax.comm.*;
-
-import net.paymate.jpos.common.*;
+import net.paymate.lang.StringX;
+import net.paymate.awtx.DisplayHardware;
+import net.paymate.lang.ContentType;
 import net.paymate.util.*;
 import net.paymate.util.timer.*;
+import net.paymate.util.Ascii;
 
-import jpos.services.EventCallbacks;
-import jpos.events.*;
-import jpos.JposException;
-
-public class EC3K extends SerialDevice
-implements TimeBomb, Constants {
-  static final ErrorLogStream dbg=new ErrorLogStream(EC3K.class.getName());
-  static final ErrorLogStream dbk=new ErrorLogStream(EC3K.class.getName()+":comm");
-  static final String VersionInfo= "CM3000 I/F, (C) PayMate.net 2000-2001 $Revision: 1.24 $";
-  static final int ACK= 0x06;
-  static final int NACK=0x15;
-  public static final byte STX=0x02;
-  public static final byte ETX=0x03;
+public class EC3K extends DisplayDevice implements DisplayHardware,TimeBomb {
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(EC3K.class);
+  static final ErrorLogStream dbk=ErrorLogStream.getExtension(EC3K.class,"comm");
+  static final String VersionInfo= "CM3000 I/F, (C) PayMate.net 2000-2001 $Revision: 1.48 $";
 
   StopWatch responseTime=new StopWatch(false);
 
@@ -39,25 +32,35 @@ implements TimeBomb, Constants {
   MICRService         Miker;
   LineDisplayService  LDS; //not needed yet?? has error event queue??
 
+  EC3KDisplayPad checkfixer;
+
   //class Sender
   String monstratus;   //"to be shown"
   boolean buffered=false;
   boolean myCTS=true;  //startup with permission to send
-  Alarmum timeout;
+  Alarmum displayTimeout;
 
   RcvPacket inbuffer=new RcvPacket(Command.RcvSize);//closes timing hole on first command
   RcvPacket inPacket; //double buffering of above.
   int EndExpectedAt;
 
-  protected synchronized void onCompletion(boolean failed){//was too deeply indented
+  public static final byte FX_POLL                      = 33;
+  public static final byte FX_POLL_KEYBOARD             = 51;
+  public static final byte FX_DISPLAY_MAXCHARS          = 16;
+
+  public static final byte STATUS_SUCCESS               = 0;
+
+
+  private synchronized void onCompletion(boolean failed){//was too deeply indented
     dbg.VERBOSE("endOk:"+!failed);
     inPacket=inbuffer;      //save just received
     startReception();
     switch(inPacket.incode()){
       case FX_POLL:{
         if(Miker!=null){
-          Show(monstratus);//conditionally refresh the display... if available
+//          Show(monstratus);//conditionally refresh the display... if available
           Miker.Post(failed,inPacket);
+          checkfixer.onCheck();
         }
       } break;
       case FX_POLL_KEYBOARD:{
@@ -65,10 +68,10 @@ implements TimeBomb, Constants {
           Keypad.Post(failed,inPacket);
         }
       } break;
-      case NACK:{ //resend stored string, no state changes
+      case Ascii.NAK:{ //resend stored string, no state changes
         sendCommand();
       } break;
-      case ACK:{ //ok to send another string.
+      case Ascii.ACK:{ //ok to send another string.
         if(buffered){
           sendCommand();
         }
@@ -84,18 +87,21 @@ implements TimeBomb, Constants {
   }
 
   public int onByte(int commchar){
-    if(commchar<=Receiver.TimedOut){//lump other serious errors in with timeout
+    if(commchar==Receiver.TimedOut){//always false for this device
+      return Receiver.TimeoutNever;
+    }
+    if(commchar<Receiver.TimedOut){//lump other serious errors in with timeout
       onTimeout();
     } else {
       if(inbuffer.append(commchar)){//if there is room in the buffer
-        if (commchar==STX&&inbuffer.ptr()!=1) {
+        if (commchar==Ascii.STX&&inbuffer.ptr()!=1) {
           dbk.ERROR("Abrupt start of frame");
           startReception();    //start framed
         } else {
-          dbk.VERBOSE("ptr:"+inbuffer.ptr()+" hex:"+Safe.ox2(commchar));
+          dbk.VERBOSE("ptr:"+inbuffer.ptr()+Receiver.imageOf(commchar));
           switch(inbuffer.ptr()){
             case 1:{
-              if (commchar!=STX) {
+              if (commchar!=Ascii.STX) {
                 dbk.ERROR("Seeking start of frame");
                 startReception();    //start framed
               }
@@ -106,11 +112,11 @@ implements TimeBomb, Constants {
             } break;
 
             case 3:{//status byte for data, ETX for display op acknolwedge
-              if (inbuffer.incode()==ACK || inbuffer.incode()==NACK) {//ack or nack packet
-                Alarmer.Defuse(timeout);//this timeout is related to just display commands
+              if (inbuffer.incode()==Ascii.ACK || inbuffer.incode()==Ascii.NAK) {//ack or nack packet
+                Alarmer.Defuse(displayTimeout);//this timeout is related to just display commands
                 myCTS=true;
                 dbg.VERBOSE(" Response time:"+responseTime.Stop());
-                onCompletion(commchar!=ETX);
+                onCompletion(commchar!=Ascii.ETX);
               } else if(commchar >0 ){
                 dbg.VERBOSE("device reports error");
               }
@@ -122,9 +128,9 @@ implements TimeBomb, Constants {
 
             default:{
               if(inbuffer.ptr()>=EndExpectedAt){//end packet
-                onCompletion(commchar!=FX_ETX);
+                onCompletion(commchar!=Ascii.ETX);
               } else { // not done yet.
-                if(commchar==FX_ETX){
+                if(commchar==Ascii.ETX){
                   dbk.VERBOSE("Possible etx at "+(inbuffer.ptr()-1)+" out of "+EndExpectedAt);
                 }
               }
@@ -136,52 +142,26 @@ implements TimeBomb, Constants {
     return Receiver.TimeoutNever;
   }
 
-  public void serialEvent(SerialPortEvent serialportevent){
-    try {
-      dbg.Enter("ec3k.rcv");
-      myPort.boostCheck();
-      int evt=serialportevent.getEventType();
-      switch(evt){
-        case SerialPortEvent.DATA_AVAILABLE: {
-          int commchar;
-          while( (commchar = myPort.is.read()) !=-1){
-            onByte(commchar);//we aren't doing timeouts at byte level in this packacge
-          }//while buffer not empty
-        } break;
-        default: { //other comm events aren't registered for...
-          dbg.ERROR("Unexpected Comm Event:"+evt);
-        }
-      }
-    }
-    catch(Exception caught){
-      dbg.ERROR("IOException on reception");
-      dbg.Caught(caught);
-    }
-    finally {
-      dbg.Exit();
-    }
-  }
-
-  protected void startReception(){
+  private void startReception(){
     EndExpectedAt=0;
     inbuffer= new RcvPacket(Command.RcvSize);
   }
 
-  protected synchronized void sendCommand(){
+  private synchronized void sendCommand(){
     if(myPort!=null){
       dbg.Enter("sendCommand");
       try {
         dbk.VERBOSE("Sending:"+monstratus);
         myCTS=false;
-        myPort.os.write(STX);
+        myPort.os.write(Ascii.STX);
         myPort.os.write(monstratus.getBytes());
         responseTime.Start();
-        myPort.os.write(ETX);
+        myPort.os.write(Ascii.ETX);
         buffered=false;
-        timeout=Alarmer.New(2000,this);//+_+ should compute from packet values, til then make it grossly big.
+        displayTimeout=Alarmer.New(2000,this);//+_+ should compute from packet values, til then make it grossly big.
       }
       catch (Exception caught){
-        dbg.ERROR(caught.toString());
+        dbg.ERROR(String.valueOf(caught));
         myCTS=true; //allow another attempt via Show()
       } finally {
         dbg.Exit();
@@ -192,21 +172,35 @@ implements TimeBomb, Constants {
   // interface RawDisplay
 
   public synchronized void Show(String forDisplay){
-    monstratus= Safe.tail(forDisplay,FX_DISPLAY_MAXCHARS);
+    monstratus= StringX.tail(forDisplay,FX_DISPLAY_MAXCHARS);
+    dbk.VERBOSE("Show:"+forDisplay+" ["+monstratus+"]");
     buffered=true;
 
     if(myCTS){
       sendCommand();
     } else {
-      dbk.VERBOSE("Buffered:"+monstratus);
-      if (!Alarmer.isTicking(timeout)) {//don't wait for ever, try to send after a bit.
-        timeout=Alarmer.New(1500,this);//way bigger than needed.
+      dbk.VERBOSE("Buffered");
+      if (!Alarmer.isTicking(displayTimeout)) {//don't wait for ever, try to send after a bit.
+        displayTimeout=Alarmer.New(1500,this);//way bigger than needed.
       }
     }
   }
 
-  public void Display(String forDisplay){
+  public void Display(String forDisplay){//shared with tester
     Show(forDisplay);
+  }
+
+
+  public boolean doesStringInput(ContentType ct){
+    return false;
+  }
+  public void getString(String prompt,String preload,ContentType ct){}
+
+  public boolean hasTwoLines(){ //has *at least* two lines
+    return false;
+  }
+  public void Echo(String forDisplay){//for keystroke echoing on second line
+    Display(forDisplay);
   }
 
   public void refresh(){
@@ -225,13 +219,13 @@ implements TimeBomb, Constants {
   }
 
   /**
-  * @deprecated needs to change for multiple terminals
+  * @..deprecated needs to change for multiple terminals
   */
-  public EC3K( SerialConnection sc) {
+  public EC3K(SerialConnection sc) {
     super("legacyConstructor");
     dbg.Enter("EC3K()");
     if(sc!=null){
-      sc.parms.setFlow(SerialPort.FLOWCONTROL_NONE);//+_+ move to config, asap
+      sc.parms.setFlow(Parameters.FLOWCONTROL_NONE);//+_+ move to config, asap
     }
     Connect(sc);
     dbg.Exit();
@@ -243,17 +237,42 @@ implements TimeBomb, Constants {
 
   ///////////////////////////////////
   //services provided by this device:
-  public jpos.services.LineDisplayService14 LineDisplay(String jname){
-    return LDS=  new LineDisplayService(jname,this);
-  }
 
-  public jpos.services.MICRService14        MICR(String jname){
+  public MICRService        MICR(String jname){
     return Miker= new MICRService(jname,this);
   }
 
-  public jpos.services.POSKeyboardService14 Keypad(String jname){
+  public MICRService  MICR(){
+    return Miker= new MICRService(myName,this);
+  }
+
+  public POSKeyboardService Keypad(String jname){
     return Keypad= new POSKeyboardService(jname,this);
   }
 
+  public POSKeyboardService Keypad(){
+    return Keypad= new POSKeyboardService(myName,this);
+  }
+
+  public EC3KDisplayPad DisplayPad(){
+    if(checkfixer==null){
+      checkfixer=EC3KDisplayPad.makeFrom(this);
+    }
+    return checkfixer;
+ }
+  ////////////////////
+  /**
+   *
+   */
+  static public void main(String[] args) {
+    EC3K totest=new EC3K("EC3K.tester");
+
+    totest.testConnect2(9600,dbg);
+
+//    dbk.setLevel(LogSwitch.ERROR);
+    testapad padtester=new testapad(totest.DisplayPad());
+    totest.testloop(dbg);
+  }
+
 }
-//$Id: EC3K.java,v 1.24 2001/09/14 21:10:38 andyh Exp $
+//$Id: EC3K.java,v 1.48 2003/07/27 05:35:03 mattm Exp $

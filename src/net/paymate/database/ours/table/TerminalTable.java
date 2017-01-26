@@ -2,7 +2,8 @@ package net.paymate.database.ours.table;
 
 import net.paymate.database.*;
 import net.paymate.database.ours.*;
-
+import net.paymate.util.*;
+import net.paymate.lang.Bool;
 
 /**
  * Title:
@@ -10,29 +11,30 @@ import net.paymate.database.ours.*;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: TerminalTable.java,v 1.8 2001/11/17 06:16:59 mattm Exp $
+ * @version $Id: TerminalTable.java,v 1.41 2004/03/03 23:11:25 mattm Exp $
  */
 
-public class TerminalTable extends TableProfile implements DBConstants {
+public class TerminalTable extends GenericTableProfile {
+  // +++ deprecate modelcode when equipment tables are in place
+  public final ColumnProfile applianceid =createColumn("applianceid" ,DBTypesFiltered.INT4,CANNULL,NOAUTO,null);
+  public final ColumnProfile dosigcap    =createColumn("dosigcap"    ,DBTypesFiltered.BOOL,NOTNULL,NOAUTO,Bool.TRUE());
+  public final ColumnProfile enabled     =createColumn("enabled"     ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,Bool.TRUE());
+  public final ColumnProfile enavs       =createColumn("enavs"       ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,Bool.FALSE());
+  public final ColumnProfile ensimodify  =createColumn("ensimodify"  ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,Bool.FALSE());
+  public final ColumnProfile eqhack      =createColumn("eqhack"      ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
+  public final ColumnProfile modelcode   =createColumn("modelcode"   ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
+  public final ColumnProfile storeid     =createColumn("storeid"     ,DBTypesFiltered.INT4,NOTNULL,NOAUTO,null);
+  public final ColumnProfile terminalid  =createColumn("terminalid"  ,DBTypesFiltered.INT4,NOTNULL,AUTO  ,null);
+  public final ColumnProfile terminalname=createColumn("terminalname",DBTypesFiltered.TEXT,NOTNULL,NOAUTO,null);
+  public final ColumnProfile twocopies   =createColumn("twocopies"   ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,Bool.FALSE());
 
-  private static final String TERMINAL = "TERMINAL";
-  // +++ needs unique index in appliance table (BUT NOT HERE!)
-  // can be null in terminal table, but not in appliance table
-  public static final ColumnProfile applianceid =ColumnProfile.create(TERMINAL, APPLIANCEID ,DBTypesFiltered.CHAR   ,32,ColumnProfile.ALLOWNULL,"ApplianceID" ,ColumnProfile.NOAUTO);
-  public static final ColumnProfile terminalid  =ColumnProfile.create(TERMINAL, TERMINALID  ,DBTypesFiltered.CHAR   ,32,ColumnProfile.NOTNULL  ,"Terminal ID" ,ColumnProfile.NOAUTO); // +++ needs unique index in terminal table // replace with TERMID that is integer ???
-  public static final ColumnProfile storeid     =ColumnProfile.create(TERMINAL, STOREID     ,DBTypesFiltered.INTEGER, 4,ColumnProfile.NOTNULL  ,"Store ID#"   ,ColumnProfile.NOAUTO); // +++ needs unique index in the store table
-  public static final ColumnProfile terminalname=ColumnProfile.create(TERMINAL, TERMINALNAME,DBTypesFiltered.CHAR   , 8,ColumnProfile.NOTNULL  ,"TerminalName",ColumnProfile.NOAUTO); // Used in the tranjour table.
-
-  private static final ColumnProfile [] staticColumns = {
-    terminalid,
-    terminalname,
-    applianceid,
-    storeid,
-    // modelcode, deprecated
-  };
+  IndexProfile teapplidx = new IndexProfile("teapplidx", this, applianceid);
+  IndexProfile ipk_terminalname = new IndexProfile("ipk_terminalname", this, terminalname);
+  IndexProfile testoridx = new IndexProfile("testoridx", this, storeid);
 
   public TerminalTable() {
-    super(new TableInfo(TERMINAL), staticColumns);
+    super(TERMINALTABLE, cfgType);
+    setContents("pka_terminalid", terminalid);
   }
 }
 

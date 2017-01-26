@@ -1,17 +1,16 @@
-/* $Id: MICRData.java,v 1.37 2001/10/02 17:06:39 mattm Exp $ */
+/* $Id: MICRData.java,v 1.43 2003/07/27 05:35:07 mattm Exp $ */
 package net.paymate.jpos.data;
+
+import net.paymate.lang.StringX;
 import net.paymate.util.*;
 
-public class MICRData implements jpos.MICRConst, isEasy {
-  public static final ErrorLogStream dbg= new ErrorLogStream(MICRData.class.getName());
+public class MICRData implements isEasy {
+  public static final ErrorLogStream dbg= ErrorLogStream.getForClass(MICRData.class);
 
   public boolean isPresent;
 
-  public final static int SignalLevelMin=60;
-  public final static int SignalLevelMax=200;
-
-  public final static String BadTransit="?????????";
-  public final static String BadAccount="????????????";
+  public final static String BadTransit="?????????"; //9, includes mod10 checksum
+  public final static String BadAccount="????????????";//12, might have spaces and dashes
   public final static String BadSerial ="??????";
 
 
@@ -27,8 +26,10 @@ public class MICRData implements jpos.MICRConst, isEasy {
 
   public String Amount  ; //getAmount()
   public String EPC     ; //getEPC() //"" or 0..9
-  public int checktype  ; //JPOS enumeration,!=ISO8583's
-  public int country    ; //JPOS enumeration,!=ISO8583's
+
+///////////////
+  public String checktype  ; //need enumerations
+  public String country    ; //
 
   //propertynames
   protected final static String TransitKey ="Transit";
@@ -36,10 +37,10 @@ public class MICRData implements jpos.MICRConst, isEasy {
   protected final static String SerialKey  ="Serial";
 
   //parsing markers
-  protected final static byte TransitMarker=(byte)'t';//0x74
-  protected final static byte OnUsMarker=(byte)'o'; //0x6F
-  protected final static byte DashMarker=(byte)'-';//0x2D
-  protected final static byte AmountMarker =(byte)'a' ;//0x61   there is one more not yet important to us.
+  protected final static byte TransitMarker=Ascii.t;//0x74 (byte)'t'
+  protected final static byte OnUsMarker=Ascii.o; //0x6F  (byte)'o'
+  protected final static byte DashMarker=Ascii.DASH;//0x2D  (byte)'-'
+  protected final static byte AmountMarker =Ascii.a;//0x61 (byte)'a'  there is one more not yet important to us.
   ////////////////////////////////////////////////
   protected boolean checkField(String value,String key){
     key="Incomplete"+key;
@@ -106,6 +107,11 @@ public class MICRData implements jpos.MICRConst, isEasy {
     EPC        =new String(rhs. EPC     ) ;
   }
 
+  public static MICRData fromTrack(String rawtrack){
+    MICRData newone=new MICRData();
+    return newone.parseTrack(rawtrack);
+  }
+
   public void save(EasyCursor ezp){
     ezp.setString(TransitKey, Transit);
     ezp.setString(AccountKey, Account);
@@ -129,72 +135,78 @@ public class MICRData implements jpos.MICRConst, isEasy {
     return count;
   }
   ////////////////////////////////////////////////
+  public MICRData parseTrack(String rawtrack){
+    RawTrack=rawtrack;
+    parseTrack();
+    return this;
+  }
 
   int parseTrack(){
-    int tstart  =RawTrack.indexOf(TransitMarker);     //usually 0
-    int tend    =RawTrack.lastIndexOf(TransitMarker); //usually 10
-    int omarker =RawTrack.indexOf(OnUsMarker);        //usually 23
-    int endmark =RawTrack.length();                   //usually 30
-    //+_+ doesn't deal with business checks atall.
-    //there can be many onusmarkers
-    int errcount=0;
-    if(tstart==tend){//then there must be just one
-      tstart=tend-10;//presume the sole marker was an end marker
-      ++errcount;
-    }
-    if(tstart<0){
-      tstart=0;
-      ++errcount;
-    }
-    if(tend>tstart+4){ //to keep bank from blowing.
-      Transit=RawTrack.substring(tstart+1,tend);//excluding markers
-    } else {
-      ++errcount;
-      Transit=BadTransit; //give up
-    }
+    if(StringX.NonTrivial(RawTrack)){
+      int tstart  =RawTrack.indexOf(TransitMarker);     //usually 0
+      int tend    =RawTrack.lastIndexOf(TransitMarker); //usually 10
+      int omarker =RawTrack.indexOf(OnUsMarker);        //usually 23
+      int endmark =RawTrack.length();                   //usually 30
+      //+_+ doesn't deal with business checks atall.
+      //there can be many onusmarkers
+      int errcount=0;
+      if(tstart==tend){//then there must be just one
+        tstart=tend-10;//presume the sole marker was an end marker
+        ++errcount;
+      }
+      if(tstart<0){
+        tstart=0;
+        ++errcount;
+      }
+      if(tend>tstart+4){ //to keep bank from blowing.
+        Transit=RawTrack.substring(tstart+1,tend);//excluding markers
+      } else {
+        ++errcount;
+        Transit=BadTransit; //give up
+      }
 
-    //    Bank=Transit.substring(0,4);
-    if (tend>=0 && omarker>=0 && tend<omarker){//PERSONAL CHECKS ONLY!+++
-      Account=RawTrack.substring(tend+1,omarker).trim();//for ISO8583 f166
-    } else {
-      Account=BadAccount;
-    }
+      //    Bank=Transit.substring(0,4);
+      if (tend>=0 && omarker>=0 && tend<omarker){//PERSONAL CHECKS ONLY!+++
+        Account=RawTrack.substring(tend+1,omarker).trim();//for ISO8583 f166
+      } else {
+        Account=BadAccount;
+      }
 
-    if (omarker>=0&&omarker<endmark-3) {//PERSONAL CHECKS ONLY!+++
-      Serial= RawTrack.substring(omarker+1).trim();
-    } else {
-      Serial=""; //spence says 'no serial' is acceptible //BadSerial;
+      if (omarker>=0&&omarker<endmark-3) {//PERSONAL CHECKS ONLY!+++
+        Serial= RawTrack.substring(omarker+1).trim();
+      } else {
+        Serial=""; //spence says 'no serial' is acceptible //BadSerial;
+      }
     }
-
     return 0; //someday count the '?''s and return that.
   }
 
-  int parseCountry(char flag){
+  //////////////////////////
+  // CM3000 packet
+  public final static int SignalLevelMin=60;
+  public final static int SignalLevelMax=200;
+
+  String parseCountry(char flag){
     switch(flag){
-      case '0': return MICR_CC_USA   ;
-      case '1': return MICR_CC_CANADA;
-      case '2': return MICR_CC_MEXICO;
-      default:  return MICR_CC_UNKNOWN;
+      case '0': return "USA"   ;
+      case '1': return "CANADA";
+      case '2': return "MEXICO";
+      default:  return "UNKNOWN";
     }
   }
 
-  int parseCheckType(char tc){
+  String parseCheckType(char tc){
     switch(tc) {
-      case 'B': return MICR_CT_BUSINESS;
-      case 'P': return MICR_CT_PERSONAL;
-      default:  return MICR_CT_UNKNOWN;
+      case 'B': return "BUSINESS";
+      case 'P': return "PERSONAL";
+      default:  return "UNKNOWN";
     }
   }
 
 
   public TextList Parse(StringBuffer packetData){
     TextList errors=new TextList();
-
-    RawTrack = packetData.substring(14);//+_+ push this back into encheck module
     String preparsed=packetData.substring(0,14);//EC3K's interpration of micr data
-
-    dbg.VERBOSE("Raw MICR Track:"+RawTrack);
-
     switch(preparsed.charAt(0)){
       case '1': errors.add("Bad chars"); break;
       case '2': errors.add("MICR Not Present"); break;
@@ -264,11 +276,8 @@ public class MICRData implements jpos.MICRConst, isEasy {
       errors.add( "MICR signal out of range:"+signalLevel+"%");
     }
 
-    int pte=parseTrack();
-    if(pte>0){
-      //NYI
-    }
-
+    parseTrack(packetData.substring(14));
+    dbg.VERBOSE("Raw MICR Track:"+RawTrack);
     return errors;
   }
 
@@ -288,4 +297,4 @@ check.JPOS_EMICR_CHECK=202
   }
 
 }
-//$Id: MICRData.java,v 1.37 2001/10/02 17:06:39 mattm Exp $
+//$Id: MICRData.java,v 1.43 2003/07/27 05:35:07 mattm Exp $

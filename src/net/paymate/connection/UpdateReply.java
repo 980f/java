@@ -6,7 +6,7 @@ package net.paymate.connection;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: UpdateReply.java,v 1.4 2001/07/06 18:56:38 andyh Exp $
+ * @version $Id: UpdateReply.java,v 1.7 2003/08/06 16:59:51 andyh Exp $
  */
 
 import net.paymate.util.*;
@@ -15,31 +15,32 @@ public class UpdateReply extends AdminReply implements isEasy {
   public ActionType Type(){
     return new ActionType(ActionType.update);
   }
-/**
- * things that aren't storewide but also aren't terminal specific
- * future possibilities are dialup info...
- */
-  public ApplianceOptions opt=new ApplianceOptions();
   final static String optKey="options";
+  final static String piggyBackKey="piggyBack";
+  final static String deathCodeKey="deathCode";
+
+  public ApplianceOptions opt=new ApplianceOptions();//avert NPE's
+  public MultiReply piggyBack=new MultiReply();//avert NPE's
 /**
  * deathcodes 128 and above are owned by linux itself
  * deathcodes starting from 1 going up are application manager codes
  * use 127 and down for talking to shell script.
  * OR we need to build and use an Enum.
  */
-  public int deathCode=0;
-  final static String deathCodeKey="deathCode";
+  public int deathCode=0; //ENUM ExitCode
 
   public void save(EasyCursor ezc){
     super.save(ezc);
-    opt.saveas(optKey,ezc);
+    ezc.setBlock(opt,optKey);
     ezc.setInt(deathCodeKey,deathCode);
+    ezc.setObject(piggyBackKey,piggyBack);
   }
 
   public void load(EasyCursor ezc){
     super.load(ezc);
-    opt.loadfrom(optKey,ezc);
+    ezc.getBlock(opt,optKey);
     deathCode=ezc.getInt(deathCodeKey);
+    piggyBack=(MultiReply) ezc.getObject(piggyBackKey,MultiReply.class);
   }
 
   public UpdateReply() {
@@ -47,4 +48,4 @@ public class UpdateReply extends AdminReply implements isEasy {
   }
 
 }
-//$Id: UpdateReply.java,v 1.4 2001/07/06 18:56:38 andyh Exp $
+//$Id: UpdateReply.java,v 1.7 2003/08/06 16:59:51 andyh Exp $

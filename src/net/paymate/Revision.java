@@ -6,13 +6,23 @@ package net.paymate;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version      $Revision: 1.5 $
+ * @version      $Revision: 1.10 $
  */
 
 import net.paymate.util.*;
 import java.util.Calendar;
+import net.paymate.io.IOX;
+import net.paymate.lang.StringX;
 
 public class Revision {
+
+  // +++ make this class non-static, but make a static member that contains the values
+  // (see buildid() and rev())
+  // then, create an equals function that can take one of these
+  // then, create a compare function (that is called by the equals function)
+  // then, make the class implement isEasy so that it can be transmitted and received by the far side
+  // then, move the "only" instance to the Main class.
+
   public static String stripped(String tagged){
     int first=tagged.indexOf(':');
     if(first>=0){
@@ -29,13 +39,12 @@ public class Revision {
   }
 
   public static String Rev(){
-    return stripped("$Revision: 1.5 $");
+    return stripped("$Revision: 1.10 $");
   }
 
-  public static long jarSize() {
-    long fsize = 0;
-    for(int i = 0; (fsize == 0) && (i < 4); i++) {
-      String filename = "";
+  // synchronize this
+  public static synchronized String filename() {
+    for(int i = 0; !StringX.NonTrivial(filename) && (i < 4); i++) {
       switch(i) {
         case 0: {
           filename = "paymate.jar";
@@ -53,15 +62,32 @@ public class Revision {
         } break;
         default: break;
       }
-      fsize = Safe.fileSize(filename);
+      if(IOX.FileExists(new java.io.File(filename))) {
+        break;
+      } else {
+        filename = "";
+      }
     }
-    return fsize;
+    return filename;
+  }
+  private static String filename="";
+
+  public static long jarSize() {
+    return IOX.fileSize(filename());
+  }
+
+  public static String jartime() {
+    return IOX.fileModTime(filename()).toString();
   }
 
   public static final String WIPSTR = "Wip.";
 
   public static String Version(){
-    return Safe.OnTrivial(Buildid(), WIPSTR+jarSize());
+    return StringX.OnTrivial(Buildid(), WIPSTR+jarSize());
+  }
+
+  public static String LongVersion() {
+    return Version()+"."+jartime();
   }
 
   public static String CopyRight(){
@@ -88,7 +114,7 @@ public class Revision {
    */
   public static void main(String argv[]){
     System.out.println();
-    String main=Revision.class.getPackage().toString();
+    String main=String.valueOf(Revision.class.getPackage());
     System.out.println("Application "+main.substring(main.indexOf(" ")+1));
     System.out.println("Version "+Rev()+' '+Buildid());//after stripped finally worked we need to restore some space.
     System.out.println(CopyRight());

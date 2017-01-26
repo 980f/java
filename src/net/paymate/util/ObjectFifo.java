@@ -1,10 +1,10 @@
 /**
-* Title:        ObjectFifo
+* Title:        $Source: /cvs/src/net/paymate/util/ObjectFifo.java,v $
 * Description:  fully synchronized queue
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: ObjectFifo.java,v 1.13 2001/10/30 18:25:34 andyh Exp $
+* @version      $Id: ObjectFifo.java,v 1.17 2002/11/19 18:42:09 mattm Exp $
 *
 * Implements a Vector with a single public Iterator that operates live and utilizes a macro for next().
 */
@@ -13,8 +13,16 @@ package net.paymate.util;
 
 import java.util.Vector;
 
-public class ObjectFifo /*extends Vector*/ {// no time to find one+_+
-  private Vector fifo=new Vector();
+public class ObjectFifo {// no time to find one+_+
+  protected Vector fifo=null;
+
+  public ObjectFifo() {
+    this(100);
+  }
+
+  public ObjectFifo(int presize) {
+    fifo=new Vector(presize, presize);
+  }
 
   public synchronized Object [] snapshot(){
     return fifo.toArray();
@@ -65,23 +73,15 @@ public class ObjectFifo /*extends Vector*/ {// no time to find one+_+
   }
 
   /**
-   * replace any one object that satisfies  matching.equals(fifoObj)
-   */
-  public synchronized boolean replace(Object matching){
-    int vi=fifo.indexOf(matching);
-    if(vi>=0){
-      fifo.setElementAt(matching,vi);//replace with newest instance
-      return true;
-    }
-    return false;
-  }
-
-  /**
    * This exists for reporting purposes only.  DO NOT use it to iterate!
    */
   public final int Size() {
     return fifo.size();
   }
 
+  public boolean isEmpty(){
+    return fifo.size()<=0;
+  }
+
 }
-//$Id: ObjectFifo.java,v 1.13 2001/10/30 18:25:34 andyh Exp $
+//$Id: ObjectFifo.java,v 1.17 2002/11/19 18:42:09 mattm Exp $

@@ -1,7 +1,8 @@
-/* $Id: LoginReply.java,v 1.21 2001/07/18 22:00:16 andyh Exp $ */
+/* $Id: LoginReply.java,v 1.24 2003/08/15 23:04:57 andyh Exp $ */
 package net.paymate.connection;
 import net.paymate.util.*;
 import net.paymate.terminalClient.*;
+import net.paymate.data.*;
 
 public class LoginReply extends ActionReply implements isEasy {
   public ActionType Type(){
@@ -14,17 +15,17 @@ public class LoginReply extends ActionReply implements isEasy {
 
   public void save(EasyCursor ezp){
     super.save(ezp);
-    clerkCap.saveas(clerkCapKey, ezp);
+    ezp.setBlock(clerkCap,clerkCapKey);
   }
 
   public LoginReply setCaps(EasyCursor ezp){
-    clerkCap.loadfrom(clerkCapKey,ezp);
+    ezp.getBlock(clerkCap,clerkCapKey);
     return this;
   }
 
   public void load(EasyCursor ezp){
     super.load(ezp);
-    clerkCap.loadfrom(clerkCapKey,ezp);
+    ezp.getBlock(clerkCap,clerkCapKey);
   }
 
   public LoginReply(){
@@ -35,10 +36,10 @@ public class LoginReply extends ActionReply implements isEasy {
     setCaps(ezp);
   }
 
-  // is this function necessary? FUE +_+ use enum
-  public LoginReply(/*ActionReplyStatus*/ int newStatus) {
-    super(newStatus);
-  }
+//  // is this function necessary? FUE +_+ use enum
+//  public LoginReply(/*ActionReplyStatus*/ int newStatus) {
+//    super(newStatus);
+//  }
 
 }
-//$Id: LoginReply.java,v 1.21 2001/07/18 22:00:16 andyh Exp $
+//$Id: LoginReply.java,v 1.24 2003/08/15 23:04:57 andyh Exp $

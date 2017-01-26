@@ -4,11 +4,16 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: EnumValue.java,v 1.3 2001/11/03 00:19:55 andyh Exp $
+* @version      $Id: EnumValue.java,v 1.8 2003/07/27 05:34:57 mattm Exp $
 */
 package net.paymate.data;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.util.*;
+import net.paymate.lang.Value;
+import net.paymate.lang.ContentType;
+import net.paymate.lang.TrueEnum;
+
+// +++ move to np.lang?
 
 public class EnumValue extends Value {
   TrueEnum content;
@@ -21,8 +26,13 @@ public class EnumValue extends Value {
     return content;
   }
 
+  public TrueEnum Value(){
+    return TrueEnum.Clone(content);
+  }
+
   public String ImageFor(int digit){//for keyboard picking
-    return content.TextFor(digit);
+    content.setto(digit);
+    return content.menuImage();
   }
 
   public String Image(){
@@ -38,7 +48,6 @@ public class EnumValue extends Value {
     content.setto(token);
     return content.isLegal();
   }
-
 
   public int asInt(){
     return content.Value();
@@ -57,4 +66,4 @@ public class EnumValue extends Value {
 
 }
 
-//$Id: EnumValue.java,v 1.3 2001/11/03 00:19:55 andyh Exp $
+//$Id: EnumValue.java,v 1.8 2003/07/27 05:34:57 mattm Exp $

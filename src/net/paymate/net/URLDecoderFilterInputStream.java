@@ -4,7 +4,7 @@
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: URLDecoderFilterInputStream.java,v 1.5 2001/10/05 18:47:44 mattm Exp $
+ * @version $Id: URLDecoderFilterInputStream.java,v 1.8 2004/01/09 11:46:06 mattm Exp $
  */
 
 package net.paymate.net;
@@ -12,6 +12,8 @@ import  java.io.*;
 import  net.paymate.util.*;
 
 public class URLDecoderFilterInputStream extends FilterInputStream {
+
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(URLDecoderFilterInputStream.class);
 
   protected StringBuffer tmpBuff = new StringBuffer(3); // really shouldn't use "String" anything
 
@@ -109,8 +111,8 @@ public class URLDecoderFilterInputStream extends FilterInputStream {
             }
           }
         } else {
-          if(c == '+') {
-            c = ' ';
+          if(tmpBuff.charAt(0) == '+') {
+            tmpBuff.setCharAt(0, ' ');
           }
         }
         // return the first available char
@@ -136,52 +138,4 @@ public class URLDecoderFilterInputStream extends FilterInputStream {
     }
     return false;
   }
-
-/*
-  public static final void main(String [] args) {
-    String test = "This is a test!\n\r\nPlease tell me how it went.  :)";
-    System.out.println("Original: " + test);
-    System.out.println("Encoding ...");
-    String bytes = null;
-    {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      URLEncoderFilterOutputStream uefos = new URLEncoderFilterOutputStream(baos);
-      {
-        PrintWriter pw = new PrintWriter(uefos, true);
-        pw.print(test);
-        pw.flush();
-        pw.close();
-      }
-      bytes = baos.toString();
-    }
-    System.out.println("... done.");
-    System.out.println("Original: " + test);
-    System.out.println("Encoded: " + bytes);
-    System.out.println("Decoding ...");
-    String orig2 = null;
-    {
-      ByteArrayInputStream bais = new ByteArrayInputStream(bytes.getBytes());
-      StringBuffer sb = new StringBuffer();
-      URLDecoderFilterInputStream udfis = new URLDecoderFilterInputStream(bais);
-      {
-        int i = -1;
-        try {
-          while((i = udfis.read()) != -1) {
-            sb.append((char)i);
-          }
-          udfis.close();
-        } catch (Exception e) {
-          System.out.println("Excepted! reading udfis");
-        }
-      }
-      orig2 = sb.toString();
-    }
-    System.out.println("... done.");
-    System.out.println("Original: " + test);
-    System.out.println("Encoded: " + bytes);
-    System.out.println("Decoded: " + orig2);
-    System.out.println("original and decoded are " + (test.equals(orig2) ? "" : "NOT ") + "equal");
-  }
-*/
-
 }

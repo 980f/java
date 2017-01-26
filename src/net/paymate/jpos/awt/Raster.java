@@ -4,11 +4,11 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Raster.java,v 1.10 2001/07/19 01:06:50 mattm Exp $
+* @version      $Id: Raster.java,v 1.13 2003/12/08 22:45:42 mattm Exp $
 */
 package net.paymate.jpos.awt;
-import java.awt.Dimension;
-import java.awt.Point;
+import net.paymate.awtx.XPoint;
+import net.paymate.awtx.*;
 
 public class Raster {//+_+ replace with awt canvas
 
@@ -48,7 +48,7 @@ public class Raster {//+_+ replace with awt canvas
     return validX(x)&&validY(y);
   }
 
-  public boolean validPoint(Point p){
+  public boolean validPoint(XPoint p){
     return validPoint(p.x,p.y);
   }
 
@@ -60,7 +60,7 @@ public class Raster {//+_+ replace with awt canvas
     return validPoint(x,y)? content[y][x] : false;
   }
 
-  public boolean pixel(Point p){
+  public boolean pixel(XPoint p){
     return pixel(p.x,p.y);
   }
 
@@ -109,12 +109,12 @@ public class Raster {//+_+ replace with awt canvas
       }
     }
     } catch(Exception ex){
-      System.out.println(x+","+y);
+      System.out.println(x+","+y);//#unlikely to happen
     }
     return this;
   }
 
-  public boolean set(Point p,boolean value){
+  public boolean set(XPoint p,boolean value){
     if(validPoint(p)){
       content[p.y][p.x]=value;
       return true;
@@ -130,7 +130,7 @@ public class Raster {//+_+ replace with awt canvas
     content = new boolean[this.height=height][this.width=width];
   }
 
-  public Raster(Dimension d) {//throws ArraySomethingException
+  public Raster(XDimension d) {//throws ArraySomethingException
     this(d.width,d.height);
   }
 
@@ -139,4 +139,4 @@ public class Raster {//+_+ replace with awt canvas
   }
 
 }
-//$Id: Raster.java,v 1.10 2001/07/19 01:06:50 mattm Exp $
+//$Id: Raster.java,v 1.13 2003/12/08 22:45:42 mattm Exp $

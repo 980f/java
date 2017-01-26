@@ -1,7 +1,6 @@
 package net.paymate.util;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class OsEnum extends TrueEnum {
   public final static int Linux      =0;
@@ -11,8 +10,8 @@ public class OsEnum extends TrueEnum {
   public final static int SunOS      =4;
 
   public int numValues(){ return 5; }
-  static final TextList myText = TrueEnum.nameVector(OsEnum.class);
-  protected final TextList getMyText() {
+  static final String [ ] myText = TrueEnum.nameVector(OsEnum.class);
+  protected final String [ ] getMyText() {
     return myText;
   }
   public static final OsEnum Prop=new OsEnum();
@@ -30,4 +29,4 @@ public class OsEnum extends TrueEnum {
   }
 
 }
-//$Id: OsEnum.java,v 1.17 2001/07/19 01:06:55 mattm Exp $
+//$Id: OsEnum.java,v 1.18 2003/07/27 05:35:22 mattm Exp $

@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: Login.java,v 1.12 2001/11/16 01:34:33 mattm Exp $
+ * @version      $Id: Login.java,v 1.20 2004/04/08 09:09:52 mattm Exp $
  */
 
 package net.paymate.web.page;
@@ -14,24 +14,26 @@ import  net.paymate.util.*;
 
 public class Login extends PayMatePage {
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(Login.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(Login.class);
 
   public Login(String comment, String loginInfo) {
     this(new StringElement(comment), loginInfo);
   }
 
   public Login(Element comment, String loginInfo) {
-    super(name(), loginInfo);
+    super(name(), loginInfo, null, null, false /*we will never create this page in archive mode*/);
     fillBody(content(comment));
   }
 
   public static final String USERID   = "userid";
   public static final String PASSWORD = "password";
   public static final String ENTID    = "entid";
+  public static final String STOREID  = "storeid";
+  public static final String ASSOCID  = "associd";
+  public static final String SAXID    = "storeaccessid";
 
-  public Element content(Element comment) {
-    Form form = new Form();
-    form.setAction(Acct.key()).setName("loginform").setMethod(Form.POST);
+  public static final Element content(Element comment) {
+    Form form = NewPostForm(Acct.key());
     // create the table & fill it with buttons and text fields
     // add it to the form
 
@@ -128,7 +130,7 @@ Unauthorized use or access of this system is strictly prohibited!! <br>
 <html>
 <head>
    <meta http-equiv="Content-Script-Type" content="text/javascript">
-   <meta name="cvs" content="$Id: Login.java,v 1.12 2001/11/16 01:34:33 mattm Exp $">
+   <meta name="cvs" content="$Id: Login.java,v 1.20 2004/04/08 09:09:52 mattm Exp $">
    <title>TESTING APPLET</title>
 <SCRIPT>
 function getid() {

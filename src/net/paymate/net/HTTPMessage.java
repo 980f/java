@@ -4,12 +4,18 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: HTTPMessage.java,v 1.4 2001/07/06 18:59:02 andyh Exp $
+ * @version      $Id: HTTPMessage.java,v 1.8 2003/11/24 04:52:30 mattm Exp $
  */
 package net.paymate.net;
 import net.paymate.util.*;
 
-public class HTTPMessage {
+//find the HTTP/1.0 or 1.1 spec on the web and use it to create the objects that represent HTTP/1.0 or 1.1
+//then, rewrite this with it
+//then do the same for the HttpReply class (which doesn't exist yet)
+//OR find a set of classes that already do that
+//specs are on vesta
+
+public class HTTPMessage { // this is an HttpRequest
   // no time to deal with issues now, so everything is public
 
   // universal formatting pieces:
@@ -36,8 +42,8 @@ public class HTTPMessage {
   protected String         body    = "";
 
   // NOTE! Is you put anything in the body, then you must include a string of:
-  //   Content-Length: #####
-  // where ##### is body.length();
+  //   Content-Length: %d
+  // where %d is body.length();
   // you can do that automatically here:
   public void setBody(String body) {
     this.body = new String(body);
@@ -65,7 +71,7 @@ public class HTTPMessage {
   public String  reasonPhrase = "";
 
 
-  public HTTPMessage(HTTPMethod method, String host, int port, String path, URIQuery query, String body) {
+  private HTTPMessage(HTTPMethod method, String host, int port, String path, URIQuery query, String body) {
     url = new HttpURI(host, port, path, query);
     this.method = method;
     setBody(body);
@@ -121,6 +127,7 @@ public class HTTPMessage {
         startLine +
       /* headers: */
         headers.asParagraph(CRLF, ": ") + /* these should each end in CRLF! */
+                CRLF +  //supressed trailing separator for when they are commas
       /* a blank line to indicate body is starting */
         CRLF +
       /* body */

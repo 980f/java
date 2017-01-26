@@ -8,7 +8,7 @@ It should be retained until they have taken over our source code.
 summary:
 all received packets are of a common format readily parsable on a per
 character basis. Nothing presently guarantees phasing of packet.
-On CRC error the user somehow has to restart the servie hoping the
+On CRC error the user somehow has to restart the service hoping the
 cm3000 will rephase.
 
 maximum reception is 231 characters.
@@ -112,16 +112,13 @@ CRC byte
 
 response packets of ec3k:
 
-byte 0=??
-byte 1=??
+byte 0=stx
+byte 1=response type code
 byte 2=status, 0 is good!
 byte 3=length of variable part of packet
 variable length
-crc byte.
-
-<p>last byte is a crc byte, however the CRC is a joke for ec3k,
-always equal to '3' preventing the standard routine of CRCing the whole object
-and getting a zero if all is ok.
+etx
+<p>last byte is an etx
 
 
 

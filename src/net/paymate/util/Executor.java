@@ -1,18 +1,21 @@
+package net.paymate.util;
 /**
-* Title:        Executor<p>
+* Title:        $Source: /cvs/src/net/paymate/util/Executor.java,v $
 * Description:  Executes external programs as a processes<p>
-* Copyright:    2000<p>
-* Company:      paymate<p>
+* Copyright:    2000-2002
+* Company:      paymate
 * @author       PayMate.net
-* @version      $Id: Executor.java,v 1.26 2001/11/17 00:38:35 andyh Exp $
+* @version      $Id: Executor.java,v 1.33 2003/11/09 21:35:18 mattm Exp $
 */
 
-package net.paymate.util;
+
 import  java.util.Vector;
 import  java.io.*;
+import net.paymate.lang.ThreadX;
+import net.paymate.lang.StringX;
 
 public class Executor {
-  protected static final ErrorLogStream dbg = new ErrorLogStream(Executor.class.getName());
+  protected static final ErrorLogStream dbg = ErrorLogStream.getForClass(Executor.class);
 
   private void pStream(BufferedReader in, TextList msgs) { // hehe
     try {
@@ -31,13 +34,7 @@ public class Executor {
     public TextList msgs; //need to use a PrintStream
     public boolean verbose;
 
-    public Executor(//{
-      int displayUpdateSeconds,
-      int timeoutSeconds,
-      TextList msgs,
-      boolean verbose
-    /*}*/
-    ){
+    public Executor(int displayUpdateSeconds, int timeoutSeconds, TextList msgs, boolean verbose){
       this.displayUpdateSeconds= displayUpdateSeconds;
       this.timeoutSeconds=       timeoutSeconds;
       this.msgs=                 msgs;
@@ -52,7 +49,7 @@ public class Executor {
       if(F2>=0){//the first of PFM's substitution functions:
         commandLine=wildCommand.substring(0,F2)+fileset.itemAt(i)+wildCommand.substring(F2+1);
       }
-      int retcode=runProcess(commandLine,"run :"+fileset.itemAt(i));
+      int retcode=runProcess(commandLine,"run :"+fileset.itemAt(i),null);
       //report retcode to the nonexistent reporting stream...
     }
   }
@@ -69,17 +66,17 @@ public class Executor {
 
   public static final int runProcess(String commandline, String startMsg,
       int displayUpdateSeconds, int timeoutSeconds, TextList msgs) {
-    return runProcess(commandline, startMsg,displayUpdateSeconds, timeoutSeconds, msgs, false);
+    return runProcess(commandline, startMsg,displayUpdateSeconds, timeoutSeconds, msgs, false, null);
   }
 
   public static final int runProcessSilently(String commandline, int timeoutSeconds, TextList msgs) {
     dbg.WARNING("runProcessSilently:"+commandline);
-    return runProcess(commandline, commandline ,0, timeoutSeconds, msgs, false);
+    return runProcess(commandline, commandline ,0, timeoutSeconds, msgs, false, null);
   }
 
   public static final int ezExec(String commandline, int timeoutSeconds) {
     dbg.WARNING("ezExec:"+commandline);
-    return runProcess(commandline, "timeout:"+timeoutSeconds ,0, timeoutSeconds, null, false);
+    return runProcess(commandline, "timeout:"+timeoutSeconds ,0, timeoutSeconds, null, false, null);
   }
 
 
@@ -91,12 +88,12 @@ public class Executor {
   // for display purposes, it's best to make displayUpdateSeconds == 1
   // it's also best if they are both even, or if displayUpdateSeconds == 1
 
-  public static final int runProcess(String commandline, String startMsg, int displayUpdateSeconds, int timeoutSeconds, TextList msgs, boolean verbose) {
+  public static final int runProcess(String commandline, String startMsg, int displayUpdateSeconds, int timeoutSeconds, TextList msgs, boolean verbose, String primer) {
     Executor legacy=new Executor(displayUpdateSeconds, timeoutSeconds, msgs, verbose);
-    return legacy.runProcess(commandline, startMsg);
+    return legacy.runProcess(commandline, startMsg, primer);
   }
 
-  public int runProcess(String commandline, String startMsg){
+  public int runProcess(String commandline, String startMsg, String primer){
     // these are while-running fields
     Process process = null;
     BufferedReader in;
@@ -132,25 +129,23 @@ public class Executor {
     err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
     out = new PrintStream(process.getOutputStream());
     boolean kill = ( timeoutSeconds > 0);
-    boolean display = ( displayUpdateSeconds > 0); // now we can muck with it
     if( displayUpdateSeconds == 0) {
        displayUpdateSeconds = 1;
     }
     int numDots = (kill ?
                   (( timeoutSeconds * 1000) / ( displayUpdateSeconds * 1000))
                   : 20);
-    TextProgress progress = new TextProgress(numDots, kill); // the progress bar
-    progress.indent = 2;
-    if(kill) {
-      progress.fill = ' ';
-    }
-    if(verbose) {
-      display = false;
-    }
-    if(display) {
-      progress.set(1); // displays the progress bar
-    }
     done = false;
+    // ------ testing !!!!!!!
+    if(StringX.NonTrivial(primer)) {
+      try {
+        out.write(primer.getBytes());
+        out.flush();
+      } catch (Exception ex) {
+        dbg.Caught(ex);
+      }
+    }
+
     if(( timeoutSeconds < 1) && ( displayUpdateSeconds < 1)) {
       // don't watch the process; trust that it will finish
       try {
@@ -175,23 +170,17 @@ public class Executor {
 
         ThreadX.sleepFor(Ticks.forSeconds(displayUpdateSeconds));
 
-        if(display) {
-          progress.step();
-        }
         try {
           process.exitValue();  // throws if process is not complete; how I tell it isn't
-            done = true;
-          } catch (IllegalThreadStateException itse) { }
-          counter--;
+          done = true;
+        } catch (IllegalThreadStateException itse) {
+        }
+        counter--;
         if(!done && !kill && (counter == 0)) {
           counter = numDots;// cycle around
         }
       }
     }
-    if(display) {
-      progress.clear();
-    }
-
     pStream(in,  msgs);  // these must be used always for getmacid
     pStream(err,  msgs);
 
@@ -213,4 +202,100 @@ public class Executor {
   }
 
 }
-//$Id: Executor.java,v 1.26 2001/11/17 00:38:35 andyh Exp $
+//$Id: Executor.java,v 1.33 2003/11/09 21:35:18 mattm Exp $
+
+
+/*
+ import java.io.InputStream;
+ import org.jcrontab.log.Log;
+
+//
+// This class executes a native command
+// @author $Author: mattm $
+// @version $Revision: 1.33 $
+//
+ public class NativeExec {
+//
+//   main method
+//   @param args String[] the params passed from the console
+//
+     public static void main(String args[]) {
+         if (args.length < 1) {
+             System.out.println("java org.jcrontab.NativeExec <cmd>");
+             System.exit(1);
+         }
+         String[] cmd = null;
+
+         try {
+   //with this variable will be done the swithcing
+             String osName = System.getProperty("os.name" );
+
+       //only will work with Windows NT
+             if( osName.equals( "Windows NT" ) ) {
+                 if (cmd == null) cmd = new String[ args.length + 2];
+                 cmd[0] = "cmd.exe" ;
+                 cmd[1] = "/C" ;
+                 for (int i = 0; i<args.length; i++)
+                     cmd[i+2] = args[i];
+             }
+       //only will work with Windows 95
+             else if( osName.equals( "Windows 95" ) ) {
+                 if (cmd == null) cmd = new String[args.length + 2];
+                 cmd[0] = "command.com" ;
+                 cmd[1] = "/C" ;
+                 for (int i = 0; i<args.length; i++)
+                     cmd[i+2] = args[i];
+             }
+       //only will work with Windows 2000
+       else if( osName.equals( "Windows 2000" ) ) {
+                 if (cmd == null) cmd = new String[args.length + 2];
+                 cmd[0] = "cmd.exe" ;
+                 cmd[1] = "/C" ;
+
+                 for (int i = 0; i<args.length; i++)
+                     cmd[i+2] = args[i];
+             }
+       //only will work with Windows XP
+       else if( osName.equals( "Windows XP" ) ) {
+                 if (cmd == null) cmd = new String[args.length + 2];
+                 cmd[0] = "cmd.exe" ;
+                 cmd[1] = "/C" ;
+
+                 for (int i = 0; i<args.length; i++)
+                     cmd[i+2] = args[i];
+             }
+       //only will work with Linux
+       else if( osName.equals( "Linux" ) ) {
+                 if (cmd == null) cmd = new String[args.length];
+                 cmd = args;
+             }
+       //will work with the rest
+             else  {
+                 if (cmd == null) cmd = new String[args.length];
+                 cmd = args;
+             }
+
+             Runtime rt = Runtime.getRuntime();
+           // Executes the command
+             Process proc = rt.exec(cmd);
+             // any error message?
+             StreamGobbler errorGobbler = new
+                 StreamGobbler(proc.getErrorStream(), "ERROR");
+
+             // any output?
+             StreamGobbler outputGobbler = new
+                 StreamGobbler(proc.getInputStream(), "OUTPUT");
+
+             // kick them off
+             errorGobbler.start();
+             outputGobbler.start();
+
+             // any error???
+             int exitVal = proc.waitFor();
+             System.out.println("ExitValue: " + exitVal);
+         } catch (Throwable t) {
+             Log.error(t.toString(), t);
+           }
+     }
+ }
+*/

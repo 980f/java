@@ -4,12 +4,11 @@
 * Copyright:    2000, PayMate.net<p>
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: LogFileFormat.java,v 1.2 2001/11/03 13:16:44 mattm Exp $
+* @version      $Id: LogFileFormat.java,v 1.11 2003/10/30 21:05:17 mattm Exp $
 */
 
 package net.paymate.web.table.query;
 import  net.paymate.web.table.*;
-import  net.paymate.data.*; // TimeRange
 import  net.paymate.database.*; // db
 import  net.paymate.database.ours.*; // DBConstants
 import  net.paymate.util.*; // ErrorlogStream
@@ -22,9 +21,11 @@ import  java.util.*; // ARRAYS for sorting
 import  org.apache.ecs.*; // element
 import  org.apache.ecs.html.*; // various html elements
 import  net.paymate.authorizer.*;
+import net.paymate.lang.StringX;
+import net.paymate.io.LogFile;
 
 public class LogFileFormat extends TableGen implements TableGenRow, RowEnumeration {
-  private static final ErrorLogStream dbg = new ErrorLogStream(LogFileFormat.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(LogFileFormat.class, ErrorLogStream.WARNING);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef[(new LogFileFormatEnum()).numValues()];
   static { // order is in the .Enum file
@@ -36,7 +37,7 @@ public class LogFileFormat extends TableGen implements TableGenRow, RowEnumerati
   LogFile [] logFiles = LogFile.listAll();
 
   public LogFileFormat(ColorScheme colors, String title) {
-    super(title, colors, theHeaders, null, -1, null);
+    super(title, colors, theHeaders, null);
     headers = theHeaders;
   }
 
@@ -64,17 +65,19 @@ public class LogFileFormat extends TableGen implements TableGenRow, RowEnumerati
     String str = "";
     switch(col) {
       case LogFileFormatEnum.nameCol: {
-        str = logFile.getName();
+        str = logFile.name();
       } break;
       case LogFileFormatEnum.pendingLinesCol: {
         str = ""+logFile.pending();
       } break;
       case LogFileFormatEnum.statusCol: {
-        str = logFile.filename();
-      } break;
+        str = logFile.longFilename();
+        //make a hyperlink to the file
+        return new A("file:///"+StringX.replace(StringX.replace(str, ":", "|"), "\\", "/"),str);// uri,display text
+      }
     }
     return new StringElement(str);
   }
 }
 
-//$Id: LogFileFormat.java,v 1.2 2001/11/03 13:16:44 mattm Exp $
+//$Id: LogFileFormat.java,v 1.11 2003/10/30 21:05:17 mattm Exp $

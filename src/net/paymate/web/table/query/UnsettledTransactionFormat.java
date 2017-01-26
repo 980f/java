@@ -1,18 +1,17 @@
+package net.paymate.web.table.query;
 /**
 * Title:        UnsettledTransactionFormat<p>
-* Description:  The canned query for the Unsettled Transactions screen<p>
+* Description:  Listing of transactions<p>
 * Copyright:    2000, PayMate.net<p>
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: UnsettledTransactionFormat.java,v 1.82 2001/11/17 06:17:00 mattm Exp $
+* @version      $Id: UnsettledTransactionFormat.java,v 1.132 2004/04/12 21:58:31 mattm Exp $
 */
 
-package net.paymate.web.table.query;
 import  net.paymate.data.*; // TimeRange
 import  net.paymate.database.*; // db
 import  net.paymate.database.ours.*; // DBConstants
-import  net.paymate.database.ours.query.*; // Tranjour
-import  net.paymate.ISO8583.data.*; // transctionid, expirationdate
+import  net.paymate.database.ours.query.*; // Txn
 import  net.paymate.jpos.data.*; // CardNumber
 import  net.paymate.util.*; // ErrorlogStream
 import  net.paymate.web.*; // logininfo
@@ -21,9 +20,14 @@ import  net.paymate.web.page.*; // Acct
 import  java.sql.*; // resultset
 import  org.apache.ecs.*; // element
 import  org.apache.ecs.html.*; // various html elements
+import net.paymate.lang.StringX;
+import net.paymate.lang.Fstring;
+import net.paymate.io.NullOutputStream;
 
 public class UnsettledTransactionFormat extends RecordFormat {
-  private static final ErrorLogStream dbg = new ErrorLogStream(UnsettledTransactionFormat.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(UnsettledTransactionFormat.class, ErrorLogStream.WARNING);
+
+  public static PerTxnListener PTL = null; // !!! Only use this in a standalone environment !!!
 
   // +++ make a static function to generate a page of all of the possible "status"es, and maybe make an enumeration of them.
   // This page would describe each status and what it means.
@@ -32,36 +36,57 @@ public class UnsettledTransactionFormat extends RecordFormat {
 
   protected static final HeaderDef[] theHeaders = new HeaderDef[(new UnsettledTransactionFormatEnum()).numValues()];
   static {
-    theHeaders[UnsettledTransactionFormatEnum.TimeCol]     = new HeaderDef(AlignType.LEFT   , "Time");
-    theHeaders[UnsettledTransactionFormatEnum.TermCol]     = new HeaderDef(AlignType.LEFT   , "Term"); // +++ put a link to the terminals table, with the specific one highlighted
-    theHeaders[UnsettledTransactionFormatEnum.StanCol]     = new HeaderDef(AlignType.RIGHT  , "Txn #");
-    theHeaders[UnsettledTransactionFormatEnum.SiCol]       = new HeaderDef(AlignType.CENTER , "si");
-    theHeaders[UnsettledTransactionFormatEnum.StatusCol]   = new HeaderDef(AlignType.CENTER , "Status");
-    theHeaders[UnsettledTransactionFormatEnum.ApprovalCol] = new HeaderDef(AlignType.RIGHT  , "Approval");
-    theHeaders[UnsettledTransactionFormatEnum.AcctNumCol]  = new HeaderDef(AlignType.RIGHT  , "Account");
-    theHeaders[UnsettledTransactionFormatEnum.ExpDateCol]  = new HeaderDef(AlignType.LEFT   , "Exp[M/Y]");
-    theHeaders[UnsettledTransactionFormatEnum.SaleCol]     = new HeaderDef(AlignType.RIGHT  , "Sale");
-    theHeaders[UnsettledTransactionFormatEnum.ReturnCol]   = new HeaderDef(AlignType.RIGHT  , "Return");
-    theHeaders[UnsettledTransactionFormatEnum.SumCol]     =  new HeaderDef(AlignType.RIGHT  , "Net");
+    theHeaders[UnsettledTransactionFormatEnum.TimeCol]       = new HeaderDef(AlignType.LEFT  , "Time");
+    theHeaders[UnsettledTransactionFormatEnum.StanCol]       = new HeaderDef(AlignType.RIGHT , "Txn #");
+    theHeaders[UnsettledTransactionFormatEnum.TraceCol]      = new HeaderDef(AlignType.CENTER, "Trace");
+    theHeaders[UnsettledTransactionFormatEnum.StatusCol]     = new HeaderDef(AlignType.CENTER, "Status");
+    theHeaders[UnsettledTransactionFormatEnum.ApprovalCol]   = new HeaderDef(AlignType.RIGHT , "Approval");
+    theHeaders[UnsettledTransactionFormatEnum.PayTypeCol]    = new HeaderDef(AlignType.RIGHT , "Type");
+    theHeaders[UnsettledTransactionFormatEnum.InstitutionCol]= new HeaderDef(AlignType.RIGHT , "Card");
+    theHeaders[UnsettledTransactionFormatEnum.AcctNumCol]    = new HeaderDef(AlignType.RIGHT , "Acct");
+    theHeaders[UnsettledTransactionFormatEnum.SaleCol]       = new HeaderDef(AlignType.RIGHT , "Sale");
+    theHeaders[UnsettledTransactionFormatEnum.ReturnCol]     = new HeaderDef(AlignType.RIGHT , "Return");
+    theHeaders[UnsettledTransactionFormatEnum.NetCol]        = new HeaderDef(AlignType.RIGHT , "Net");
+    theHeaders[UnsettledTransactionFormatEnum.MerchRefCol]   = new HeaderDef(AlignType.RIGHT , "Ref");
+    theHeaders[UnsettledTransactionFormatEnum.VoidChgCol]    = new HeaderDef(AlignType.RIGHT , "Chg");
+    theHeaders[UnsettledTransactionFormatEnum.AVSCodeCol]    = new HeaderDef(AlignType.RIGHT , "AVS");
   }
 
-  protected boolean voidable = false;
-  private TxnRow tranjour = null;
+  private boolean countLosses = false;
+  private TxnRow txn = null;
+  private SubTotaller totaller = null;
+  private SubTotaller avstotaller = null;
+  private Txnid [ ] skiprows = null;
+  private boolean isagawd = false;
+  private boolean archive = false;
 
-  public static final String NOVOIDMARKER = "NV"; // until we get a better way to do this!
-//above is used by usersession...
-  /**
-   * @Param voidable - tells the class whether or not to put up the void option,
-   * so the class can be used to display old batches (from the history table instead of tranjour table)
-   */
-  public UnsettledTransactionFormat(LoginInfo linfo, TxnRow tranjour, boolean voidable, String title, String absoluteURL, int howMany, String sessionid) {
-    super(linfo.colors, title, tranjour, absoluteURL, howMany, sessionid, linfo.ltf);
-    this.tranjour = tranjour;
-    this.voidable = voidable;
+  public UnsettledTransactionFormat(LoginInfo linfo, TxnRow txn,
+                                    SubTotaller totaller,
+                                    SubTotaller avstotaller,
+                                    String title, String absoluteURL,
+                                    boolean countLosses, boolean archive) {
+    this(linfo, txn, totaller, avstotaller, title, absoluteURL, countLosses, null, archive);
+  }
+  public UnsettledTransactionFormat(LoginInfo linfo, TxnRow txn,
+                                    SubTotaller totaller,
+                                    SubTotaller avstotaller,
+                                    String title, String absoluteURL,
+                                    boolean countLosses,
+                                    Txnid [ ] skiprows,
+                                    boolean archive) {
+    super(linfo.colors(), title, txn, absoluteURL, linfo.ltf());
+    this.txn = txn;
+    this.skiprows = skiprows;
+    this.countLosses = countLosses;
+    this.totaller = (totaller == null) ? (new SubTotaller()) : totaller;// for instances where we are not going to do a subtotal table.
+    this.avstotaller = (avstotaller == null) ? (new SubTotaller()) : avstotaller;
+    this.archive = archive;
+    isagawd = linfo.isaGod();
     HeaderDef[] myHeaders = new HeaderDef[theHeaders.length];
     System.arraycopy(theHeaders, 0, myHeaders, 0, theHeaders.length);
-    myHeaders[UnsettledTransactionFormatEnum.TimeCol].title = new StringElement("Time (" + ltf.getZone().getID() + ")");
     headers = myHeaders;
+    dbg.ERROR("MerchRefHeader = "+linfo.store.merchreflabel);
+    headers[UnsettledTransactionFormatEnum.MerchRefCol] = new HeaderDef(AlignType.RIGHT, StringX.TrivialDefault(linfo.store.merchreflabel, ""));
   }
 
   public static final String moneyformat = "#0.00";
@@ -72,14 +97,18 @@ public class UnsettledTransactionFormat extends RecordFormat {
   private int  returnCount  = 0; // qty
   private LedgerValue otherTotal   = new LedgerValue(moneyformat);
   private int  otherCount   = 0; // qty
-  private int  count        = 0; // number of txns (qty) +_+ why long???
-  private LedgerValue net   = new LedgerValue(moneyformat);
+  private int  count        = 0; // number of txns (qty)
+  private LedgerValue nett   = new LedgerValue(moneyformat);
   private int  sumCount     = 0; // qty in net.
 
 /**
  * these record the range of the query. Seems like a job for ... TimeRanger!
  */
-  private TimeRange span=PayMateDB.TimeRange();
+  private TimeRange span=TimeRange.Create();
+
+  private LedgerValue authamount = new LedgerValue(moneyformat); //+_+ to keep the drawer report and this report looking the same
+  private LedgerValue settleamount = new LedgerValue(moneyformat); //+_+ to keep the drawer report and this report looking the same
+  private LedgerValue diff = new LedgerValue(moneyformat);
 
   public TableGenRow nextRow() {
     TableGenRow tgr = null;
@@ -87,73 +116,162 @@ public class UnsettledTransactionFormat extends RecordFormat {
       dbg.Enter("nextRow");
       zeroValues();
       tgr = super.nextRow();//returns either null or 'this'
-      LedgerValue amount = new LedgerValue(moneyformat); //+_+ to keep the drawer report and this report looking the same
+      if(skiprows != null) { // check to see if we are supposed to skip this one
+        while (tgr != null) {
+          Txnid that = txn.txnid();
+          boolean skipthis = false;
+          for (int i = skiprows.length; i-- > 0; ) {
+            if (skiprows[i].equals(that)) {
+              skipthis = true;
+            }
+          }
+          if (skipthis) {
+            tgr = super.nextRow(); //returns either null or 'this'
+          } else {
+            break;
+          }
+        }
+      }
       Fstring stanstr = new Fstring(5,'0');
       if(tgr != null) {
-        // do the real data//+_+ move the following into TranJour
-        boolean wasReversed = tranjour.wasVoided();
-        boolean isReturn   = tranjour.isReturn();
-        boolean isStoodin  = tranjour.wasStoodin();
-        boolean inProgress = !Safe.NonTrivial(tranjour.actioncode); // +++ put on TranjorRow
-        boolean isDeclined = !("A".equals(tranjour.actioncode)) && !inProgress;  // +++ put on TranjorRow
-// --- testing for stoodins showing on webpage
-        boolean didTransfer= !wasReversed && ((!isDeclined) || isStoodin) && ((!inProgress) || isStoodin);  // +++ put on TranjorRow
+        // do the real data//+_+ move the following into Txn
+        // +++ use the settleop instead of transfertype for these next questions?
+        boolean wasReversed = txn.isVoided();
+        boolean isReturn    = txn.isReturn();
+        boolean isForce     = txn.isForce();
+        boolean isSale      = txn.isSale() || txn.isForce() || (txn.isAuthOnly() && txn.settle());
+        boolean isAuthonly  = txn.isAuthOnly() && !isSale;
+        boolean isVoid      = txn.isReversal();
+        boolean isModify    = txn.isModify();
+//dbg.ERROR("isVOID is " + isVoid + " for txn # " + txn.txnid);
+//        boolean isStoodin  = txn.wasStoodinApproved();
+        boolean isStoodin  = txn.wasStoodin();
+        boolean inProgress = !txn.responded();//this method ignores stoodin
+        boolean isDeclined = !(ActionCode.Approved.equals(txn.actioncode)) && !inProgress;  // +++ put on TranjorRow
+        boolean didTransfer= !isVoid && !isModify && !wasReversed && !isAuthonly &&
+            ((!isDeclined && !inProgress) || (isStoodin && countLosses));  // +++ put on TranjorRow
         boolean isStrike   = !didTransfer;
-
         count++;
-        java.util.Date time = tranjour.refTime();//UTC#
+        UTC time = StringX.NonTrivial(txn.clientreftime) ? txn.refTime() : UTC.New(txn.transtarttime);//UTC#
         span.include(time);
         String localDTime = ltf.format(time); //UTC#
-//following is used for linking to receipt: (should be in tranjour)
-        TransactionID tid = tranjour.tid();
-
-        setColumn(UnsettledTransactionFormatEnum.TimeCol, strikeText(localDTime, isStrike));
-        setColumn(UnsettledTransactionFormatEnum.TermCol, strikeText(tranjour.cardacceptortermid, isStrike));
-        String stan = tid.stan();
-        stanstr.righted(stan);
-//        setColumn(UnsettledTransactionFormatEnum.StanCol, new A(Acct.key() + "?adm=" + (new AdminOpCode(AdminOpCode.d)).Image() + "&tid=" + tid.image() + (voidable ? "&"+NOVOIDMARKER+"=1":""), strikeText(stanstr.toString(), isStrike)));
-        setColumn(UnsettledTransactionFormatEnum.StanCol, new A("javascript:viewtransaction('" + tid.image() + "', '" + stanstr.toString() + "')",  strikeText(stan, isStrike)));
-        setColumn(UnsettledTransactionFormatEnum.SiCol, strikeText(tranjour.stoodinstan, isStrike));
-        setColumn(UnsettledTransactionFormatEnum.ApprovalCol, strikeText(tranjour.authidresponse, isStrike));
-        setColumn(UnsettledTransactionFormatEnum.AcctNumCol, strikeText(tranjour.cardGreeked(), isStrike));
-        setColumn(UnsettledTransactionFormatEnum.ExpDateCol, strikeText(tranjour.expiry().Image(), isStrike));
-
-        amount.setto(tranjour.rawamount());//unsigned amount
-        if(isReturn) {
-          setColumn(UnsettledTransactionFormatEnum.ReturnCol, strikeText(amount.Image(), isStrike));
-          if(didTransfer) {
-            returnTotal.add(amount);
-            returnCount++;
-          }
-          amount.changeSign(); //negative for all other uses
-        } else {
-          setColumn(UnsettledTransactionFormatEnum.SaleCol, strikeText(amount.Image(), isStrike));
-          if(didTransfer) {
-            saleTotal.add(amount);
-            saleCount++;
-          }
-        }
-        if(didTransfer) {
-          setColumn(UnsettledTransactionFormatEnum.SumCol, amount.Image());
-          net.add(amount);
-          sumCount++;
-        } else {
-          otherTotal.add(amount);
-          otherCount++;
-        }
+//        MSRData card=txn.card();
+        stanstr.righted(txn.refNum());
+        authamount.setto(txn.rawAuthAmount());// unsigned amount
+        settleamount.setto(txn.rawSettleAmount());
         String status = "";
-
+        String original = "";
+        boolean shouldavs = false;
+        if(StringX.NonTrivial(txn.origtxnid)) {
+          String dest = archive ? ReceiptArchiver.transactionForDrawerDateOrBatch(txn.origtxnid) : net.paymate.web.page.Acct.txnUrl(txn.origtxnid);
+          original = (StringX.NonTrivial(txn.origtxnid)
+                                 ? "<a href=\"" + dest + "\">" + txn.origtxnid + "</a>"
+                                 : "NOT FOUND");
+        }
         // the order of this sequence is important !
-        if(wasReversed) {
+        if(isVoid) {
+          if(isDeclined) {
+            status = "DECLINED VOID";
+          } else {
+            status = "VOID of " + original;
+          }
+        } else if(isModify) {
+          if(isDeclined) {
+            status = "DECLINED MODIFY";
+          } else {
+            status = "MODIFY of " + original;
+          }
+        } else if(wasReversed) {
           status = "VOIDED";
         } else if(isDeclined) {
-          status = isStoodin ? "LOSS" : "DECLINED";
+          status = isStoodin ? "LOSS" : "DECLINED"; //#audit "Declined" web page only
         } else if(inProgress) {
           status = isStoodin ? "PEND/SI" : "PENDING";
+        } else if(isStoodin) {
+//          if(isagawd) {
+            status = "SI";
+//          }
+        } else if(isAuthonly) {
+          status = "AUTHONLY";
+        } else if(isForce) {
+          status = "FORCE";
         } else {
-          // everything else list nothing (APPROVED)
+          // everything else list nothing (APPROVED); leave it as the default
         }
+        // +++ switch on transfertype instead?
+        // start setting columns and adding subtotals
+        if(!isVoid && !isModify) {
+          setColumn(UnsettledTransactionFormatEnum.StanCol, strikeText(txn.refNum(), isStrike));
+          setColumn(UnsettledTransactionFormatEnum.PayTypeCol, strikeText(String.valueOf(txn.paytype().Image()), isStrike));
+          setColumn(UnsettledTransactionFormatEnum.InstitutionCol, strikeText(txn.cardType(), isStrike));
+          setColumn(UnsettledTransactionFormatEnum.AcctNumCol, strikeText(txn.last4(), isStrike));
+          setColumn(UnsettledTransactionFormatEnum.MerchRefCol, strikeText(txn.merchref, isStrike));
+          setColumn(UnsettledTransactionFormatEnum.ApprovalCol, strikeText(txn.approvalcode, isStrike));
+        }
+        if(isReturn) {
+          setColumn(UnsettledTransactionFormatEnum.ReturnCol, strikeText(settleamount.Image(), isStrike));
+          if(didTransfer) {
+            returnTotal.add(settleamount);
+            returnCount++;
+            String key = txn.paytype+txn.institution;
+            long cents = -1 * settleamount.Value();
+            dbg.VERBOSE("adding to subtotaller:"+key+"="+cents);
+            totaller.add(key, cents);
+          }
+          settleamount.changeSign(); //negative for all other uses
+        } else if(isSale){
+          setColumn(UnsettledTransactionFormatEnum.SaleCol, strikeText(settleamount.Image(), isStrike));
+          if(didTransfer) {
+            saleTotal.add(settleamount);
+            saleCount++;
+            String key = txn.paytype+txn.institution;
+            long cents = settleamount.Value();
+            dbg.VERBOSE("adding to subtotaller:"+key+"="+cents);
+            totaller.add(key, cents);
+            if(txn.isCredit()) {
+              shouldavs = true;
+            }
+          }
+        } else if(isAuthonly) { // only credit here!
+          // don't add it into totals, though, as it doesn't count
+          setColumn(UnsettledTransactionFormatEnum.SaleCol,
+                    strikeText(authamount.Image(), isStrike));
+          shouldavs = true;
+        } else if(isModify) {
+          // don't do voids here, only modifies (voids have an obvious amount)
+          diff.setto(0); // clear it
+          diff.plus(settleamount); // add the settleamount
+          diff.subtract(authamount);// subtract the authamount for the net change
+          setColumn(UnsettledTransactionFormatEnum.VoidChgCol , strikeText(isModify ? diff.Image() : "", isStrike));
+        }
+        if(didTransfer) {
+          setColumn(UnsettledTransactionFormatEnum.NetCol, settleamount.Image());
+          nett.add(settleamount);
+          sumCount++;
+        } else {
+          otherTotal.add(settleamount);
+          otherCount++;
+        }
+        setColumn(UnsettledTransactionFormatEnum.TimeCol  , strikeText(localDTime, isStrike));
         setColumn(UnsettledTransactionFormatEnum.StatusCol, status);
+        String dest = archive ? ReceiptArchiver.transactionForDrawerDateOrBatch(txn.txnid) : net.paymate.web.page.Acct.txnUrl(txn.txnid);
+        setColumn(UnsettledTransactionFormatEnum.TraceCol , new A(dest, strikeText(txn.txnid, isStrike)));
+        setColumn(UnsettledTransactionFormatEnum.AVSCodeCol, strikeText(txn.avsrespcode, isStrike));
+        if(shouldavs) {
+          String key = txn.institution + txn.avsrespcode;
+          long cents = authamount.Value();
+          if(StringX.NonTrivial(txn.avsrespcode)) {
+            avstotaller.add(key, cents); // should this be the auth amount or the settle amount?
+            dbg.VERBOSE("adding avs for [" + key + "]=[" + cents + "] cents");
+          } else {
+            dbg.VERBOSE("NOT adding avs for [" + key + "]=[" + cents + "] cents");
+          }
+        } else {
+          dbg.VERBOSE("NOT adding avs since shouldavs="+shouldavs);
+        }
+        if(PTL != null) {
+          PTL.loadedTxn(txn);
+        }
       } else {
         dbg.WARNING("RecordFormat.next() returned null!");
       }
@@ -174,7 +292,9 @@ public class UnsettledTransactionFormat extends RecordFormat {
       switch(col) {
         case UnsettledTransactionFormatEnum.TimeCol: {
           ret = hasMore() ? "SUBTOTALS:" : "TOTALS:";
-          ret += " <i>(" + Safe.millisToTime(span.milliSpan())+")</i>";
+          if(count > 1) {
+            ret += " <i>(" + DateX.millisToTime(span.milliSpan())+")</i>";
+          }
         } break;
         case UnsettledTransactionFormatEnum.StanCol: {
           ret = Long.toString(count);
@@ -183,13 +303,13 @@ public class UnsettledTransactionFormat extends RecordFormat {
           ret = " = " + Long.toString(count-otherCount);
         } break;
         case UnsettledTransactionFormatEnum.ReturnCol: {
-          ret = "+ ["+returnCount+"] " + returnTotal.Image();
+          ret = "- ["+returnCount+"] " + returnTotal.Image();
         } break;
         case UnsettledTransactionFormatEnum.SaleCol: {
           ret = "["+saleCount+"] " + saleTotal.Image();
         } break;
-        case UnsettledTransactionFormatEnum.SumCol: {
-          ret = " = ["+sumCount+"] " + net.Image();//compare to sale+return
+        case UnsettledTransactionFormatEnum.NetCol: {
+          ret = " = ["+sumCount+"] " + nett.Image();//compare to sale+return
         } break;
         case UnsettledTransactionFormatEnum.StatusCol: {
           ret = "- " + Long.toString(otherCount);
@@ -201,220 +321,9 @@ public class UnsettledTransactionFormat extends RecordFormat {
     return  new B(ret);
   }
 
+  public static void getSubsNoDetail(TxnRow stmt, boolean countLosses, LoginInfo linfo, SubTotaller totaller, boolean archive) {
+    totaller.prime(PayMateDBDispenser.getPayMateDB().getStorePayInst(linfo.store.storeId()));
+    new UnsettledTransactionFormat(linfo, stmt, totaller, null, "", null, countLosses, archive).output(new NullOutputStream());
+  }
 }
-
-/* +++ document elsewhere ...
-<SCRIPT LANGUAGE="javascript">
-function viewtransaction(txnid, label) {
-  winStats = 'toolbar=no,location=no,directories=no,status=yes,menubar=no,';
-  winStats+= 'scrollbars=yes,width=700,height=400,left=10,top=25,';
-  winStats='';
-  urlString = "http://localhost/servlets/admin/Acct?adm=d&tid=" + txnid + "&NV=1";
-  window.open(urlString ,"Transaction_"+label,winStats);
-}
-</script>
-
-<A HREF="javascript:viewtransaction('20010625014855*000000000076001*2472', '2472')">2472</A>
-
-
-
-
-open
-Opens a new web browser window.
-
-Method of Window
-
-Implemented in
-
-Navigator 2.0
-Navigator 4.0: added several new windowFeatures
-
-Syntax
-
-open(URL, windowName, windowFeatures)
-Parameters
-
-URL
-A string specifying the URL to open in the new window.
-See the Location object for a description of the URL components.
-
-windowName
-A string specifying the window name to use in the TARGET attribute of a FORM or A tag.
-windowName can contain only alphanumeric or underscore (_) characters.
-
-windowFeatures
-(Optional) A string containing a comma-separated list determining whether
-or not to create various standard window features. These options are described below.
-
-Description
-In event handlers, you must specify window.open() instead of simply using open().
-Due to the scoping of static objects in JavaScript,
-a call to open() without specifying an object name is equivalent to document.open().
-
-The open method opens a new Web browser window on the client,
-similar to choosing New Navigator Window from the File menu of the browser.
-The URL argument specifies the URL contained by the new window.
-If URL is an empty string, a new, empty window is created.
-
-You can use open on an existing window, and if you pass the empty string for the URL,
-you will get a reference to the existing window, but not load anything into it.
-You can, for example, then look for properties in the window.
-
-windowFeatures is an optional string containing a comma-separated list of options
-for the new window (do not include any spaces in this list).
-After a window is open, you cannot use JavaScript to change the windowFeatures.
-The features you can specify are:
-
-alwaysLowered
-(Navigator 4.0) If yes, creates a new window that floats below other windows, whether it is active or not.
-This is a secure feature and must be set in signed scripts.
-
-alwaysRaised
-(Navigator 4.0) If yes, creates a new window that floats on top of other windows, whether it is active or not.
-This is a secure feature and must be set in signed scripts.
-
-dependent
-(Navigator 4.0) If yes, creates a new window as a child of the current window.
-A dependent window closes when its parent window closes.
-On Windows platforms, a dependent window does not show on the task bar.
-
-directories
-If yes, creates the standard browser directory buttons, such as What's New and What's Cool.
-
-height
-(Navigator 2.0 and 3.0) Specifies the height of the window in pixels.
-
-hotkeys
-(Navigator 4.0) If no (or 0), disables most hotkeys in a new window that has no menu bar.
-The security and quit hotkeys remain enabled.
-
-innerHeight
-(Navigator 4.0) Specifies the height, in pixels, of the window's content area.
-To create a window smaller than 100 x 100 pixels, set this feature in a signed script.
-This feature replaces height, which remains for backwards compatibility.
-
-innerWidth
-(Navigator 4.0) Specifies the width, in pixels, of the window's content area.
-To create a window smaller than 100 x 100 pixels, set this feature in a signed script.
-This feature replaces width, which remains for backwards compatibility.
-
-location
-If yes, creates a Location entry field.
-
-menubar
-If yes, creates the menu at the top of the window.
-
-outerHeight
-(Navigator 4.0) Specifies the vertical dimension, in pixels, of the outside boundary of the window.
-To create a window smaller than 100 x 100 pixels, set this feature in a signed script.
-
-resizable
-If yes, allows a user to resize the window.
-
-screenX
-(Navigator 4.0) Specifies the distance the new window is placed from the left side of the screen.
-To place a window offscreen, set this feature in a signed scripts.
-
-screenY
-(Navigator 4.0) Specifies the distance the new window is placed from the top of the screen.
-To place a window offscreen, set this feature in a signed scripts.
-
-scrollbars
-If yes, creates horizontal and vertical scrollbars when the Document grows larger than the window dimensions.
-
-status
-If yes, creates the status bar at the bottom of the window.
-
-titlebar
-(Navigator 4.0) If yes, creates a window with a title bar.
-To set the titlebar to no, set this feature in a signed script.
-
-toolbar
-If yes, creates the standard browser toolbar, with buttons such as Back and Forward.
-
-width
-(Navigator 2.0 and 3.0) Specifies the width of the window in pixels.
-
-z-lock
-(Navigator 4.0) If yes, creates a new window that does not rise above other windows when activated.
-This is a secure feature and must be set in signed scripts.
-
-Many of these features (as noted above) can either be yes or no.
-For these features, you can use 1 instead of yes and 0 instead of no.
-If you want to turn a feature on, you can also simply list the feature name in the windowFeatures string.
-
-If windowName does not specify an existing window and you do not supply the windowFeatures parameter,
-all of the features which have a yes/no choice are yes by default.
-However, if you do supply the windowFeatures parameter,
-then the titlebar and hotkeys are still yes by default,
-but the other features which have a yes/no choice are no by default.
-
-For example, all of the following statements turn on the toolbar option and turn off all other Boolean options:
-
-open("", "messageWindow", "toolbar")
-open("", "messageWindow", "toolbar=yes")
-open("", "messageWindow", "toolbar=1")
-The following statement turn on the location and directories options and turns off all other Boolean options:
-
-open("", "messageWindow", "toolbar,directories=yes")
-How the alwaysLowered, alwaysRaised, and z-lock features behave depends on the windowing hierarchy of the platform.
-For example, on Windows, an alwaysLowered or z-locked browser window is below all windows in all open applications.
-On Macintosh, an alwaysLowered browser window is below all browser windows,
-but not necessarily below windows in other open applications.
-Similarly for an alwaysRaised window.
-
-You may use open to open a new window and then use open on that window
-to open another window, and so on.
-In this way, you can end up with a chain of opened windows,
-each of which has an opener property pointing to the window that opened it.
-
-Communicator allows a maximum of 100 windows to be around at once.
-If you open window2 from window1 and then are done with window1,
-be sure to set the opener property of window2 to null.
-This allows JavaScript to garbage collect window1.
-If you do not set the opener property to null, the window1 object remains,
-even though it's no longer really needed.
-
-Security
-To perform the following operations using the specified screen features,
-you need the UniversalBrowserWrite privilege:
-
-To create a window smaller than 100 x 100 pixels
-or larger than the screen can accommodate
-by using innerWidth, innerHeight, outerWidth, and outerHeight.
-
-To place a window off screen by using screenX and screenY.
-
-To create a window without a titlebar by using titlebar.
-
-To use alwaysRaised, alwaysLowered, or z-lock for any setting.
-For information on security in Navigator 4.0,
-see Chapter 7, "JavaScript Security," in the JavaScript Guide.
-
-Examples
-Example 1. In the following example, the windowOpener function opens a window
-and uses write methods to display a message:
-
-function windowOpener() {
-   msgWindow=window.open("","displayWindow","menubar=yes")
-   msgWindow.document.write
-      ("<HEAD><TITLE>Message window</TITLE></HEAD>")
-   msgWindow.document.write
-      ("<CENTER><BIG><B>Hello, world!</B></BIG></CENTER>")
-}
-Example 2. The following is an onClick event handler that opens a new client window
-displaying the content specified in the file sesame.html.
-The window opens with the specified option settings;
-all other options are false because they are not specified.
-
-<FORM NAME="myform">
-<INPUT TYPE="button" NAME="Button1" VALUE="Open Sesame!"
-   onClick="window.open ('sesame.html', 'newWin',
-   'scrollbars=yes,status=yes,width=300,height=300')">
-</FORM>
-See also
-Window.close
-
-*/
-
-//$Id: UnsettledTransactionFormat.java,v 1.82 2001/11/17 06:17:00 mattm Exp $
+//$Id: UnsettledTransactionFormat.java,v 1.132 2004/04/12 21:58:31 mattm Exp $

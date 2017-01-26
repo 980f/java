@@ -4,10 +4,12 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: BaseConverter.java,v 1.6 2001/07/19 01:06:54 mattm Exp $
+ * @version      $Id: BaseConverter.java,v 1.11 2004/01/09 11:46:07 mattm Exp $
  */
 
 package net.paymate.util;
+
+import net.paymate.lang.MathX;
 
 public class BaseConverter {
 
@@ -169,6 +171,24 @@ public class BaseConverter {
     //  logBased+=.0000000000001; //cheap fix, not perfect but pretty good
     return 1+(int)Math.floor(logBased);
   }
+  /**
+   * alh believes these can replace dtoaDigits, and run tremendously faster
+   */
+
+
+  public static int DigitCount(int value,int radix){
+    if(value !=MathX.INVALIDINTEGER){
+      IntegralPower igp=IntegralPower.Above(value,radix);
+      if (!igp.overflowed){
+        return igp.exponent;
+      }
+    }
+    return MathX.INVALIDINTEGER;
+  }
+
+  public static int DigitCount(int value){
+    return DigitCount(value,10);
+  }
 
   public static final double cvtBased(char ascii[],int base){
     if(ascii!=null){
@@ -225,19 +245,18 @@ public class BaseConverter {
 *				        oldbase (N) - 	the base that the oldvalue is in (2-36)
 *				        newbase (N) - 	the base that the newvalue is in (2-36)
 *								ie: the base you are converting to
-* RETURNS.....:	the new value calculated
+* RETURNS.....:	the new value calculated, null on error
 * ABSTRACT....:	converts a text-string number from an old base to a new base.
-*				0 is returned on success, the error number on an error.
-*				If there is an error, the newvalue text string is stuffed with
-*				the error message.
 ******************************************************************************
 */
   public static final String strBaseCvt(String oldvalue, int oldbase, int newbase) {
     if((oldbase < 2) || (oldbase > 36)) {
-      return "Old base [" + oldbase + "] must be between 2 and 36.";
+      return null;
+      //return "Old base [" + oldbase + "] must be between 2 and 36.";
     }
     if((newbase < 2) || (newbase > 36)) {
-      return "New base [" + newbase + "] must be between 2 and 36.";
+      return null;
+      //return "New base [" + newbase + "] must be between 2 and 36.";
     }
     oldvalue = oldvalue.trim().toUpperCase();
     int valuelen = oldvalue.length();
@@ -272,34 +291,6 @@ public class BaseConverter {
     if(newvalue.charAt(0) == '0') {
       newvalue.deleteCharAt(0);
     }
-    return newvalue.toString();
+    return String.valueOf(newvalue);
   }
-
-
-  // testing stuff:
-  public static String Usage() {
-    return "parameters: number old_base new_base";
-  }
-
-  public static void Test(String[] argv) {
-    try {
-      int argc=argv.length;
-      String number  = "0";
-      String oldbase = "10";
-      String newbase = "10";
-      switch (argc){
-        case 3: newbase = argv[--argc];
-        case 2: oldbase = argv[--argc];
-        case 1: number  = argv[--argc];
-          break;
-        default: System.out.println("Excess command line args\n");
-        case 0:  System.out.println(Usage());
-          return;
-      }
-      System.out.println(number + "[base" + oldbase + "] == " + strBaseCvt(number, (new Integer(oldbase)).intValue(), (new Integer(newbase)).intValue()) + "[base" + newbase + "]");
-    } catch (Exception t) {
-      t.printStackTrace();
-    }
-  }
-
 }

@@ -1,42 +1,78 @@
 package net.paymate.terminalClient;
-
 /**
- * Title:
+ * Title:         $Source: /cvs/src/net/paymate/terminalClient/TerminalCapabilities.java,v $
  * Description:
- * Copyright:    Copyright (c) 2000
- * Company:      PayMate.net
- * @author $Author: mattm $
- * @version $Id: TerminalCapabilities.java,v 1.12 2001/11/03 13:16:42 mattm Exp $
+ * Copyright:     Copyright (c) 2001
+ * Company:       PayMate.net
+ * @author        PayMate.net
+ * @version       $Revision: 1.32 $
  */
-
 import net.paymate.Main;
 import net.paymate.awtx.RealMoney;
 import net.paymate.util.*;
+import net.paymate.lang.Bool;
+import net.paymate.lang.StringX;
 
 public class TerminalCapabilities implements isEasy {
 
+  public final static String autoApproveKey="autoApprove";
+  public final static String autoQueryKey="autoQuery";
+  public final static String checksAllowedKey="checksAllowed";
+  public final static String creditAllowedKey="creditAllowed";
+  public final static String debitAllowedKey="debitAllowed";
+  public final static String freePassKey="freePass";
+  public final static String enMerchRefKey="enMerchRef";
+  public final static String enAutoLogoutKey="enAutoLogout";
+  public final static String MerchRefPromptKey="MerchRefPrompt";
+
+  boolean enMerchRef=false;
+  public boolean enMerchRef() {
+    return enMerchRef;
+  }
+
+  boolean enAutoLogout=false;
+  public boolean enAutoLogout() {
+    return enAutoLogout;
+  }
+
+  String MerchRefPrompt;
+  public String MerchRefPrompt(){
+    return StringX.NonTrivial(MerchRefPrompt) ? MerchRefPrompt : (enMerchRef?"MerchantRef#":"");
+  }
+
+  boolean autoQuery=false;
+  public boolean autoQuery(){
+    return autoQuery;
+  }
+
   boolean checksAllowed=false;
-  public final static String checksAllowedKey="doChecks";
   public boolean acceptsChecks(){
     return checksAllowed;
   }
 
-  boolean debitAllowed=false;
-  public final static String debitAllowedKey="doDebit";
+  boolean debitAllowed=true; //%%%--- for debug only!!!
   public boolean doesDebit(){
     return debitAllowed;
   }
 
   boolean creditAllowed=false;
-  public final static String creditAllowedKey="doCredit";
   public boolean doesCredit(){
     return creditAllowed;
   }
 
-  RealMoney debitPushThreshold=new RealMoney();
+  RealMoney debitPushThreshold=RealMoney.Zero();
   boolean pushDebit=false;
   public final static String debitPushThresholdKey="debitPushThreshold";
   public final static String pushDebitKey="pushDebit";
+
+  /**
+   * exposed for legacy storeConfig sigcapThreshold hack
+   * @todo: remove this.
+   */
+  public RealMoney debitPushThreshold(){
+    return debitPushThreshold;
+  }
+
 /**
  * @return true if sale is expensive enough to payback debit flat fee over credit percentage
  */
@@ -65,37 +101,37 @@ public class TerminalCapabilities implements isEasy {
  * if true don't need passcode for clerk forced buttons.
  */
   boolean freePass=false;
-  public final static String freePassKey="freePass";
   public boolean freePass(){
    return freePass;
   }
 
 /**
  * if true then clerk's entry of sale amount == customer approves.
+ * unless we have debit in which case we have to ask CREDIT vs DEBIT at this point
  */
   boolean autoApprove=false;
-  public final static String autoApproveKey="autoApprove";
   public boolean autoApprove(){
-    return autoApprove;
+    return !debitAllowed && autoApprove;
   }
 
   /////////////////////////////////////
+/**
+ * default values are set per legacy of when flag was created.
+ */
   public void load(EasyCursor ezp){
     freePass=   ezp.getBoolean(freePassKey,false);
     autoApprove=ezp.getBoolean(autoApproveKey,false);
-
     checksAllowed =ezp.getBoolean(checksAllowedKey,checksAllowed);
     creditAllowed =ezp.getBoolean(creditAllowedKey,creditAllowed);
     debitAllowed  =ezp.getBoolean(debitAllowedKey,debitAllowed);
     pushDebit=ezp.getBoolean(pushDebitKey,pushDebit);
-    //+_+ create an ezp.update(key,Object);
-    String newthresh=ezp.getString(debitPushThresholdKey);
-    if(Safe.NonTrivial(newthresh)){
-      debitPushThreshold= new RealMoney(newthresh);
-    }
+    ezp.getBlock(debitPushThreshold,debitPushThresholdKey);
     autoComplete=ezp.getBoolean(autoCompleteKey);
     alwaysID=ezp.getBoolean(alwaysIDKey);
-//    return ezp;
+    autoQuery=ezp.getBoolean(autoQueryKey,false);
+    enMerchRef=ezp.getBoolean(enMerchRefKey,false);
+    enAutoLogout=ezp.getBoolean(enAutoLogoutKey,false);
+    MerchRefPrompt=ezp.getString(MerchRefPromptKey);//if blank won't appear
   }
 
   public void save(EasyCursor ezp){
@@ -107,9 +143,13 @@ public class TerminalCapabilities implements isEasy {
     ezp.setBoolean(debitAllowedKey,debitAllowed);
 
     ezp.setBoolean(pushDebitKey,pushDebit);
-    ezp.setString(debitPushThresholdKey,debitPushThreshold.Image());
+    ezp.setBlock(debitPushThreshold,debitPushThresholdKey);
     ezp.setBoolean(autoCompleteKey,autoComplete);
     ezp.setBoolean(alwaysIDKey,alwaysID);
+    ezp.setBoolean(autoQueryKey,autoQuery);
+    ezp.setBoolean(enAutoLogoutKey,enAutoLogout);
+    ezp.setBoolean(enMerchRefKey,enMerchRef);
+    ezp.setString(MerchRefPromptKey,MerchRefPrompt);
   }
 
   public TerminalCapabilities(EasyCursor ezp) {
@@ -120,22 +160,38 @@ public class TerminalCapabilities implements isEasy {
     load(Main.props());
   }
 
-  public String toSpam(){
-    return "AA"+Bool.signChar(autoApprove())+"FP"+Bool.signChar(freePass())+"ID"+Bool.signChar(AlwaysID())+"Cr"+Bool.signChar(doesCredit()) +"Ck"+Bool.signChar(acceptsChecks()) +"Db"+Bool.signChar(doesDebit())+"Th"+Bool.signChar(pushDebit)+debitPushThreshold;
+  public String splat(String twochar,boolean control){
+    return twochar+Bool.signChar(control);
   }
 
-    public boolean equals(TerminalCapabilities newone){
-      return
-      autoApprove()   == newone.autoApprove()   &&
-      freePass()      == newone.freePass()      &&
-      checksAllowed   == newone.checksAllowed   &&
-      debitAllowed    == newone.debitAllowed    &&
-      debitPushThreshold.compareTo(newone.debitPushThreshold)==0 &&
-      pushDebit       == newone.pushDebit       &&
-      autoComplete    == newone.autoComplete    &&
-      alwaysID        == newone.alwaysID
-      ;
-    }
+  public String toSpam(){
+    return  splat("AA",autoApprove())
+            + splat("FP",freePass())
+            + splat("ID",AlwaysID())
+            + splat("Cr",doesCredit())
+//            + splat("Ck",acceptsChecks())
+            + splat("Db",doesDebit())
+            + splat("Mr",enMerchRef())
+            + splat("AL",enAutoLogout())
+//            + splat("Th",pushDebit)+debitPushThreshold
+            ;
+  }
+
+  public boolean equals(TerminalCapabilities newone){
+    return
+    autoApprove()   == newone.autoApprove()   &&
+    freePass()      == newone.freePass()      &&
+    checksAllowed   == newone.checksAllowed   &&
+    debitAllowed    == newone.debitAllowed    &&
+    debitPushThreshold.compareTo(newone.debitPushThreshold)==0 &&
+    pushDebit       == newone.pushDebit       &&
+    autoComplete    == newone.autoComplete    &&
+    alwaysID        == newone.alwaysID        &&
+    enMerchRef      == newone.enMerchRef      &&
+    enAutoLogout    == newone.enAutoLogout    &&
+    MerchRefPrompt  == newone.MerchRefPrompt
+    ;
+  }
 
 }
-//$Id: TerminalCapabilities.java,v 1.12 2001/11/03 13:16:42 mattm Exp $
+//$Id: TerminalCapabilities.java,v 1.32 2004/02/24 18:31:25 andyh Exp $

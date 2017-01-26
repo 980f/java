@@ -4,7 +4,7 @@
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author       PayMate.net
- * @version      $Id: ManagedSocket.java,v 1.9 2001/10/02 17:06:39 mattm Exp $
+ * @version      $Id: ManagedSocket.java,v 1.11 2002/07/09 17:51:30 mattm Exp $
  *
  * This class is responsible for managing a thread to do read from the socket,
  * and to generate an event when something is received.
@@ -24,7 +24,7 @@ import  java.io.*;
 import  net.paymate.util.*;
 
 public abstract class ManagedSocket implements Runnable, AtExit  {
-  protected static final ErrorLogStream dbg = new ErrorLogStream(ManagedSocket.class.getName());
+  protected static final ErrorLogStream dbg = ErrorLogStream.getForClass(ManagedSocket.class);
 
   private Socket socket = null;
   private Thread thread = null;

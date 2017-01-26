@@ -4,7 +4,7 @@
  * Copyright:    2000 PayMate.Net Corp<p>
  * Company:      paymate<p>
  * @author       PayMate.net
- * @version      $Id: CmdParser.java,v 1.5 2000/08/21 07:02:45 mattm Exp $
+ * @version      $Id: CmdParser.java,v 1.8 2003/07/27 05:35:26 mattm Exp $
  *
  * NOTE: THIS CLASS (& package) IS NOT IN USE AND WILL PROBABLY BE DEPRECATED !!!
  *
@@ -49,14 +49,13 @@
  * One issue to resolve is how to *easily* get TextLists back to the fields
  * in the program that created the parser.
  *
- * Another point is that since all of them parameters require the FLAG_MARK,
+ * Another point is that since all of the parameters require the FLAG_MARK,
  * we could do away with it altogether.  The only argument I can think of
  * for this is that it helps when the user doesn't know what they are doing.
  * If it doesn't start with a FLAG_MARK, you can bet that the user made an error,
  * possibly by not enclosing a string with whitespace in quotation marks.
  * One way to get around this is to make the FLAG_MARK editable so that if it
- * is '', it is not searched for.  (Taking out the required FLAG_MARK would
- * also make the commandline shorter so that DOS could handle it better.)
+ * is '', it is not searched for.
  *
  */
 
@@ -66,7 +65,7 @@ import  java.util.Enumeration;
 import  java.util.Vector;
 import  java.io.File;
 import  net.paymate.util.TextList;
-import  net.paymate.util.Safe;
+import net.paymate.lang.StringX;
 
 public class CmdParser extends Vector {
 
@@ -216,7 +215,7 @@ public class CmdParser extends Vector {
       strBuff.append("unused parameters: ");
       strBuff.append(unused.asParagraph(COMMA_SPACE)).append(LINEFEED);
     }
-    parsedResults = strBuff.toString();
+    parsedResults = String.valueOf(strBuff);
     return !missingParam;
   }
 
@@ -288,7 +287,7 @@ public class CmdParser extends Vector {
         ((p.flag.length() < 1) ? (p.name + " - ") : "") + p.description,
         maxDescriptWidth, TextList.SMARTWRAP_ON);
       String specialEOL = System.getProperty("line.separator");
-      String allAsPara = Safe.clipEOL(tl.asParagraph(loneDescriptIndexStr, specialEOL), specialEOL);
+      String allAsPara = StringX.clipEOL(tl.asParagraph(loneDescriptIndexStr, specialEOL), specialEOL);
       whereBuff.append(allAsPara);
       if(p.defaultValue != null) {
         whereBuff.append("; default=").append(QUOTATION_MARK);
@@ -310,8 +309,8 @@ public class CmdParser extends Vector {
   //     CmdParser("grep", "searches for a text string in files", defs);
   public CmdParser(String cmd, String descript, ParameterDefinition [] paramList) {
     super(paramList.length);
-    command     = Safe.TrivialDefault(cmd,      UNINITIALIZED);
-    description = Safe.TrivialDefault(descript, UNINITIALIZED);
+    command     = StringX.TrivialDefault(cmd,      UNINITIALIZED);
+    description = StringX.TrivialDefault(descript, UNINITIALIZED);
     fromParamDefArray(paramList);
   }
 

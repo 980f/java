@@ -5,14 +5,15 @@ package net.paymate.ivicm.et1K;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: LrcBuffer.java,v 1.16 2001/10/05 17:28:52 andyh Exp $
+* @version      $Id: LrcBuffer.java,v 1.22 2003/12/10 02:16:53 mattm Exp $
 */
 
 
-import net.paymate.authorizer.*;
-import net.paymate.util.Safe;
+import net.paymate.util.*; // Safe, ErrorLogStream
+import net.paymate.data.LrcBufferBase;
 
 public class LrcBuffer extends LrcBufferBase {
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(LrcBuffer.class);
 
   protected LrcBuffer(int maxsize,boolean rcv){
     super(maxsize,rcv);
@@ -25,8 +26,6 @@ public class LrcBuffer extends LrcBufferBase {
 
   ////////////////////
   // interpretive functions
-
-
   public int sizeCode(){//size of variable component
     return bight(1);
   }
@@ -34,39 +33,19 @@ public class LrcBuffer extends LrcBufferBase {
   public int opCode(){
     return bight(2);
   }
-
-
   /////////////
   //
-
   public boolean end(){
-    dbg.Enter("LrcBuffer.end()");
+    dbg.Enter("LrcBuffer.end()");//#gc
     try {
-      if(!isReceiver&& sizeCode()==0){//for building commands whose length is not known in advance.
+      if(!isReceiver && sizeCode()==0){//for building commands whose length is not known in advance.
         dbg.VERBOSE("autosizing");
         replace(1,(byte)(nexti+1));//include lrc in count
       }
       return super.end();
     }
     finally {
-      dbg.Exit();
-    }
-  }
-
-  /**
-   * @deprecated ended flag is not controlled properly yet.
-   * remove first bytes and adjust everything
-   */
-
-  public void shift(int start){
-    if(start>0 && start<nexti){
-      int len=start;
-//      while(len-->0){//remove these bytes from lrc calculation
-//        lrc^=buffer[len];
-//      }
-      nexti-=start;
-      System.arraycopy(buffer,start,buffer,0,nexti);
-      computeLRC();
+      dbg.Exit();//#gc
     }
   }
 
@@ -74,9 +53,10 @@ public class LrcBuffer extends LrcBufferBase {
    * @return true if buffer is sane for sending, says nothing about contents of it.
    */
   public boolean isOk(){
+//    System.out.println("at LrcBuffer.isOk() super is "+super.isOk()+" nexti is "+ nexti+" sizecode is "+sizeCode());
     //4 is minimum packet length
-    return super.isOk() && nexti>=4 && nexti==sizeCode();
+    return super.isOk() && nexti>=4 && nexti==sizeCode()-1;
   }
 
 }
-//$Id: LrcBuffer.java,v 1.16 2001/10/05 17:28:52 andyh Exp $
+//$Id: LrcBuffer.java,v 1.22 2003/12/10 02:16:53 mattm Exp $

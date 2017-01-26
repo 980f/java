@@ -6,13 +6,24 @@ package net.paymate.connection;
  * Copyright:     Copyright (c) 2001
  * Company:       PayMate.net
  * @author        PayMate.net
- * @version       $Revision: 1.12 $
+ * @version       $Revision: 1.18 $
  */
 
 import net.paymate.util.*;
 import java.util.*;
 
+
+interface URKey {
+  String opt="options";
+  String txnCount = "txnCount";
+  String rcptCount = "rcptCount";
+  String runtimeinfo="runtimeinfo";
+  String sequence="seq";
+
+}
+
 public class UpdateRequest extends AdminRequest implements isEasy {
+
   public ActionType Type(){
     return new ActionType(ActionType.update);
   }
@@ -21,44 +32,50 @@ public class UpdateRequest extends AdminRequest implements isEasy {
     return false;
   }
 
+  protected static int seqgenerator=0;//for recognizing quantity of lost requests at server
+
+  public int seq;
   public int txnCount = -1;
   public int rcptCount = -1;
 
-//////////////////
+  //////////////////
 
   public ApplianceOptions opt=new ApplianceOptions();
   public AppStatus runtimeinfo=new AppStatus();
-  final static String optKey="options";
-  final static String txnCountKey = "txnCount";
-  final static String rcptCountKey = "rcptCount";
-  final static String runtimeinfoKey="runtimeinfo";
 
   public void save(EasyCursor ezc){
     super.save(ezc);
-    opt.saveas(optKey,ezc);
-    ezc.setInt(txnCountKey, txnCount);
-    ezc.setInt(rcptCountKey, rcptCount);
-    //
-    runtimeinfo.saveas(runtimeinfoKey,ezc);//updates itself before saving.
+    ezc.setBlock(opt,URKey.opt);
+    ezc.setInt(URKey.txnCount, txnCount);
+    ezc.setInt(URKey.rcptCount, rcptCount);
+    ezc.setInt(URKey.sequence, seq);
+    ezc.setBlock(runtimeinfo,URKey.runtimeinfo);//updates itself before saving.
   }
 
   public void load(EasyCursor ezc){
     super.load(ezc);
-    opt.loadfrom(optKey,ezc);
-    txnCount  = ezc.getInt(txnCountKey, txnCount);
-    rcptCount = ezc.getInt(rcptCountKey, rcptCount);
-    runtimeinfo.loadfrom(runtimeinfoKey,ezc);
-    dbg.WARNING(runtimeinfo.toString());
+    ezc.getBlock(opt,URKey.opt);
+    txnCount  = ezc.getInt(URKey.txnCount, txnCount);
+    rcptCount = ezc.getInt(URKey.rcptCount, rcptCount);
+    seq=ezc.getInt(URKey.sequence);
+    ezc.getBlock(runtimeinfo,URKey.runtimeinfo);
+    dbg.WARNING(String.valueOf(runtimeinfo));
   }
 
-  public UpdateRequest() {
-    //trivial for request
+  protected UpdateRequest() {
+    //trivial for use by iseasy, do not generate a sequence number!
   }
 
-  public UpdateRequest(int txnCount, int rcptCount) {
-    this();
-    this.txnCount = txnCount;
-    this.rcptCount = rcptCount;
+  public static UpdateRequest Create(){
+    return new UpdateRequest();
+  }
+
+  public static UpdateRequest Generate(int txnCount, int rcptCount) {
+    UpdateRequest newone=new UpdateRequest();
+    newone.txnCount = txnCount;
+    newone.rcptCount = rcptCount;
+    newone.seq=seqgenerator++;
+    return newone;
   }
 
   public static UpdateRequest NullRequest(){
@@ -66,4 +83,4 @@ public class UpdateRequest extends AdminRequest implements isEasy {
   }
 
 }
-//$Id: UpdateRequest.java,v 1.12 2001/10/24 04:14:18 mattm Exp $
+//$Id: UpdateRequest.java,v 1.18 2004/02/11 00:23:15 andyh Exp $

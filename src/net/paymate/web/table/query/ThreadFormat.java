@@ -4,7 +4,7 @@
 * Copyright:    2000, PayMate.net<p>
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: ThreadFormat.java,v 1.6 2001/11/17 20:06:38 mattm Exp $
+* @version      $Id: ThreadFormat.java,v 1.17 2003/10/30 21:05:19 mattm Exp $
 */
 
 package net.paymate.web.table.query;
@@ -15,9 +15,12 @@ import  org.apache.ecs.*; // element
 import  org.apache.ecs.html.*; // various html elements
 import  net.paymate.web.color.*;
 import  java.util.*;
+import net.paymate.lang.ThreadX;
+import net.paymate.text.Formatter;
+import net.paymate.lang.ReflectX;
 
 public class ThreadFormat extends TableGen implements TableGenRow, RowEnumeration {
-  private static final ErrorLogStream dbg = new ErrorLogStream(ThreadFormat.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(ThreadFormat.class, ErrorLogStream.WARNING);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef [(new ThreadFormatEnum()).numValues()];
   static {
@@ -30,7 +33,7 @@ public class ThreadFormat extends TableGen implements TableGenRow, RowEnumeratio
   PathedThreadList list = new PathedThreadList();
 
   public ThreadFormat(ColorScheme colors, String title) {
-    super(title, colors, theHeaders, "", -1, "");
+    super(title, colors, theHeaders, "");
     printGroup(null, null, list);
     // +_+ sort alphabetically
   }
@@ -45,12 +48,12 @@ public class ThreadFormat extends TableGen implements TableGenRow, RowEnumeratio
     return headers.length;
   }
 
-  private static final void printGroup(ThreadGroup tg, StringStack stack, PathedThreadList ptlist) {
+  public static final void printGroup(ThreadGroup tg, StringStack stack, PathedThreadList ptlist) {
     if(tg == null) {
       tg = ThreadX.RootThread();
     }
     if(stack == null) {
-      stack = new StringStack();
+      stack = new StringStack(ReflectX.shortClassName(ThreadFormat.class));
     }
     stack.push(tg.getName());
     // print the threads
@@ -61,7 +64,7 @@ public class ThreadFormat extends TableGen implements TableGenRow, RowEnumeratio
       Thread t = list[i];
       if(t.getThreadGroup() == tg) {
         stack.push(t.getName());
-        ptlist.add(new PathedThread(stack.toString(), t));
+        ptlist.add(new PathedThread(String.valueOf(stack), t));
         stack.pop();
       }
     }
@@ -87,7 +90,7 @@ public class ThreadFormat extends TableGen implements TableGenRow, RowEnumeratio
       } break;
       case ThreadFormatEnum.priorityCol: {
         ThreadGroup tg2 = t.thread.getThreadGroup();
-        str = ""+t.thread.getPriority()+"/"+((tg2 != null) ? tg2.getMaxPriority() : -1);
+        str = Formatter.ratioText(" ",t.thread.getPriority(), (tg2 != null) ? tg2.getMaxPriority() : -1);
       } break;
       case ThreadFormatEnum.daemonCol: {
         str = (t.thread.isDaemon() ? "Daemon" : "User");
@@ -124,4 +127,4 @@ class PathedThreadList extends Vector {
   }
 }
 
-//$Id: ThreadFormat.java,v 1.6 2001/11/17 20:06:38 mattm Exp $
+//$Id: ThreadFormat.java,v 1.17 2003/10/30 21:05:19 mattm Exp $

@@ -1,41 +1,14 @@
-/* $Id: TrackData.java,v 1.23 2001/10/17 22:07:23 andyh Exp $ */
+/* $Id: TrackData.java,v 1.30 2005/03/19 00:36:32 andyh Exp $ */
 package net.paymate.jpos.data;
 
 import net.paymate.util.*;
+import net.paymate.lang.StringX;
 
-public class TrackData implements jpos.MSRConst {
-  static final ErrorLogStream dbg=new ErrorLogStream(TrackData.class.getName());
+public class TrackData {
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(TrackData.class, ErrorLogStream.WARNING);
   boolean isPresent=false;
   String Data;
   String DiscretionaryData; //sourced in jPos, no target in NTN
-
-  int JposError=0;
-  public void setErrorCode(int jposcode){
-    JposError=jposcode;
-  }
-
-  public int getErrorCode(){
-    return JposError;
-  }
-
-  public static final String textForJposCode(int jap){
-    switch(jap){
-      default: return "error "+jap;
-      case 0: return "no errors";
-      case JPOS_EMSR_START: return "missing start sentinel";
-      case JPOS_EMSR_END : return "missing end sentinel";
-      case JPOS_EMSR_PARITY : return "parity error";
-      case JPOS_EMSR_LRC : return "lrc error";
-      case ET1K_EMSR_TDOV: return "data overflow";
-      case ET1K_EMSR_TDNP: return "track not present";
-      case ET1K_EMSR_TDIS: return "disabled by host";
-      case ET1K_EMSR_TDNR: return "not received";
-    }
-  }
-
-  public String getErrorText(){
-    return textForJposCode(getErrorCode());
-  }
 
   public String Data(){
     return Data;
@@ -78,11 +51,11 @@ public class TrackData implements jpos.MSRConst {
   public static boolean isClean(int trackno, String data){
     for(int i=data.length();i-->0;){
       int c=(int) data.charAt(i);
-      if(trackno==0){
+      if(trackno==MSRData.T1){
         if(c<0x20|| c>0x5F || illegals.indexOf(c)>=0 || strippedSentinels.indexOf(c)>=0 ){
           return false;
         }
-      } else if(trackno==1){//+_+ only one'=' allowed
+      } else if(trackno==MSRData.T2){//+_+ only one'=' allowed
         if(!((c>=0x30&&c<=0x39)|| c==0x3D)){
           return false;
         }
@@ -96,7 +69,7 @@ public class TrackData implements jpos.MSRConst {
   }
 
   public static boolean isProper(int trackno, String data){
-    if(Safe.NonTrivial(data) && isClean(trackno, data)){
+    if(StringX.NonTrivial(data) && isClean(trackno, data)){
       return true;//+_+ add more tests here.
     } else {
       return false;
@@ -107,7 +80,7 @@ public class TrackData implements jpos.MSRConst {
     dbg.VERBOSE("Setting some track to:["+body+"] and ["+otherStuff+"]");
     Data=body;
     DiscretionaryData=otherStuff;
-    isPresent=Safe.NonTrivial(body);
+    isPresent=StringX.NonTrivial(body);
     dbg.VERBOSE("isPresent is:"+isPresent);
     return this;
   }
@@ -115,8 +88,7 @@ public class TrackData implements jpos.MSRConst {
   public TrackData setto(byte [] body){//for PINPAD idiotic setTrack functions
     Data=new String(body);
     DiscretionaryData=null;
-    isPresent=Safe.NonTrivial(Data);
-    JposError=0;
+    isPresent=StringX.NonTrivial(Data);
     dbg.VERBOSE("isPresent is:"+isPresent);
     return this;
   }
@@ -134,22 +106,24 @@ public class TrackData implements jpos.MSRConst {
     this.isPresent = old.isPresent;
     if(old.isPresent){
       this.Data              = new String(old.Data);
-      this.DiscretionaryData = new String(old.DiscretionaryData);
+      //hypercom test card had null discretionary data! sohuld fix this in parser...
+      this.DiscretionaryData = new String(old.DiscretionaryData!=null?old.DiscretionaryData:"");
     }
-    this.JposError=old.JposError;
+//    this.JposError=old.JposError;
   }
 
   public static final String Name(int number){
-    if(number>=0 && number<=2){
-      return "Track["+Integer.toString(1+number)+"]";
+    String Ttext=Integer.toString((1-MSRData.T1)+number);
+    if(number>=MSRData.T1 && number<=MSRData.T3){
+      return "Track["+Ttext+"]";
     } else {
-      return "BadTrackIndex:"+Integer.toString(1+number);
+      return "BadTrackIndex:"+Ttext;
     }
   }
 
   public static final boolean NonTrivial(TrackData track){
   //+_+ will final rule below screw us someday?? YESSSSS
-    return track!=null && track.isPresent && Safe.NonTrivial(track.Data);
+    return track!=null && track.isPresent && StringX.NonTrivial(track.Data);
   }
 
   public void save(String which,EasyCursor ezp){
@@ -162,7 +136,6 @@ public class TrackData implements jpos.MSRConst {
     isPresent=          ezp.getBoolean(which+"isPresent");
     Data=               ezp.getString (which+"Data");
 //    DiscretionaryData=  ezp.getString (which+"DiscretionaryData");
-
   }
 
   public String toSpam(){
@@ -170,4 +143,4 @@ public class TrackData implements jpos.MSRConst {
   }
 
 }
-//$Id: TrackData.java,v 1.23 2001/10/17 22:07:23 andyh Exp $
+//$Id: TrackData.java,v 1.30 2005/03/19 00:36:32 andyh Exp $

@@ -2,17 +2,20 @@ package net.paymate.data;
 
 /**
 * Title:        $Source: /cvs/src/net/paymate/data/ObjectRange.java,v $
-* Description:
+* Description:  an interval of generic type
 * Copyright:    Copyright (c) 2001
 * Company:      PayMate.net
 * @author PayMate.net
-* @version $Revision: 1.6 $
+* @version $Revision: 1.17 $
 */
 
 import net.paymate.util.*;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ReflectX;
+import net.paymate.lang.ObjectX;
 
 public class ObjectRange implements isEasy {
-  private static final ErrorLogStream dbg = new ErrorLogStream(ObjectRange.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(ObjectRange.class);
 
   protected Comparable one;
   protected Comparable two;
@@ -36,18 +39,26 @@ public class ObjectRange implements isEasy {
     return broad;
   }
 
-  public String one(){
-    if(isDirty){
-      analyze();
-    }
-    return Safe.TrivialDefault(one);
+  public String oneImage() {
+    return StringX.TrivialDefault(one());
   }
 
-  public String two(){
+  public final Object one(){
     if(isDirty){
       analyze();
     }
-    return Safe.TrivialDefault(two);
+    return one;
+  }
+
+  public String twoImage() {
+    return StringX.TrivialDefault(two());
+  }
+
+  public final Object two(){
+    if(isDirty){
+      analyze();
+    }
+    return two;
   }
 
   public Comparable filter(String input){
@@ -88,7 +99,9 @@ public class ObjectRange implements isEasy {
     if(isDirty){
       analyze();
     }
-    return singular || broad;
+    boolean ret = singular || broad;
+    dbg.VERBOSE("" + (singular ? "singular " : "") + (broad ? "broad" : "") + (ret ? ": "+toString() : ""));
+    return ret;
   }
 
   public static final boolean NonTrivial(ObjectRange pair){
@@ -104,11 +117,17 @@ public class ObjectRange implements isEasy {
   }
 
   protected ObjectRange sort(){
+    dbg.VERBOSE("SORTING["+(broad?"":"NOT")+"broad]: one["+ReflectX.shortClassName(one)+"]="+one+", two["+ReflectX.shortClassName(two)+"]="+two);
     if(broad){
-      if(two.compareTo(one)<0){
+      int comp = two.compareTo(one);
+      boolean shouldswap = (comp<0);
+      dbg.VERBOSE("two.compareTo(one)="+comp+", so comp<0="+shouldswap);
+      dbg.VERBOSE("fyi: one.compareTo(two)="+one.compareTo(two));
+      if(shouldswap){
         swap();
       }
     }
+    dbg.VERBOSE("SORTED: one="+one+", two="+two);
     return this;
   }
 
@@ -119,8 +138,8 @@ public class ObjectRange implements isEasy {
     dbg.Enter("analyze");
     try {
       //temporarily make assignments, then make sense of them
-      broad=Safe.NonTrivial(two);
-      singular=Safe.NonTrivial(one);
+      broad=ObjectX.NonTrivial(two);
+      singular=ObjectX.NonTrivial(one);
       dbg.VERBOSE("NonTrivials: "+singular+" "+broad);
       //if two is nonTrivial
       if(broad){
@@ -145,7 +164,7 @@ public class ObjectRange implements isEasy {
   }
 
   public void copyMembers(ObjectRange rhs){
-    dbg.VERBOSE("copyMembers from "+rhs.getClass().getName()+" to this "+this.getClass().getName());
+    dbg.VERBOSE("copyMembers from "+ReflectX.shortClassName(rhs)+" to this "+ReflectX.shortClassName(this));
     //can this work? if(rhs.getClass()==this.getClass())
     {
       sorted = rhs.sorted;
@@ -160,26 +179,14 @@ public class ObjectRange implements isEasy {
   protected final static String sortedKey="sorted";
 
   public void save(EasyCursor ezp){
-    ezp.setString(oneKey,one());
-    ezp.setString(twoKey,two());
+    ezp.setString(oneKey,oneImage());
+    ezp.setString(twoKey,twoImage());
     ezp.setBoolean(sortedKey,sorted);
-  }
-
-  public EasyCursor saveas(String key,EasyCursor ezp){
-    ezp.push(key);
-    save(ezp);
-    return ezp.pop();
   }
 
   public void load(EasyCursor ezp){
     sorted = ezp.getBoolean(sortedKey,false); // do this one first (affects the rest) !!!
     setBoth(ezp.getString(oneKey,null),ezp.getString(twoKey,null));
-  }
-
-  public EasyCursor loadfrom(String key,EasyCursor ezp){
-    ezp.push(key);
-    load(ezp);
-    return ezp.pop();
   }
 
   protected ObjectRange(boolean sorted){
@@ -207,7 +214,7 @@ public class ObjectRange implements isEasy {
   <li> Safe has NonTrivial(Object o) which does an if-else on instanceof
   those classes for which we have a Safe.NonTrivial function.
   It returns !=null for unknown classes. ObjectRange relies upon this.
-  Any object.NonTrivial functions should also have a Safe.NonTrivial()
+  Any object.NonTrivial functions should also have a StringX.NonTrivial()
   partner made for them, which checks null and then calls the object's NonTrivial.
 
   <li> Finally the objects used in a range should have a meaningful toString().
@@ -216,4 +223,4 @@ public class ObjectRange implements isEasy {
 
 
 }
-//$Id: ObjectRange.java,v 1.6 2001/07/20 04:16:27 mattm Exp $
+//$Id: ObjectRange.java,v 1.17 2004/03/22 17:44:17 andyh Exp $

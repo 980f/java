@@ -4,12 +4,11 @@
  * Copyright:    2000 PayMate.net
  * Company:      paymate
  * @author       paymate
- * @version      $Id: SigningOption.Enum,v 1.1 2001/10/10 22:48:03 andyh Exp $
+ * @version      $Revision: 1.2 $
  */
 
-DoneSigning
-SignPaper
-VoidTransaction
+DoneSigning   //attach to ENTER
+SignPaper     //attach to clear
+StartOver     //should be the same as enter w/ trivial signature
 
-
- //$Id: SigningOption.Enum,v 1.1 2001/10/10 22:48:03 andyh Exp $
+ //$Id: SigningOption.Enum,v 1.2 2001/12/06 19:38:05 andyh Exp $

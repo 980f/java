@@ -1,5 +1,5 @@
 /**
- * Title:        $Id: StopWatch.java,v 1.10 2001/11/14 01:47:58 andyh Exp $<p>
+ * Title:        $Id: StopWatch.java,v 1.14 2004/02/24 18:31:25 andyh Exp $<p>
  * Description:  null<p>
  * Copyright:    null<p>
  * Company:      PayMate.net<p>
@@ -11,7 +11,7 @@
  * Synch is to ensure that "long" is atomic. That can be done by multiple reads at
  * far less expense than locks
  * Synch'ing is only needed for non-atomic data that might get written while it is being read.
- * @todo: add registry so that we can do the same adjustments done by Alarmer.
+ * @todo: add registry so that we can do the same adjustments done by Alarmer. (true for anything that uses DateX)
  */
 
 package net.paymate.util.timer;
@@ -35,17 +35,17 @@ public class StopWatch {
   }
 
   public long millis(){ //can be read while running
-    return (running ? System.currentTimeMillis() : stopped) -started;
+    return (running ? DateX.utcNow() : stopped) -started;
   }
 
   public void Start(){
-    stopped=started=System.currentTimeMillis();
+    stopped=started=DateX.utcNow();
     running=true;
   }
 
   public long Stop(){
     if(running){
-      stopped=System.currentTimeMillis();
+      stopped=DateX.utcNow(); // +++ potentially make this Math.max(started, DateX.utcNow());??WHY
       running=false;
     }
     return millis();
@@ -67,4 +67,4 @@ public class StopWatch {
     this(true);
   }
 }
-//$Id: StopWatch.java,v 1.10 2001/11/14 01:47:58 andyh Exp $
+//$Id: StopWatch.java,v 1.14 2004/02/24 18:31:25 andyh Exp $

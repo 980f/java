@@ -2,8 +2,9 @@
 // put these in the order that you want the columns
 storeCol
 applianceIdCol
+srvrCnxnTimeCol
+applClockDriftCol
 lastLclTimeCol
-locallyUniqueIdCol
 diffTimeCol
 revisionCol
 backLog
@@ -13,3 +14,7 @@ totalMemoryCol
 activeCountCol
 activeAlarmsCountCol
 terminalsCol
+ipLan
+ipWan
+ipAppTime
+ipSrvTime

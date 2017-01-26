@@ -1,15 +1,31 @@
 package net.paymate.util;
 
 /**
- * Title:        placeholder for a real xml genetiaon system
- * Description:  xml helper functions
- * Copyright:    Copyright (c) 2000
+ * Title:        $Source: /cvs/src/net/paymate/util/Xml.java,v $
+ * Description:  xml helper functions,placeholder for a real xml genetiaon system
+ * Copyright:    Copyright (c) 2000,2001
  * Company:      PayMate.net
- * @author $Author: mattm $
- * @version $Id: Xml.java,v 1.2 2001/07/19 01:06:55 mattm Exp $
+ * @author       PayMate.net
+ * @version $Revision: 1.4 $
  */
 
+import java.util.*;
+
 public class Xml {
+
+  public static final StringBuffer attributed(String token, EasyProperties attribs){
+    StringBuffer sb=new StringBuffer(10+20*attribs.size());
+    sb.append(" <");
+    sb.append(token);
+    for(Enumeration enum=attribs.keys();enum.hasMoreElements();){
+      String key=(String)enum.nextElement();
+      String property=attribs.getString(key);
+      sb.append(quoted(key,property));//+++ only if trivial or includes whitespace
+    }
+    sb.append("> ");
+    return sb;
+  }
+
   public static final String start(String token){
     return " <"+token+"> ";
   }
@@ -23,24 +39,27 @@ public class Xml {
   }
 //java needs templates dammit:
   public static final String member(String name,int value){
-    return " "+name+"="+value+" ";
+    return nameEquals(name)+value+" ";
   }
 
   public static final String member(String name,double value){
-    return " "+name+"="+value+" ";
+    return nameEquals(name)+value+" ";
   }
 
   public static final String member(String name,boolean value){
-    return " "+name+"="+value+" ";
+    return nameEquals(name)+value+" ";
   }
 
   public static final String quoted(String name,String value){
-    return name+"=\""+value+"\" ";
+    return nameEquals(name)+"\""+value+"\" ";
   }
 
   public static final String xypair(String name,int x,int y){
-    return name+"= ("+x+","+y+") ";
+    return nameEquals(name)+" ("+x+","+y+") ";
   }
 
+  private static final String nameEquals(String name) {
+    return " "+name+"=";
+  }
 }
-//$Id: Xml.java,v 1.2 2001/07/19 01:06:55 mattm Exp $
+//$Id: Xml.java,v 1.4 2001/12/04 15:14:03 mattm Exp $

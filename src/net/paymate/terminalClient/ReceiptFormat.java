@@ -5,11 +5,12 @@ package net.paymate.terminalClient;
 * Description:
 * Copyright:    Copyright (c) 2000
 * Company:      PayMate.net
-* @author $Author: andyh $
-* @version $Id: ReceiptFormat.java,v 1.12 2001/07/12 17:06:02 andyh Exp $
+* @author $Author: mattm $
+* @version $Id: ReceiptFormat.java,v 1.13 2003/07/27 05:35:16 mattm Exp $
 */
 import net.paymate.util.*;
 import net.paymate.Main;
+import net.paymate.lang.StringX;
 
 public class ReceiptFormat implements isEasy {
 public final static String DefaultTimeFormat="MM/dd/yy hh:mma";
@@ -50,9 +51,9 @@ public final static String DefaultTimeFormat="MM/dd/yy hh:mma";
       }
     } finally {
       receiptFormatlassMonitor.freeMonitor();
-      Header  =   Safe.unescapeAll(ezp.getString(HeaderKey,Default.Header));
-      Tagline =   Safe.unescapeAll(ezp.getString(TaglineKey,Default.Tagline));
-      TimeFormat= Safe.unescapeAll(ezp.getString(TimeFormatKey,Default.TimeFormat));
+      Header  =   StringX.unescapeAll(ezp.getString(HeaderKey,Default.Header));
+      Tagline =   StringX.unescapeAll(ezp.getString(TaglineKey,Default.Tagline));
+      TimeFormat= StringX.unescapeAll(ezp.getString(TimeFormatKey,Default.TimeFormat));
       showSignature= ezp.getBoolean(showSignatureKey,Default.showSignature);
       abide=      ezp.getString(abideKey,Default.abide);
     }
@@ -77,4 +78,4 @@ public final static String DefaultTimeFormat="MM/dd/yy hh:mma";
   }
 
 }
-//$Id: ReceiptFormat.java,v 1.12 2001/07/12 17:06:02 andyh Exp $
+//$Id: ReceiptFormat.java,v 1.13 2003/07/27 05:35:16 mattm Exp $

@@ -1,30 +1,31 @@
+package net.paymate.connection;
 /**
-* Title:        ReceiptStoreRequest
-* Description:  store receipt on server <p>
-* Copyright:    2000<p>
+* Title:        $Source: /cvs/src/net/paymate/connection/ReceiptStoreRequest.java,v $
+* Description:  send receipt to server
+* Copyright:    2000-2002
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: ReceiptStoreRequest.java,v 1.15 2001/10/02 17:06:37 mattm Exp $
+* @version      $Revision: 1.27 $
+* @todo scrub out legacy code when all legacy clients are gone.
 */
 
-package net.paymate.connection;
 import  net.paymate.terminalClient.Receipt;
-import  net.paymate.ISO8583.data.TransactionID;
+import  net.paymate.data.*; // id's
 import  net.paymate.util.*;
 
 import java.io.File;
 
-public class ReceiptStoreRequest extends ActionRequest implements canBacklog, isEasy  {
+public class ReceiptStoreRequest extends AdminRequest implements canBacklog, isEasy  {
 
   public ActionType Type(){
     return new ActionType(ActionType.receiptStore);
   }
-  private boolean       loaded         = false;//we use this to defer parsing
-  private Receipt       receipt       = null; //...this object
-  private String        receiptString = null; //... from this string
+  private Receipt receipt;
 
-  public  TransactionID tid            = TransactionID.Zero();//remove null checking
-/////////////////
+  private TxnReference original = TxnReference.New();
+  public TxnReference reference(){
+    return original;
+  }
 
 /**
  *implements canBacklog
@@ -32,87 +33,67 @@ public class ReceiptStoreRequest extends ActionRequest implements canBacklog, is
   File localFile;
   public File setLocalFile(File f){ return localFile=f;}
   public File getLocalFile(){ return localFile;}
-/////////////////
+
 /**
  * if the receipt was stoodin we need to accept bad clerk logins
  */
   public boolean fromHuman(){
-    return true; //false;//--- remove when +++ %%% login security hole is fixed.
+    return true;//while associated transaction has already dealt with login priv...
+    //we need to know which terminal to associate with the receipt.
+    //--- restore to false when legacy clients are gone!!! this is a hack to deal with
+    //incomplete txnreference objects, that screws up on stood in requests when
+    //a bad client login was accepted.
   }
-///////////////
 
   private Monitor thisMonitor = new Monitor("ReceiptStoreRequest");
 
   public Receipt receipt() {
-    Receipt retval = null;
-    try {
-      thisMonitor.getMonitor();
-      if(!loaded) {
-        receipt = new Receipt(receiptString);
-        loaded = true;
-      }
-      retval = receipt;
-    } finally {
-      thisMonitor.freeMonitor();
-      return retval;
-    }
+    return receipt;
   }
 
-  public String receiptString() {
-    if((receiptString == null) && (receipt != null)) {
-      receiptString = receipt.toTransport();
-    }
-    return receiptString;
+  public String toDiskImage() {
+    return EasyCursor.makeFrom(receipt).asParagraph(OS.EOL);
   }
 
-  public void setReceipt(String receiptString) {
-    try {
-      thisMonitor.getMonitor();
-      this.receiptString = receiptString;
-      receipt = null;
-      loaded = false;
-    } finally {
-      thisMonitor.freeMonitor();
-    }
-  }
-
-  ////////////////////////
-  /// constructors
-
-  // default one for transmission
-  protected ReceiptStoreRequest(){
+  public ReceiptStoreRequest(){// public for fromProperties()
     // use defaults
   }
 
-  public ReceiptStoreRequest(Receipt receipt, TransactionID tid) {
-    this.receipt= new Receipt(receipt);
-    this.tid= TransactionID.NewCopy(tid);
-    loaded = true;
-  }
-
-  public ReceiptStoreRequest(String receiptString) {
-    this(null, null);
-    this.receiptString = receiptString;
-    setReceipt(receiptString);
+  public static ReceiptStoreRequest New(Receipt receipt, TxnReference original) {
+    ReceiptStoreRequest newone=new ReceiptStoreRequest();
+    newone.receipt= receipt;
+    newone.original= original;
+    return newone;
   }
 
   //////////////////////////////
-  // load/save stuff
+  // isEasy interface
 
   private static final String RECEIPTKEY = "RECEIPT";
-  private static final String TIDKEY     = "RECEIPTTID";
 
   public void save(EasyCursor ezp){
     super.save(ezp);
-    ezp.setString(RECEIPTKEY, receiptString());
-    tid.saveas(TIDKEY,ezp);
+    ezp.setObject(RECEIPTKEY,receipt);
+    original.save(ezp);
   }
 
   public void load(EasyCursor ezp){
     super.load(ezp);
-    receiptString = ezp.getString(RECEIPTKEY);
-    tid.loadfrom(TIDKEY,ezp);
+    receipt=(Receipt)ezp.getObject(RECEIPTKEY,Receipt.class);
+    original.load(ezp);
+  }
+  /**
+   * fixup internal reference for bugs previous to rev 1.27 of this module
+   */
+  public TxnReference patch(Terminalid terminalID,UTC requestInitiationTime){
+    return original.patch(terminalID, requestInitiationTime);
+  }
+  /**
+   * @return text suitable for filing the receipt on disk
+   */
+  public String image(char div) {
+    return original.refNum();//
   }
 
 }
-//$Id: ReceiptStoreRequest.java,v 1.15 2001/10/02 17:06:37 mattm Exp $
+//$Id: ReceiptStoreRequest.java,v 1.27 2002/04/30 18:55:34 andyh Exp $

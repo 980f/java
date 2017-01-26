@@ -4,18 +4,19 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: HeaderDef.java,v 1.4 2000/09/06 17:49:25 mattm Exp $
+ * @version      $Id: HeaderDef.java,v 1.6 2003/07/27 05:35:29 mattm Exp $
  */
 
 package net.paymate.web.table;
-import  org.apache.ecs.*;
+import org.apache.ecs.*;
+import net.paymate.lang.StringX;
 
 public class HeaderDef {
   public String colAlign; // for the rows under the header
   public Element title;
   public HeaderDef(String colAlign, String title) {
     this.colAlign = colAlign;
-    this.title = new StringElement(title.trim());
+    this.title = new StringElement(StringX.TrivialDefault(title, "").trim());
   }
   public HeaderDef(String colAlign, Element title) {
     this.colAlign = colAlign;

@@ -1,10 +1,11 @@
 /**
-* Title:        ByteBlock
-* Description:
+* Title:        $Source: /cvs/src/net/paymate/jpos/data/ByteBlock.java,v $
+* Description:  two dimensional array of bytes.
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: ByteBlock.java,v 1.2 2001/07/19 01:06:51 mattm Exp $
+* @version      $Id: ByteBlock.java,v 1.4 2004/01/22 18:09:39 andyh Exp $
+ * @todo: relocate to util package.
 */
 package net.paymate.jpos.data;
 
@@ -55,4 +56,4 @@ public class ByteBlock {
   }
 
 }
-//$Id: ByteBlock.java,v 1.2 2001/07/19 01:06:51 mattm Exp $
+//$Id: ByteBlock.java,v 1.4 2004/01/22 18:09:39 andyh Exp $

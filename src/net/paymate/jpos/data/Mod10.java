@@ -4,26 +4,26 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Mod10.java,v 1.7 2001/07/19 01:06:51 mattm Exp $
+* @version      $Id: Mod10.java,v 1.10 2002/06/28 02:35:17 andyh Exp $
 */
 package net.paymate.jpos.data;
 
 public class Mod10 {
   public static final boolean throwStuff=false;
-
-  protected static final int compute(String s){
+/**
+ * specification: "double digit, if result is two digits add those digits"
+ * first simplfication: "double digit, if >10 subtract 9"
+ * final simplification: precompute and look up value.
+ */
+ //                                 0,1,2,3,4,5,6,7,8,9
+  private static final int remap[]={0,2,4,6,8,1,3,5,7,9};
+  private static final int compute(String s){
     int luhnsum=0;
     boolean dublit=false;  //since we start at ls digit and work towards ms.
     for(int i=s.length();i-->0;){
       int digit= Character.digit(s.charAt(i),10); //base 10 digits.
       if(digit>=0){ //valid character
-        if(dublit){//must double and wrap before adding to accumulator
-          digit<<=1;
-          if(digit>=10){//
-            digit-=9; // (-10 + 1);
-          }
-        }
-        luhnsum+=digit;
+        luhnsum += dublit ? remap[digit] : digit;
         dublit=!dublit; //double every other one.
       } else {
         if(throwStuff){
@@ -55,4 +55,4 @@ public class Mod10 {
   }
 
 }
-//$Id: Mod10.java,v 1.7 2001/07/19 01:06:51 mattm Exp $
+//$Id: Mod10.java,v 1.10 2002/06/28 02:35:17 andyh Exp $

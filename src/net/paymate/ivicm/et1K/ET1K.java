@@ -5,50 +5,45 @@ package net.paymate.ivicm.et1K;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: ET1K.java,v 1.61 2001/11/17 00:38:34 andyh Exp $
+* @version      $Id: ET1K.java,v 1.100 2004/02/26 18:40:50 andyh Exp $
 */
 
-import net.paymate.jpos.common.*;
 import net.paymate.util.*;
 import net.paymate.util.timer.*;
 import net.paymate.ivicm.*;
 import net.paymate.ivicm.comm.*;
 import net.paymate.serial.*;
-import jpos.services.EventCallbacks;
 import net.paymate.jpos.Terminal.LinePrinter;//jpos printer is too complex...
-
-import jpos.events.*;
-import jpos.*;
-
-import javax.comm.*;
+import net.paymate.text.Formatter;
 import java.util.Vector;
-
+import net.paymate.lang.ReflectX;
 
 public final class ET1K extends SerialDevice implements QActor {
-  static final ErrorLogStream dbg= new ErrorLogStream(ET1K.class.getName());
-  static final ErrorLogStream rcvr=new ErrorLogStream(ET1K.class.getName()+".rcvr");
-  static final ErrorLogStream qusr=new ErrorLogStream(ET1K.class.getName()+".qusr");
+  static final ErrorLogStream dbg= ErrorLogStream.getForClass(ET1K.class);
+  static final ErrorLogStream rcvr=ErrorLogStream.getExtension(ET1K.class, "rcvr");
+  static final ErrorLogStream qusr=ErrorLogStream.getExtension(ET1K.class, "qusr");
 
-  static final String driverVersion="(C)2000-2001 Paymate ET1K $Revision: 1.61 $";
+  static final String driverVersion="(C)2000-2002 Paymate ET1K $Revision: 1.100 $";
 
   //////////////////
   //link state
   /**
   * currentCommand is the last one sent EXCEPT for retry commands (05.04.06.07)
   */
-  Command currentCommand;
+  private Command currentCommand;
   /**
   * this is true when a whole packet seems to have been received.
   */
-  boolean phasedin=false;
+  private boolean phasedin=false;
   /**
   * true when we THINK that the enTouch MIGHT be sending a response
   */
-  Reply rcvbuf;
+  private Reply rcvbuf;
+  private Waiter packetWait;
   //end link state
   ///////////////
 
-  Monitor qlock;//still neededuntil objFifo implements uniqueness per this module's needs
+  private Monitor qlock;//still neededuntil objFifo implements uniqueness per this module's needs
 
   //////////////////
   /**
@@ -60,32 +55,32 @@ public final class ET1K extends SerialDevice implements QActor {
   */
   public final static int plentyOfTime=6000;//packet initial response timeout
 
-  int resendCount=0;//"request to send last reply again" counter
+  private int resendCount=0;//"request to send last reply again" counter
   public static double minlatency =- .050; //pessimistic setting
   ////////////////////////////////
   // command queuing
 
-  QAgent CommandProcessor;
-  Vector atStartup=new Vector();//commands to reissue on a reconnect
+  private QAgent CommandProcessor;
+  private Vector atStartup=new Vector();//commands to reissue on a reconnect
 
   /**
   * thread=any that trigger PosTerminal, especially system initialization
   */
 
   public void setStartup(Command cmd){
-    qusr.Enter("setting startup:"+cmd.errorNote);
+    qusr.Enter("setting startup:"+cmd.errorNote);//#gc
     try {
       //at front cause list is reverse iterated when used. we want order to be preserved.
-      atStartup.insertElementAt(cmd,0);
+      atStartup.insertElementAt(cmd.boostTo(Command.priorityInit),0);
       QueueCommand(cmd);//and execute now as well.
     }
     finally {
-      qusr.Exit();
+      qusr.Exit();//#gc
     }
   }
 
 
-  /**
+   /**
   * stick @param complete into the queue. The command contains its importance.
   * thread=any that trigger PosTerminal
   */
@@ -93,19 +88,15 @@ public final class ET1K extends SerialDevice implements QActor {
     try {
       //lock here because this is the entry point for many threads.
       qlock.LOCK("Queueing:"+complete.errorNote);//module entry point for most threads
-      qusr.Enter(complete.errorNote);
-      String blather="attempting to enque:"+complete.errorNote;
-      if(complete.isaPoller){
-        qusr.VERBOSE(blather);
-      } else {
-        qusr.WARNING(blather);
-      }
-      if(CommandProcessor.putUnique(complete,complete.highPriority)){
-        qusr.WARNING("Command already in queue:"+complete.errorNote);
+      qusr.Enter(complete.errorNote);//#gc
+
+      complete.log(qusr,"attempting to enque:");
+      if(CommandProcessor.putUnique(complete)){
+        qusr.WARNING("Command replaced one already in queue:"+complete.errorNote);
         return;
       }
     } finally {
-      qusr.Exit();
+      qusr.Exit();//#gc
       qlock.UNLOCK("Queueing");
     }
   }
@@ -119,62 +110,73 @@ public final class ET1K extends SerialDevice implements QActor {
     qusr.VERBOSE("squelched "+removed+" "+cmd.errorNote);
   }
 
+  private int spewVolume(){
+    return dbg.levelIs(LogSwitch.VERBOSE)?80:15;
+  }
+
   private void cmsg(String msg){
-    if(currentCommand.isaPoller){
-      dbg.VERBOSE(msg+currentCommand.errorNote);
-    } else {
-      dbg.WARNING(msg+currentCommand.errorNote);
-    }
+    currentCommand.log(dbg,msg);
   }
 
   /**
   * thread=QAgent
   * notifier= super.myPort. an object reference that definitely doesn't change while we are running.
   */
-  private void interact(Command cmd){
-    dbg.Enter("Interact");
-    if(cmd!=null){
-      try {
+  private Command interact(Command cmd){
+    dbg.Enter("Interact");//#gc
+    try {
+      if(cmd!=null){
+        Command chained=null;//compiler couldn't figure out that all paths were covered...
         setCommand(cmd);
         cmsg("beginning:");
-        rcvbuf= Reply.New(); //rvbuf is allocated outside of this function due to use of legacy 'onByte()' routine
+        rcvbuf= Reply.New();
+        packetWait.prepare();
         sendCommand();
-        //      long sleepuntil=Safe.utcNow()+plentyOfTime;
+        long waiter=plentyOfTime;//for most operations
+        switch (currentCommand.opCode()) {
+          case OpCode.AUX_FUNCTION:{
+            if(currentCommand.outgoing().bight(3)==AuxCode.AUX_COMPRESSFLASH){
+              waiter=Ticks.forMinutes(2);
+            }
+          } break;
+          case OpCode.GET_COMPRESSED_SIG:{
+            waiter=Ticks.forSeconds(5+2);//and now plentyOfTime can be reduced...
+          } break;
+          case OpCode.getVersionInfo:{
+            waiter=Ticks.forSeconds(2+2);//and now plentyOfTime can be reduced...
+          } break;
+        }
+
         do {
-          cmsg("about to wait for ");
-          if(ThreadX.waitOn(myPort,plentyOfTime,dbg)){//true: timeout or had an exception
-            dbg.VERBOSE("waitOn returned true");
-            if(!suckInput(dbg)){//one last chance for hanging data to come in.
-              //sometimes we get here with a packet that is complete but not handled,
-              //hwat the fuck gives!!!!
-              if(rcvbuf.isComplete()){
-                dbg.ERROR("timeout but data was complete");
-                int whatgives=onCompletion(rcvbuf,dbg);//try this one more freaking time
-                dbg.ERROR("onCompletion now gives ("+TimeoutNever+" desired):"+whatgives);
-                if(whatgives==TimeoutNever){
-                  continue;//test completion flag, break would skip that test.
-                }
-              }
-              if(++resendCount<1000){//start with half an hour of retries...
-                dbg.ERROR("After timeout retrying "+resendCount+" of "+currentCommand.outgoing().toSpam(5));
-                dbg.ERROR("want "+ rcvbuf.EndExpectedAt()+ " rcv'd "+ Safe.ox2(rcvbuf.ptr())+" so far:"+rcvbuf.toSpam());
-                sendBuffer(resync.outgoing());
-                rcvbuf.reset();
-                //currentCommand.processed will be false so we will loop back to the waitOn()
-              } else {
-                dbg.ERROR("Giving up after Timeout on "+currentCommand.outgoing().toSpam(5));
-                onCompletion(rcvbuf,dbg);//complete, with failure.
-              }
-            }  //else was ok, we just didn't get timely notification
+          cmsg("about to wait");
+          packetWait.Start(waiter,dbg);
+
+          boolean iscomp= rcvbuf.isComplete();
+          dbg.VERBOSE("iscomp:"+iscomp);
+          if(iscomp || suckInput(dbg)){//one last chance for hanging data to come in.
+            dbg.VERBOSE("input is complete");//a good thing
+            chained=onCompletion(rcvbuf,dbg);
           } else {
-            dbg.VERBOSE("waitOn returned false");//a good thing
+            if(++resendCount<1000){//long but not infinite
+              dbg.ERROR("After timeout retrying "+resendCount+" of "+currentCommand.outgoing().toSpam(spewVolume()));
+              dbg.ERROR("want "+ rcvbuf.EndExpectedAt()+ " rcv'd "+ rcvbuf.ptr()+" so far:"+rcvbuf.toSpam());
+              packetWait.prepare();//added for jre 1.4, retry operations were immediately timed out.
+              sendBuffer(resync.outgoing());
+              rcvbuf.reset();
+              chained=null; //but currentCommand.isProcessed will be false so we will loop back to the waitOn()
+            } else {
+              dbg.ERROR("Giving up after Timeout on "+currentCommand.outgoing().toSpam(spewVolume()));
+              chained=onCompletion(rcvbuf,dbg);//complete, with failure.
+            }
           }
-        } while(!currentCommand.processed);
-        cmsg("got reply: "+rcvbuf.toSpam(15)+" on:");
-        //else we have finished an interaction
-      } finally{
-        dbg.Exit();
+        } while(!currentCommand.processed);//usually set by onCompletion()
+        cmsg("processed reply: "+rcvbuf.toSpam(spewVolume()));
+        return chained;
+      } else {
+        return null;
       }
+    } finally {
+      dbg.Exit();//#gc
     }
   }
 
@@ -183,15 +185,18 @@ public final class ET1K extends SerialDevice implements QActor {
   */
   public void runone(Object fromq){
     try {
-      while(!phasedin){//until one worksse
-        dbg.WARNING("attempting resync");
-        interact(resync);
+      Command torun=(Command) fromq;
+      while(torun!=null){
+        while(!phasedin){//until one worksse
+          dbg.WARNING("attempting resync");
+          interact(resync);
+        }
+        dbg.VERBOSE("running command fromq");
+        torun=interact(torun);
       }
-      dbg.VERBOSE("running command fromq");
-      interact((Command) fromq);
     }
     catch (ClassCastException cce) {
-      dbg.ERROR("Non command object in command queue:"+fromq.getClass().getName());
+      dbg.ERROR("Non command object in command queue:"+ReflectX.shortClassName(fromq));
     }
     catch (Exception ex) {
       dbg.Caught(ex);
@@ -232,105 +237,121 @@ public final class ET1K extends SerialDevice implements QActor {
   /**
   * upon completion of a reply packet...even if it fails
   * thread=serialReader usually, QAgent when timeout in interact()
+  * @return a chained command for fresh processeing or null, in whcih case isProcessed is true if teh command is complet, or false f we are expecting more input
   */
-  private int onCompletion(Reply response,ErrorLogStream somedbg){
-    somedbg.WARNING("Completed "+response.toSpam(10));
-    phasedin=response.isOk(); //used by detector
+  private Command onCompletion(Reply response,ErrorLogStream somedbg){
+    try {
+    cmsg("Completed "+response.toSpam(spewVolume()));
+    phasedin=response.isOk();
     somedbg.VERBOSE("phasedin:"+phasedin);
     currentCommand.failed=!phasedin; //legacy, needs cleanup
-
-    if(phasedin && currentCommand.outgoing().opCode()!=response.opCode()){
-      currentCommand.failed=currentCommand.outgoing().opCode()!=Codes.RESEND_LAST_DATA_BLOCK;//resync code
-      if (currentCommand.failed) {
-        //stay in listening state for another timeout period.
-        if(++resendCount<1000){//start with half an hour of retries...
-          somedbg.ERROR("op mismatch, pausing in the hopes it will fix itself ");
-          myPort.reallyFlushInput(100); //desperate gamble.
-          rcvbuf.reset();
-          return plentyOfTime;
-        } else {
-          somedbg.ERROR("op mismatch, giving up");
-        }
-      }
-      else {
-        somedbg.WARNING("op mismatch ok, is resync");
-      }
-    }
     currentCommand.incoming=response;//Services better copy what they want to keep!
     Command chained=null;
-    if(currentCommand.failed){
-      chained=PostFailure("Input Failure",somedbg);
-    } else if(currentCommand.onReception !=null){
-      /*
-      * once I finally got a spec I had to inspect every individual command to
-      * establish that contrary to some of their descriptions the error codes are universal.
-      * so... we can inspect the communications related ones HERE.
-      */
-      int fart=currentCommand.response();
-      switch (fart) {
-        case Codes.POWERUP:{//power failed
-          somedbg.ERROR("PowerupEvent");
-          chained=currentCommand;//reissue
-          //add in powerup config commands
-          onReconnect(somedbg);
-        } break;
 
-        //the following are problems the device had with our last sending(s).
-        case Codes.INVALIDSEQUENCENUMBER: //
-        somedbg.ERROR("InvalidSequenceNumber:"+currentCommand.outgoing().toSpam(5));
-        if(currentCommand instanceof BlockCommand){
-          ((BlockCommand) currentCommand).dumpSent(somedbg,somedbg.ERROR);
-        }
-        //join.
-        case Codes.PACKETERROR: //length doesn't jibe, unlikely without LRC error as well
-        case Codes.MESSAGEOVERFLOW://aka receive buffer full
-        case Codes.INVALIDLRC: //we check before we send.
-        case Codes.PACKETTIMEOUT:{// packet ain't likely to fix itself...
-          chained=PostFailure("PacketError "+Safe.ox2(fart),dbg);
-        } break;
+    if(currentCommand.failed){//not phased in yet
+      if(++resendCount<10){//stay in listening state for a few more timeout periods.
+        somedbg.ERROR("malformed response, flush and wait longer");
+        myPort.reallyFlushInput(100); //desperate gamble.
+        rcvbuf.reset();
+        return null; //but is Processed==false; so we will wait longer
+      } else {
+        //hopeless, fail the command
+        chained= PostFailure("total timeout",somedbg);
+      }
+    } else {
+      //if powerup OR resync response resend current command
+      if(response.opCode()==resync.opCode() || response.response()==ResponseCode.POWERUP){
+        somedbg.ERROR("PowerupEvent");
+        chained=currentCommand;//reissue
+        //add in powerup config commands
+        onReconnect(somedbg);
+      } else {
+          int fart=currentCommand.response();
+          switch (fart) {//deal with universal response codes
+            case ResponseCode.POWERUP:{//power failed
+              somedbg.ERROR("PowerupEvent");
+              chained=currentCommand;//reissue
+              //add in powerup config commands
+              onReconnect(somedbg);
+            } break;
 
-        default:{//command specific meaning and response
-          somedbg.WARNING("Posting "+currentCommand.errorNote);
-          chained=Post(currentCommand);
-        } break;
+            //the following are problems the device had with our last sending(s).
+            case ResponseCode.INVALIDSEQUENCENUMBER:{ //
+              somedbg.ERROR("InvalidSequenceNumber:"+currentCommand.outgoing().toSpam(spewVolume()));
+              if(currentCommand instanceof BlockCommand){
+                BlockCommand bc=(BlockCommand) currentCommand;
+                bc.dumpSent(somedbg,somedbg.ERROR);
+                chained=bc.restart();//posts Failure and returns null if retries exceeded
+              }
+            } break;
+            //join.
+            case ResponseCode.PACKETERROR: //length doesn't jibe, unlikely without LRC error as well
+            case ResponseCode.MESSAGEOVERFLOW://aka receive buffer full
+            case ResponseCode.INVALIDLRC: //we check before we send.
+            case ResponseCode.PACKETTIMEOUT:{// packet ain't likely to fix itself...
+              chained=PostFailure("PacketError "+Formatter.ox2(fart),dbg);
+            } break;
+
+            default:{//command specific meaning and response
+              cmsg("Posting ");
+              chained=Post(currentCommand);
+//              if(currentCommand instanceof PinPadCommand){
+//                lockingService=
+//              }
+            } break;
+          }
       }
     }
+    markDone(currentCommand);
     if(chained!=null){
       somedbg.WARNING("Chaining command:"+chained.errorNote);
-      QueueCommand(chained.boost());//boost is needed to keep BlockCommand together
+      return chained;
     }
-    markDone(currentCommand);
-    return TimeoutNever;//legacy trigger for Done with last command.
+    return null;//but is Processed==true;
+    }
+    finally {
+      gc();
+    }
+
   }
 
   /**
-  * thread=serialReader
+  * thread=inteact()serialReader
   */
   private void markDone(Command currentCommand){
     currentCommand.processed=true;
-    dbg.VERBOSE("Notifying interactor");
-    ThreadX.notify(myPort);
   }
 
   /**
-  * thread=initialization(main or appliance),serialReader
+  * thread=initialization(AppliancePinger),serialReader
+  * lock queue because all of these must precede all of whatever is in queue.
   */
   private void onReconnect(ErrorLogStream somedbg){
-    somedbg.VERBOSE("onReconnection");
-    for(int i=atStartup.size();i-->0;){
-      Command cmd=(Command)atStartup.elementAt(i);
-      somedbg.WARNING("queuing startup:"+cmd.errorNote);
-      QueueCommand(cmd);
+    try {
+      qlock.LOCK("reconnecting");
+      for(int i=atStartup.size();i-->0;){
+        Command cmd=(Command)atStartup.elementAt(i);
+        somedbg.WARNING("queuing startup:"+cmd.errorNote);
+        QueueCommand(cmd);
+      }
+    }
+    finally {
+      qlock.UNLOCK("reconnecting");
     }
   }
 
+  private static final String comchar(int commchar){
+    return commchar<0? Receiver.imageOf(commchar): Formatter.ox2(commchar);
+  }
   ////////////////
   //receiver state machine
+
   /**
   * thread=serialReader,QAgent on timeout
   */
   public int onByte(int commchar) {
-    rcvr.Enter("onByte:"+Safe.ox2(commchar));
+    rcvr.Enter("onByte:"+ comchar(commchar));//#gc
+    myPort.boostCheck(); ///---twould be nice to find a better place for this...
     try {
       if(currentCommand==null){
         rcvr.ERROR("rcvenabled but command is null");
@@ -343,7 +364,7 @@ public final class ET1K extends SerialDevice implements QActor {
         switch(rcvbuf.ptr()) {
           case 1:{ //start of frame
             if(commchar != 0) {//rcv sof is not the same as sent sof.
-              rcvbuf.reset();
+              rcvbuf.reset();//drop chars until potential SOF encountered
             }
           } return ICT;
 
@@ -355,10 +376,10 @@ public final class ET1K extends SerialDevice implements QActor {
             if(currentCommand!=null){
               int expected = currentCommand.opCode();
               if(commchar != expected) {
-                if(expected == 6) {
-                  rcvr.WARNING("resync will toss:"+Safe.ox2(commchar));
+                if(expected == resync.opCode()) {
+                  rcvr.WARNING("resync will toss:"+Formatter.ox2(commchar));
                 } else {
-                  rcvr.ERROR("command "+Safe.ox2(expected)+" reply "+Safe.ox2(commchar));
+                  rcvr.ERROR("command "+Formatter.ox2(expected)+" reply "+Formatter.ox2(commchar));
                 }
                 rcvr.VERBOSE("+rcvbuf:"+rcvbuf.toSpam());
               }
@@ -369,7 +390,10 @@ public final class ET1K extends SerialDevice implements QActor {
           default:{
             if(rcvbuf.isComplete()) {//test length AND checksum et al.
               rcvr.WARNING("Rcv done:"+currentCommand.responseTime.Stop());
-              return onCompletion(rcvbuf,rcvr);
+              rcvr.VERBOSE("Notifying interactor");
+//              ThreadX.notify(myPort);
+              packetWait.Stop();
+              return TimeoutNever;
             } else {
               rcvr.VERBOSE("So far: "+rcvbuf.toSpam());
               return ICT;
@@ -381,78 +405,17 @@ public final class ET1K extends SerialDevice implements QActor {
       }
     }
     finally {
-      rcvr.Exit();
-    }
-  }
-
-  /**
-  * @return "done"
-  */
-  private boolean suckInput(ErrorLogStream rcvr){
-    int nexttimeout= TimeoutNever;
-    while(myPort.available()>0){//got bytes
-      nexttimeout= onByte(myPort.ezRead());//might extend the thread sleep...
-      rcvr.VERBOSE("onByte returned:"+nexttimeout);
-      if(nexttimeout==TimeoutNever){
-        return true;//packet done.
-      }
-    }
-    return false;
-  }
-
-  int reentranceCheck=0;
-  //javax.comm interface
-  int eventcount=0;
-  /**
-  * thread=serialReader
-  */
-  public void serialEvent(SerialPortEvent serialportevent) {
-    rcvr.VERBOSE("Event "+ ++eventcount);
-    try {
-      if(reentranceCheck++>0){
-        rcvr.ERROR("Re-entered ISR:"+reentranceCheck);
-        //trust the lock to prevent bad things from happening
-      }
-      //      LOCK("ISR");//entry point for javax.comm
-      if(reentranceCheck>1){
-        rcvr.ERROR("Re-entered past lock:"+reentranceCheck);
-        //--reentr is in a finally clause
-        return; //data loss will eventually create a timeout and protocol restart.
-      }
-
-      myPort.boostCheck();//adjust priority
-      switch(serialportevent.getEventType()) {
-        case SerialPortEvent.DATA_AVAILABLE:{
-          rcvr.VERBOSE("got data interrupt");
-          suckInput(rcvr);
-        } break;
-
-        case SerialPortEvent.FE:
-        case SerialPortEvent.PE:
-        case SerialPortEvent.OE:{
-          rcvr.ERROR("Receive Error "+serialportevent.getEventType());
-        } break;
-
-        default:{
-          rcvr.ERROR("Ignored Unexpected Serial Event");
-        } break;
-      }
-    }
-    catch(Exception unknown) {
-      rcvr.Caught("on processing serial event ", unknown);
-    }
-    finally {
-      --reentranceCheck;
+      rcvr.Exit();//#gc
     }
   }
 
   private Exception sendBuffer(LrcBuffer outgoing) {
-    cmsg(currentCommand.outgoing().toSpam(5)+" ");
+    cmsg(currentCommand.outgoing().toSpam(spewVolume())+" ");
     return myPort.lazyWrite(outgoing.packet(), 0,outgoing.ptr());
   }
 
   private void sendCommand(){//only called from synched methods.
-    dbg.Enter("sendCommand");
+    dbg.Enter("sendCommand");//#gc
     try {
       resendCount=0;
       sendBuffer(currentCommand.outgoing());
@@ -462,7 +425,7 @@ public final class ET1K extends SerialDevice implements QActor {
       dbg.ERROR("npe on "+currentCommand.errorNote);
     }
     finally {
-      dbg.Exit();
+      dbg.Exit();//#gc
     }
   }
 
@@ -482,7 +445,7 @@ public final class ET1K extends SerialDevice implements QActor {
     currentCommand=newone;
   }
 
-  Command resync=new Command(Codes.RESEND_LAST_DATA_BLOCK,"resync");
+  Command resync=new Command(OpCode.RESEND_LAST_DATA_BLOCK,"resync");
 
   public void ClearError(){//called from Command.onReception.guys calling PostFailre()
     rcvr.WARNING("ClearErrors");
@@ -503,16 +466,16 @@ public final class ET1K extends SerialDevice implements QActor {
 
 
   public void onConnect(){//called by super.Connect()
-    qusr.Enter("onConnect");
+    qusr.Enter("onConnect");//#gc
     try {
       int flushed=myPort.reallyFlushInput(Reply.RcvSize);
       qusr.WARNING("Flushed "+flushed+" bytes");
-      CommandProcessor.Clear();//(re) starts driver
+      CommandProcessor.Start();// starts driver
       QueueCommand(Versions());//doesn't work right cuase it has no service to watch over it.
       onReconnect(qusr); //re connects do NOT recreate poll commands.
     }
     finally {
-      qusr.Exit();
+      qusr.Exit();//#gc
     }
   }
 
@@ -520,20 +483,21 @@ public final class ET1K extends SerialDevice implements QActor {
   * while we only expect this to be called once per ET1K object creation,
   * we don't trust the underlying serial port to not already have data to send.
   */
-  public JposException Connect(SerialConnection sc){
+  public void Connect(SerialConnection sc){
     qusr.VERBOSE("connecting:"+myName);
     if(sc!=null&& sc.parms!=null){//config reload failed here
-      sc.parms.setFlow(SerialPort.FLOWCONTROL_NONE);
+//      sc.parms.setFlow(Port.FLOWCONTROL_NONE);
       sc.parms.obufsize=Codes.maxPacketSize+1; //+1 for luck
       //      qusr.mark(sc.parms.getPortName());
     }
-    return super.Connect(sc);//this calls back to onConnect()
+    super.Connect(sc);//this calls back to onConnect()
   }
 
   public ET1K(String givenName){
     super(givenName);
     qlock=new Monitor(givenName,qusr);
-    CommandProcessor= QAgent.New(givenName,this);
+    packetWait= new Waiter();
+    CommandProcessor= QAgent.New(givenName,this,PriorityComparator.Normal());
     CommandProcessor.config(dbg);
     qusr.VERBOSE("constructed:"+givenName);
   }
@@ -542,14 +506,17 @@ public final class ET1K extends SerialDevice implements QActor {
   // Service providers:
 
   public static Command Versions(){
-    BlockCommand cmd= new BlockCommand();
-    cmd.errorNote="DriverVersions";
-    cmd.addCommand(Command.JustOpcode(Codes.CLEAR_SCREEN));
-    int row=0;
-    cmd.addCommand(DisplayTextAt(++row,1,0,driverVersion));
-    cmd.addCommand(DisplayTextAt(++row,1,0,FormService.VersionInfo));
-    cmd.addCommand(DisplayTextAt(++row,1,0,MSRService.VersionInfo));
-    cmd.addCommand(DisplayTextAt(++row,1,0,PINPadService.VersionInfo));
+    TextColumn wrapped=new TextColumn(38);//small font-margins, in OurFroms stuff.
+    wrapped.add(driverVersion);
+    wrapped.add(FormService.VersionInfo);
+    wrapped.add(MSRService.VersionInfo);
+    wrapped.add(PINPadService.VersionInfo);
+
+    BlockCommand cmd= new BlockCommand("Driver Versions");
+    cmd.addCommand(Command.JustOpcode(OpCode.CLEAR_SCREEN));
+    for(int row=0;row<wrapped.size();row++){
+      cmd.addCommand(DisplayTextAt(1+row,1,0,wrapped.itemAt(row)));
+    }
     return cmd;
   }
 
@@ -557,7 +524,7 @@ public final class ET1K extends SerialDevice implements QActor {
   public static final LrcBuffer DisplayTextAt(int row, int col, int fontcode, String s){
     int cutoff=Math.min(s.length(),Codes.maxPacketBody-4);//4==size,row,col,font
     LrcBuffer cmd = Command.Buffer(cutoff+5);
-    cmd.append(Codes.DISPLAY_TEXT_STRING);
+    cmd.append(OpCode.DISPLAY_TEXT_STRING);
     cmd.append(cutoff); //string size for entouch
     cmd.append(row);
     cmd.append(col);
@@ -567,22 +534,29 @@ public final class ET1K extends SerialDevice implements QActor {
     return cmd;
   }
 
-  public jpos.services.FormService14    FormService(String jname){
-    return new FormService              (jname, this);
+  public void Display(String forDisplay){//for tester
+    QueueCommand(new Command(DisplayTextAt(1,1,0,forDisplay),"direct display"));
   }
 
-  public jpos.services.MSRService14     MSRService(String jname){
-    return new MSRService               (jname, this);
+  public FormService   FormService(String jname){
+    return new FormService   (myName, this);
   }
 
-  public jpos.services.PINPadService14  PINPadService(String jname){
-    return new PINPadService            (jname, this);
+  public MSRService     MSRService(String jname){
+    return new MSRService    (jname, this);
+  }
+
+  public PINPadService  PINPadService(String jname){
+    return new PINPadService (jname, this);
   }
 
   public /*jpos omission*/ LinePrinter  AuxPrinter(String jname){
     return new RCBPrinter               (jname, this);
   }
 
+  /**
+   * a service, so that error scan be responded to.
+   */
   public Service rawAccess(){
     return new Service("Raw Access",this);
   }
@@ -592,6 +566,48 @@ public final class ET1K extends SerialDevice implements QActor {
     //    return new ScreenPrinter(myName,this);
   //  }
 
+  ///////////////////////////////
+  static LogSwitch mygc;
+  static int downer=0;//4debug do one right away
+  static final int divider=300;
+  private static void gc(){
+    if(mygc==null){
+       mygc=LogSwitch.getFor(ET1K.class,"gc").setLevel(LogSwitch.ERROR);//error == off
+    }
+    if(--downer<0){
+      downer=divider;
+      net.paymate.Main.gc(mygc);
+    }
+  }
+
+    ////////////////////
+  /**
+   *
+   */
+
+  public static Command CompressFlashCommand(){
+    return new Command(OpCode.AUX_FUNCTION,AuxCode.AUX_COMPRESSFLASH,"CompressFlash");
+  }
+
+  static boolean testquietly=false;
+  static public void main(String[] args) {
+    ET1K testunit=new ET1K("ET1K.tester");
+
+    testunit.testerConnect(args,19200,dbg);//this guy turns dbg to verbose
+    if(testquietly){
+      LogSwitch.SetAll(LogSwitch.ERROR);//@in a tester
+      PrintFork.SetAll(LogSwitch.VERBOSE);//@in a tester
+    } else {
+      StringStack.setDebug(LogSwitch.VERBOSE);//test for leaks!
+    }
+//leave these commentd lines in. alh restores them while doing certain tests.
+//    rcvr.setLevel(LogLevelEnum.ERROR);
+//    qusr.setLevel(LogLevelEnum.ERROR);
+//    dbg.setLevel(LogLevelEnum.ERROR);
+//    Reply.rdbg.setLevel(LogLevelEnum.ERROR);
+    testunit.Post(testunit.CompressFlashCommand());
+    testunit.testloop(dbg);
+  }
 
 }
-//$Id: ET1K.java,v 1.61 2001/11/17 00:38:34 andyh Exp $
+//$Id: ET1K.java,v 1.100 2004/02/26 18:40:50 andyh Exp $

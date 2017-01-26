@@ -6,20 +6,20 @@ package net.paymate.util;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author       PayMate.net
- * @version $Id: LocalTimeFormat.java,v 1.16 2001/07/19 01:06:54 mattm Exp $
+ * @version $Id: LocalTimeFormat.java,v 1.30 2003/10/24 02:29:14 mattm Exp $
  */
 
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.util.Calendar;
 import java.util.Date;
+import net.paymate.lang.StringX;
 
 public class LocalTimeFormat implements isEasy {
-  private static final ErrorLogStream dbg = new ErrorLogStream(LocalTimeFormat.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(LocalTimeFormat.class);
 
-  protected SimpleDateFormat wrapped;
-//  protected
-   String internalFormat;//cached for making new ones
+  private SimpleDateFormat wrapped;
+  private String internalFormat;//cached for making new ones
 
   public String getFormat(){
     return internalFormat;
@@ -36,8 +36,6 @@ public class LocalTimeFormat implements isEasy {
     return this;
   }
 
-  public static final Date genesis = dateFromInts(2000, 03, 15);
-
   public static final Date dateFromInts(int year, int month, int day) {
     Calendar cal = Calendar.getInstance();
     cal.set(year, month, day);
@@ -45,6 +43,7 @@ public class LocalTimeFormat implements isEasy {
   }
 
   private void setZone(TimeZone fromServer){
+//can't debug this function, used by a static!!!    dbg.ERROR("Setting tz:"+fromServer);
     wrapped= new SimpleDateFormat();
     wrapped.set2DigitYearStart(dateFromInts(2000,1,1));
     wrapped.setTimeZone(fromServer);
@@ -53,11 +52,15 @@ public class LocalTimeFormat implements isEasy {
   protected LocalTimeFormat(TimeZone fromServer,String format){
     setZone(fromServer);
     //+_+ pathological default, but stops exceptions
-    setFormat(Safe.OnTrivial(format,"z"));
+    setFormat(StringX.OnTrivial(format,"z"));
   }
 
   public static final LocalTimeFormat copy(LocalTimeFormat rhs){
     return new LocalTimeFormat(rhs.wrapped.getTimeZone(),rhs.internalFormat);
+  }
+
+  public static final LocalTimeFormat cousin(LocalTimeFormat rhs,String otherformat){
+    return new LocalTimeFormat(rhs.wrapped.getTimeZone(),otherformat);
   }
 
   public LocalTimeFormat Clone(){
@@ -95,29 +98,52 @@ public class LocalTimeFormat implements isEasy {
     return New(TimeZone.getTimeZone("UTC"),format);
   }
 
+  public static final String DESCENDINGTIMEFORMAT = "yyyyMMddHHmmssSSS";
+
   public static final LocalTimeFormat Utc() {
-    return Utc("yyyyMMddHHmmssSSS");//decimalized but covers full span
+    return Utc(DESCENDINGTIMEFORMAT);//decimalized but covers full span
   }
 
   public String format(Date d){//
     return wrapped.format(d);
   }
 
+  public String format(UTC utc){//
+    return utc!=null? wrapped.format(new Date(utc.utc)): "null";
+  }
+
   public Date parse(String image, Date onError){
     try {
       return wrapped.parse(image);
     } catch (java.text.ParseException arf){
+      dbg.Caught(arf);
       return onError;
     }
   }
 
-  public static final Date onError=new Date();//+_+ need a better fallback
-  public Date parse(String image){
+  public Date parseFill(String image, Date onError){
 // hack --- pad with zeroes if image is too short
     if(image.length() < internalFormat.length()) {
-      image = Safe.fill(image, '0', internalFormat.length(), false);
+      image = StringX.fill(image, '0', internalFormat.length(), false);
     }
     return parse(image,onError);
+  }
+
+  public static final Date onError=new Date();//+_+ need a better fallback
+  public Date parse(String image){
+    return parseFill(image,onError);
+  }
+
+  public UTC parseUtc(String image) {
+    return UTC.New(parse(image).getTime());
+  }
+
+  public UTC parseUtcNullError(String image) {
+    return UTC.New(parseFill(image, null).getTime());
+  }
+
+  public String toString() {
+    return "zone="+getZone()+", format="+getFormat();
   }
 
    /**
@@ -140,5 +166,12 @@ public class LocalTimeFormat implements isEasy {
   * Era:          G (eg: BC/AD)
   */
 
+ public static final void main(String [] args) {
+   // output the zone names
+   String [] zones = TimeZone.getAvailableIDs();
+   TextList tl = new TextList(zones);
+   System.out.println(tl);
+ }
+
 }
-//$Id: LocalTimeFormat.java,v 1.16 2001/07/19 01:06:54 mattm Exp $
+//$Id: LocalTimeFormat.java,v 1.30 2003/10/24 02:29:14 mattm Exp $

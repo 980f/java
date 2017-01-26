@@ -4,247 +4,355 @@
 * Copyright:    2000, PayMate.net<p>
 * Company:      paymate<p>
 * @author       paymate
-* @version      $Id: MakeAll.java,v 1.45 2001/10/13 11:02:28 mattm Exp $
+* @version      $Id: MakeAll.java,v 1.84 2004/03/18 00:29:28 mattm Exp $
 */
 
 package net.paymate.builders;
+import  net.paymate.Revision;
 import  net.paymate.util.ErrorLogStream;
-import  net.paymate.util.FindFiles;
-import  net.paymate.util.Executor;
+import net.paymate.util.Executor;
 import  net.paymate.util.TextList;
-import  net.paymate.util.Safe;
 import  net.paymate.util.timer.StopWatch;
+import  net.paymate.util.EasyProperties;
+import  net.paymate.util.EasyCursor;
+
 import  java.io.*;
+import net.paymate.io.IOX;
+import net.paymate.io.FindFiles;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ObjectX;
 
-public class MakeAll{
-  // eventually make this next one a passsed parameter:
-  protected static boolean DEBUGGING = false; // set this when testing builder!!!!
-  protected static final ErrorLogStream dbg     = new ErrorLogStream(MakeAll.class.getName());
+/** TODO [dependencies checking]
+ * 1. Look through all .java files in all directories below src
+ * 2. For each file, look for "package" and "import" statements
+ * 3. For each file, check to see if .java and .class have same date/time (this is an assumption on my part). If not, mark the PACKAGE as stale.
+ * 4. For each PACKAGE modified, scan all other PACKAGES that imported that package or have direct references into it and mark them as stale (recurse)
+ * 5. Finally, make a list of all java files in all stale packages & call javac with that list
+ * 6. The enum generator should stamp the time on a generated java file with the time of the enum file.
+ * create javadocs
+ * maybe create manifest (although probably not needed)
+ */
 
-  protected static final String libdir = ".." + File.separator + "lib" + File.separator; // +++ make this a parameter !
-  // put needed libs in <jredir>/lib/ext
-  protected static final String roots[] = {
-    "net",
-    "jpos",
-  };
+public class MakeAll {
+  private static final ErrorLogStream dbg     = ErrorLogStream.getForClass(MakeAll.class);
 
-  protected static final String stale[] = {
-    "net"+File.separator+"paymate"+File.separator+"builders",
-    "net"+File.separator+"paymate"+File.separator+"ivicm"+File.separator+"svc",
-  };
-
-  protected static final String javaFileExt = ".java";
-  protected static final String javaSourceFiles = " java source files";
-
-  public static final TextList makeJavaList(){
-    TextList files=new TextList();
-    for(int rooti = roots.length; rooti-->0;) {
-      files.appendMore(FindFiles.ExcludeFilesFrom(FindFiles.FindFilesUnder(roots[rooti], javaFileExt, true),stale));
-    }
-    return files;
+  public MakeAll(EasyProperties configs) {
+    load(configs);
   }
 
+  private EasyProperties configs = null; // save it in case we want to inspect it later
 
-  public static final boolean makeJavaListFile(String listFileName) {
-    //    dbg.Message(true, "Searching for" + javaSourceFiles + "...");
+  private boolean debug = false;
+  private String listFile = "";
+  private String classOutputDir = "";
+  private String jarPath = "";
+  private String includePath = "";
+  private String excludePath = "";
+  private String tag = "";
+  private boolean doEnums = false;
+  private boolean doFileList = false;
+  private boolean doCompile = false;
+  private boolean doJar = false;
+
+  private String [ ] roots = null;
+  private String [ ] stale = null;
+
+  // parameter names
+  private static final String DEBUGPARAM = "debug";
+  private static final String LISTFILEPARAM = "listFile";
+  private static final String CLASSDIRPARAM = "classOutputDir";
+  private static final String JARPATHPARAM = "jarPath";
+  private static final String INCLPATHPARAM = "includePath";
+  private static final String EXCLPATHPARAM = "excludePath";
+  private static final String DOENUMSPARAM = "doEnums";
+  private static final String DOLISTPARAM = "doFileList";
+  private static final String DOCOMPILEPARAM = "doCompile";
+  private static final String DOJARPARAM = "doJar";
+
+  // default values
+  private static final boolean JARDEFAULT = true;
+  private static final boolean COMPILEDEFAULT = true;
+  private static final boolean LISTDEFAULT = true;
+  private static final boolean ENUMSDEFAULT = true;
+  private static final String INCLUDEDEFAULT = "net";
+  private static final String EXCLUDEDEFAULT = "net"+File.separator+"paymate"+File.separator+"ivicm"+File.separator+"svc";
+  private static final String JARPATHDEFAULT = "paymate.jar";
+  private static final String OUTPUTDIRDEFAULT = "jm.classes";
+  private static final String LISTFILEDEFAULT = "builders" + File.separator + "all.list";
+  private static final boolean DEBUGDEFAULT = false;
+
+  private void load(EasyProperties configs) {
+    this.configs = configs;
+
+    debug = configs.getBoolean(DEBUGPARAM, DEBUGDEFAULT);
+    listFile = configs.getString(LISTFILEPARAM, LISTFILEDEFAULT);
+    classOutputDir = configs.getString(CLASSDIRPARAM, OUTPUTDIRDEFAULT);
+    jarPath = configs.getString(JARPATHPARAM, JARPATHDEFAULT);
+    // +_+ put the tag into the filename:
+    tag = net.paymate.Revision.Buildid();
+    if(StringX.NonTrivial(tag)) {
+      // just hope that we get the case correct
+      jarPath = StringX.replace(tag, ".jar", "_" + tag + ".jar");
+    }
+    includePath = configs.getString(INCLPATHPARAM, INCLUDEDEFAULT);
+    excludePath = configs.getString(EXCLPATHPARAM, EXCLUDEDEFAULT);
+    doEnums = configs.getBoolean(DOENUMSPARAM, ENUMSDEFAULT);
+    doFileList = configs.getBoolean(DOLISTPARAM, LISTDEFAULT);
+    doCompile = configs.getBoolean(DOCOMPILEPARAM, COMPILEDEFAULT);
+    doJar = configs.getBoolean(DOJARPARAM, JARDEFAULT);
+
+    ErrorLogStream.stdLogging("makeall", false, true);
+    net.paymate.util.LogSwitch.SetAll(new net.paymate.util.LogLevelEnum(net.paymate.util.LogLevelEnum.VERBOSE));
+    dbg.bare=true;
+    dbg.WARNING("MakeAll Starting as Version "+Revision.Rev()+' '+Revision.Buildid() + "]...");
+    dbg.WARNING("Configuration: \n"+configs);
+    dbg.WARNING("Members...");
+    dbg.WARNING("debug="+debug);
+    dbg.WARNING("listFile="+listFile);
+    dbg.WARNING("classOutputDir="+classOutputDir);
+    dbg.WARNING("jarPath="+jarPath);
+    dbg.WARNING("includePath="+includePath);
+    dbg.WARNING("excludePath="+excludePath);
+    dbg.WARNING("doEnums="+doEnums);
+    dbg.WARNING("doFileList="+doFileList);
+    dbg.WARNING("doCompile="+doCompile);
+    dbg.WARNING("doJar="+doJar);
+  }
+
+  private final boolean makeJavaListFile() {
     PrintStream javalist;
     try {
-      javalist=new PrintStream(new FileOutputStream(listFileName));
+      javalist=new PrintStream(new FileOutputStream(listFile));
     } catch (FileNotFoundException e) {
-      dbg.ERROR("ERROR! File not found: '" + listFileName + "'.");
+      dbg.ERROR("ERROR! File not found: '" + listFile + "'.");
       return false;
     }
     int count = 0;
     for(int rooti = roots.length; rooti-->0;) {
-      TextList javas = FindFiles.FindFilesUnder(roots[rooti], javaFileExt, true);
-      javas= FindFiles. ExcludeFilesFrom(javas, stale);
+      TextList javas = FindFiles.FindFilesUnder(roots[rooti], ".java", true);
+      javas= FindFiles.ExcludeFilesFrom(javas, stale);
 
       for(int i = javas.size(); i-->0;) {
         String javafilename = javas.itemAt(i);
         javalist.println(javafilename);
-        if(DEBUGGING) {
+        if(debug) {
           dbg.VERBOSE(javafilename);
         }
       }
       count += javas.size();
     }
     javalist.close();
-    dbg.WARNING( " Found " + count +
-    javaSourceFiles + ", listed to '" + listFileName + "'.");
+    dbg.WARNING( " Found " + count + " java source files" + ", listed to '" + listFile + "'.");
     return true;
   }
 
-  public static final boolean compile(String listFileName, String classOutputDir) {
-    Safe.createDir(classOutputDir);
+  /**
+   *  Compile the given Java class.  Synchronized to improve our chances we won't
+   *  stuff up our reassignment of System.out and .err.
+   *
+   * Requires the tools.jar archive from the Sun jdk.
+   */
+  private final boolean compile() {
+    IOX.createDir(classOutputDir);
     // build the commandline
-
-    String cmd = "javac -g -deprecation "; // too hard to debug with -g:none!
-
-    if(DEBUGGING){
-      cmd+= " -verbose ";
+    TextList cmdwords = new TextList();
+    cmdwords.add("-g"); // too hard to debug with -g:none!
+    cmdwords.add("-nowarn");
+    if (debug) {
+      cmdwords.add("-verbose");
     }
-    if(classOutputDir!=null){
-      cmd += " -d " + classOutputDir;
+    if (classOutputDir != null) {
+      cmdwords.add("-d");
+      cmdwords.add(classOutputDir);
     }
-    cmd += " @" + listFileName;
-    if(DEBUGGING){
-      dbg.VERBOSE(cmd);
-    }
-    TextList msgs = new TextList();
-    boolean success = (Executor.runProcess(cmd, null/*"Compiling all ..."*/, 1, 0, msgs, DEBUGGING)==0);
-
-
-    // +++ use the tools.jar that comes with java to compile ?!?!?!?!?
-/*
-    String[] cl = {
-      cmd,
-    };
-    sun.tools.javac.Main.main(cl);
-    boolean success = ...
-*/
-
-    if(!DEBUGGING) {
-      String tmp = msgs.asParagraph().trim();
-      if(Safe.NonTrivial(tmp) && (tmp.length() > 2)) { // +++ fixup
-        dbg.ERROR(tmp);
+    cmdwords.add("@" + listFile);
+    String cmd = cmdwords.asParagraph(" ");
+    dbg.ERROR(" Compiling: " + cmd);
+    boolean success = false;
+    String compilerOutput = "";
+    // the new way, using the java classes provided by sun for this ...
+    // +++ replace system.out with a bytearrayoutputstream, and read it with a buffered line reader to make a testlist of lines
+    dbg.ERROR(" Compiling.  Please wait ...");
+    PrintStream oldOut = null;
+    PrintStream oldErr = null;
+    try {
+      String [ ] args = cmdwords.toStringArray();
+      com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      PrintStream output = new PrintStream(baos);
+      // save old System.out
+      oldOut = System.out;
+      oldErr = System.err;
+      System.setOut(output);
+      System.setErr(output);
+      int stat = javac.compile(args);
+      success = (stat == 0);
+      dbg.ERROR(" done compiling. returned " + stat);
+      String result = new String(baos.toByteArray());
+      if(StringX.NonTrivial(result)) {
+        dbg.ERROR(result);
+      }
+    } catch (Exception e) {
+      dbg.Caught(e);
+    } finally {
+      try {
+        if (oldOut != null) {
+          System.setOut(oldOut);
+        }
+      } catch (Exception e) {
+        // Nothing. We're just cleaning up
+      }
+      try {
+        if (oldErr != null) {
+          System.setErr(oldErr);
+        }
+      } catch (Exception e) {
+        // Nothing. We're just cleaning up
       }
     }
     return success;
   }
 
-  public static final boolean jar(String jarFile, String classOutputDir) {
-    // build the commandline   // jar cf ../lib/paymate.jar -C all.classes net -C all.classes icaframe
-    TextList rootList = new TextList(roots);
-    String jardirs = "";
-    for(int i = roots.length; i-->0;) {
-      jardirs += " -C " + classOutputDir + " " + roots[i];
+  private final boolean jar(String [ ] roots) {
+    // build the manifest, if we should ...
+    boolean willManif = StringX.NonTrivial(tag);
+    String manif = jarPath+".manif";
+    if(willManif) {
+      try {
+        FileWriter fw = new FileWriter(manif);
+        EasyProperties p = new EasyProperties();
+        p.setString("Extension-Name"          , "net.paymate");
+        p.setString("Implementation-Vendor-Id", "net.paymate");
+        p.setString("Implementation-Vendor"   , "Paymate.net, Inc.");
+        p.setString("Implementation-Version"  , tag);
+        p.setString("Specification-Title"     , "siNET Specification");
+        p.setString("Specification-Version"   , "1.0");
+        p.setString("Specification-Vendor"    , "Paymate.net, Inc.");
+        fw.write(p.asParagraph("\n", ": "));
+        fw.flush();
+        fw.close();
+      } catch (Exception ex) {
+        dbg.Caught(ex);
+      }
     }
-    String cmd = "jar c" + (DEBUGGING ? "v" : "") + "f " + jarFile + jardirs;
-    String msg = "Jarring all to '" + jarFile + "'...";
-    return Executor.runProcess(cmd, null/*msg*/, 1, /*DEBUGGING ? 0 : 20*/DEBUGGING ? 20 : 0, null, DEBUGGING)==0;
-  }
-
-  protected static final boolean makeManifest(String classOutputDir) {
-    // +++ need to make the manifest!!!!! FINISH ME
-    // it contains the package versioning stuff
-
-    String manifestDir  = "META-INF";
-    String manifestFile = "MANIFEST.INF";
-    String Vendor       = "PayMate.net Corp";
-    String SpecTitle    = "All.Classes";
-    String SpecVersion  = "All.Classes";
-    // META-INF/MANIFEST.INF ...
-    // Manifest-Version: .0
-    // Created-By: 1.2.2 (Sun Microsystems, Inc.) // don't really need this one
-    // Specification-Title: Java Platform API Specification
-    // Specification-Vendor: Sun Microsystems, Inc.
-    // Specification-Version: 1.2
-    // Implementation-Title: Java Runtime Environment
-    // Implementation-Vendor: Sun Microsystems, Inc.
-    // Implementation-Version: 1.2.2
-
-    boolean retval = false;
+    // build the commandline   // jar cfvm manifestextras jarpath -C jm.classes net [-C for other root packages]
+    TextList cmdwords = new TextList();
+    cmdwords.add("c" + (debug ? "v" : "") + (willManif ? "m" : "") + "f");
+    if(willManif) {
+      cmdwords.add(manif);
+    }
+    cmdwords.add(jarPath);
+    for(int i = roots.length; i-->0;) { // +++ is this going to work with roots that are dotted?
+      cmdwords.add("-C").add(classOutputDir).add(roots[i]);
+    }
+    dbg.ERROR(" Jarring: " + cmdwords.asParagraph(" "));
+    boolean success = false;
     try {
-      dbg.ERROR("makeManifest not yet implemented.");
-      /*
-      String filepath = classOutputDir + File.separator + manifestDir;
-      File f = new File(filepath);
-      f.mkdirs();
-      // +++ first, read it in so can increment it
-
-      // then write it out fresh (overwrite it)
-      PrintWriter pw = new PrintWriter(new FileWriter(filepath  + File.separator + manifestFile));
-      pw.println("Manifest-Version: .0"); // fix the version of this ????
-      pw.println("Specification-Title: "); // +++
-      pw.println("Specification-Vendor: "); // +++
-      pw.println("Specification-Version: "); // +++
-      pw.println("Implementation-Title: "); // +++
-      pw.println("Implementation-Vendor: "); // +++
-      pw.println("Implementation-Version: "); // +++
-      */
-      retval = true;
+      sun.tools.jar.Main jarrer = new sun.tools.jar.Main(System.out, System.out, jarPath);
+      jarrer.run(cmdwords.toStringArray());
+      success = true;
     } catch (Exception e) {
-      // just catch and return false;
+      dbg.Caught(e);
     }
-    return retval;
+    return success;
   }
-
-
-  public static final boolean javadoc(/* what parameters? */) {
-    boolean retval = true;
-
-    // +++ needs to go find all applicable packages and build its own packages.list
-    dbg.ERROR("Javadoc not yet implemented.");
-
-    return retval;
-  }
-
-  static final String oplist="ELCMJD";//match this to cases below! (l's are hard to see lower case)
-  static final String [] opDescripts = {
-    "Enumerate",
-    "List",
-    "Compile",
-    "Manifest",
-    "Jar",
-    "Document"
-  };
 
   /**
   * pass null's for it to use the default values
   * The above subfunctions can be called separately
   * This function could be called within code without reference to main()
   */
-  public static final boolean make(String listFileName, String classOutputDir, String jarFile, String opt) {
+  private void make() {
     boolean retval = true;
-    opt = opt.toUpperCase();
-    for(int i=0;i<oplist.length();i++){
-      char stage= oplist.charAt(i);
-      if(opt.indexOf(stage)>=0){
-        dbg.VERBOSE("Making stage: "+stage+" ["+opDescripts[i] + "]");
-        StopWatch timer = new StopWatch(true);
-        switch(i){
-          case 0: retval = MakeJprEnums.Make(null);               break;
-          case 1: retval = makeJavaListFile(listFileName);        break;
-          case 2: retval = compile(listFileName, classOutputDir); break;
-          case 3: retval = makeManifest(classOutputDir);          break;
-          case 4: retval = jar(jarFile, classOutputDir);          break;
-          case 5: retval = javadoc();                             break; // +++ what params?
-        }
-
-        dbg.WARNING(" '" + opDescripts[i] + "' took " + timer.seconds() + " seconds.");
-        if(!retval) {
-          dbg.ERROR( "Error in step "+stage+" [check 4th commandline arg: " + opt + "]");
-          return false;
-        }
+    // first, find our roots
+    roots = TextList.CreateFrom(includePath).toStringArray();
+    // then find the exclusion directories; packages to leave out of the build
+    stale = TextList.CreateFrom(excludePath).toStringArray();
+    // now handle the operations
+    int numstages = 4;
+    for(int i=0;i<numstages;i++){
+      dbg.VERBOSE("Making stage: "+(i+1)+"/"+numstages);
+      String stagename = "";
+      StopWatch timer = new StopWatch(true);
+      switch(i) {
+        case 0:
+          stagename = DOENUMSPARAM;
+          if(doEnums) {
+            retval = makeenum.MakeAllEnums();
+          }
+          break;
+        case 1:
+          stagename = DOLISTPARAM;
+          if(doFileList) {
+            retval = makeJavaListFile();
+          }
+          break;
+        case 2:
+          stagename = DOCOMPILEPARAM;
+          if(doCompile) {
+            retval = compile();
+          }
+          break;
+        case 3:
+          stagename = DOJARPARAM;
+          if(doJar) {
+            retval = jar(roots);
+          }
+          break;
+      }
+      dbg.WARNING(stagename + " took " + timer.seconds() + " seconds.");
+      if(!retval) {
+        dbg.ERROR("Error in "+stagename+". MakeAll aborted.");
+        break;
       }
     }
-    return retval;
+    dbg.WARNING("... MakeAll DONE.");
   }
 
-  /**
-  * run it from src !!!!!!  (Can't figure out how to cd in java!)
-  * The following have sufficient defaults to allow you to leave them out.
-  * arg[0] = list filename
-  * arg[1] = class output dir
-  * arg[2] = jar file
-  * arg[3] = flags
-  */
+  public static final String usage =
+      "USAGE: MakeAll configfile\n" +
+      "\tconfigfile is the path to the MakeAll configuration file \n"+
+      "\tusing -h instead will get you this help screen.\n"+
+      "\t\n"+
+      "\tValid configfile parameters and their defaults:\n"+
+      "\t"+DEBUGPARAM+"="+DEBUGDEFAULT+"\n"+
+      "\t"+LISTFILEPARAM+"="+LISTFILEDEFAULT+"\n"+
+      "\t"+CLASSDIRPARAM+"="+OUTPUTDIRDEFAULT+"\n"+
+      "\t"+JARPATHPARAM+"="+JARPATHDEFAULT+"\n"+
+      "\t"+INCLPATHPARAM+"="+INCLUDEDEFAULT+"\n"+
+      "\t"+EXCLPATHPARAM+"="+EXCLUDEDEFAULT+"\n"+
+      "\t\n"+
+      "\tNote that includePath and excludePath should have commas for path separators.\n"+
+      "\t\tThese are the commands that you can run, in the order they will occur:\n"+
+      "\t"+DOENUMSPARAM+"="+ENUMSDEFAULT+"\n"+
+      "\t"+DOLISTPARAM+"="+LISTDEFAULT+"\n"+
+      "\t"+DOCOMPILEPARAM+"="+COMPILEDEFAULT+"\n"+
+      "\t"+DOJARPARAM+"="+JARDEFAULT+"\n";
+
+  private static final String [ ] helps = {
+      "h",
+      "-h",
+      "-help",
+      "--help",
+  };
+
   public static final void main(String args[]) {
     int len = args.length;
-
-    String arg0= (len > 0) ? args[0] : "builders" + File.separator + "all.list";        // relative to "src"
-    String arg1= (len > 1) ? args[1] : "all.classes";                                   // rel2src
-    String arg2= (len > 2) ? args[2] : libdir + "paymate.jar";                          // rel2src
-    String opts= (len > 3) ? args[3] : "elc";  //remake list, makeenums, compile
-
-    DEBUGGING = opts.indexOf("d")>=0;
-    ErrorLogStream.stdLogging("makeall", ErrorLogStream.VERBOSE, false, true);
-    dbg.bare=true;
-    dbg.WARNING("MakeAll Starting [" + opts + "]...");
-    make(arg0,arg1,arg2,opts);//i was in a hurry and didn't feel like making good names
-    dbg.WARNING("... MakeAll DONE.");
+    String cmd0 = (len > 0) ? args[0] : "";
+    if(!StringX.NonTrivial(cmd0) ||
+       (StringX.equalStrings(cmd0, helps, /* ignorecase */true) > ObjectX.INVALIDINDEX)) {
+      System.out.println(usage);
+      return;
+    }
+    try {
+//      ErrorLogStream.stdLogging("javamake.log",false,true);
+      MakeAll maker = new MakeAll(EasyCursor.FromDisk(cmd0));
+      maker.make();
+    } catch (Exception ex) {
+      dbg.Caught(ex);
+    }
     System.exit(0); // -- having a problem if the program drops out, in that the threads never end ?!?!? +++ maybe try printing threads here?
   }
-
 }
-//$Id: MakeAll.java,v 1.45 2001/10/13 11:02:28 mattm Exp $
+
+//$Id: MakeAll.java,v 1.84 2004/03/18 00:29:28 mattm Exp $

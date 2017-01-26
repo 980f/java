@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/web/table/query/LogFileFormatEnum.Enum]
 package net.paymate.web.table.query;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class LogFileFormatEnum extends TrueEnum {
   public final static int nameCol        =0;
@@ -10,11 +9,11 @@ public class LogFileFormatEnum extends TrueEnum {
   public final static int statusCol      =2;
 
   public int numValues(){ return 3; }
-  private static final TextList myText = TrueEnum.nameVector(LogFileFormatEnum.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(LogFileFormatEnum.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final LogFileFormatEnum Prop=new LogFileFormatEnum();
+  public static final LogFileFormatEnum Prop=new LogFileFormatEnum();//for accessing class info
   public LogFileFormatEnum(){
     super();
   }
@@ -31,6 +30,18 @@ public class LogFileFormatEnum extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static LogFileFormatEnum CopyOf(LogFileFormatEnum rhs){//null-safe cloner
+    return (rhs!=null)? new LogFileFormatEnum(rhs) : new LogFileFormatEnum();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

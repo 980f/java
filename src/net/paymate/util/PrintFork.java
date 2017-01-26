@@ -6,7 +6,7 @@ package net.paymate.util;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: PrintFork.java,v 1.28 2001/10/10 19:46:04 mattm Exp $
+* @version      $Id: PrintFork.java,v 1.40 2003/10/14 02:36:17 mattm Exp $
 *
 * NOTE that (auto)registration is independent of being enabled.
 *
@@ -16,25 +16,22 @@ import java.io.PrintStream;
 import java.io.OutputStream;
 import net.paymate.util.ErrorLogStream;
 import java.util.Vector;
+import net.paymate.lang.StringX;
 
 public class PrintFork {
-  protected static int DEFAULT_LEVEL = LogLevelEnum.VERBOSE;//set for server, which has a harder time configuring than the client
+  protected static int DEFAULT_LEVEL = LogLevelEnum.OFF;//set for server, which has a harder time configuring than the client
 
   protected PrintStream ps;
   public LogSwitch myLevel;
   protected boolean registered = false;
 
-  /////////////////////////////////
-  // registried class
-  protected static final Vector registry = new Vector(10);
-
   public static final PrintFork Fork(int i){
-    return (PrintFork)registry.elementAt(i);
+    return (PrintFork)LogSwitchRegistry.printForkRegistry.elementAt(i);
   }
 
   protected static final boolean unFork(PrintFork pf) {
     if(pf != null) {
-      registry.removeElement(pf);
+      LogSwitchRegistry.printForkRegistry.removeElement(pf);
     }
     return true;
   }
@@ -50,7 +47,7 @@ public class PrintFork {
       //      Debug.rawMessage(LogSwitch.WARNING, "Can't print to a null fork!");
       return false;
     } else {
-      registry.add(ps);
+      LogSwitchRegistry.printForkRegistry.add(ps);
       //      Debug.rawMessage(LogSwitch.VERBOSE, "Added new Logger PrintFork");
       return true;
     }
@@ -63,31 +60,44 @@ public class PrintFork {
   /////////////////////////////////////////////
   public static final void SetAll(LogLevelEnum lle){
     DEFAULT_LEVEL = lle.Value();
-    for(int i = registry.size(); i-->0;) {
+    for(int i = LogSwitchRegistry.printForkRegistry.size(); i-->0;) {
       Fork(i).myLevel.setto(DEFAULT_LEVEL);
     }
   }
 
   /////////////////////////////////////////////
 
-  public PrintFork(String name, PrintStream primary, int startLevel, boolean register) {
+  protected PrintFork(String name, PrintStream primary, int startLevel, boolean register) {
     setPrintStream(primary);
-    myLevel=new LogSwitch(PrintFork.class.getName()+":"+name,startLevel);
+    myLevel=LogSwitch.getFor(LogSwitch.shortName(PrintFork.class,name), startLevel);
     if(register) {
       register();//wiht errorlogstream, logswitches have an independent registry
     }
   }
 
-  public PrintFork(String name, PrintStream primary, int startLevel) {
+  protected PrintFork(String name, PrintStream primary, int startLevel) {
     this(name, primary, startLevel, true);
   }
 
-  public PrintFork(String name, PrintStream primary) {
+  protected PrintFork(String name, PrintStream primary) {
     this(name, primary, LogSwitch.DEFAULT_LEVEL);
   }
 
   public void setPrintStream(PrintStream primary) {
     ps=primary;
+  }
+
+
+  public static PrintFork New(String name, PrintStream primary, int startLevel, boolean register) {
+    return new PrintFork(name, primary, startLevel, register);
+  }
+
+  private static PrintFork New(String name, PrintStream primary, int startLevel) {
+    return new PrintFork(name, primary, startLevel, true);
+  }
+
+  public static PrintFork New(String name, PrintStream primary) {
+    return new PrintFork(name, primary, DEFAULT_LEVEL);
   }
 
   public String Name() {
@@ -97,9 +107,22 @@ public class PrintFork {
 /**
  * this stream's gated  print
  */
+  public void VERBOSE(String s) {
+    println(s, LogLevelEnum.VERBOSE);
+  }
+  public void WARNING(String s) {
+    println(s, LogLevelEnum.WARNING);
+  }
+  public void ERROR(String s) {
+    println(s, LogLevelEnum.ERROR);
+  }
   public void println(String s, int printLevel){
     if((s != null) && myLevel.passes(printLevel)) {
-      ps.println(s);
+      if(StringX.lastChar(s) == ','){//allows for packing multiple outputs on one line.
+        ps.print(s);
+      } else {
+        ps.println(s);
+      }
     }
   }
 
@@ -112,7 +135,7 @@ public class PrintFork {
  *  not synched as it is not critical if we lose a stream for a while
  */
   public static final void Println(String s, int printLevel){
-    for(int i = registry.size(); i-->0;) {
+    for(int i = LogSwitchRegistry.printForkRegistry.size(); i-->0;) {
       try {
         PrintFork pf = Fork(i);
         if(pf !=null) {
@@ -127,8 +150,22 @@ public class PrintFork {
     }
   }
 
-  public static final void Println(int printLevel,String s){
-    Println(s,printLevel);
+//  public static final void Println(int printLevel,String s){
+//    Println(s,printLevel);
+//  }
+
+  public static final EasyCursor asProperties(){
+    EasyCursor blob=new EasyCursor(/* presize to di*/);
+    Vector debuggers = LogSwitchRegistry.printForkRegistry; // get a second list copy to prevent exceptions
+    for(int i=0;i<debuggers.size();i++){
+      PrintFork bugger = (PrintFork)debuggers.elementAt(i);
+      blob.setString(bugger.Name(), bugger.myLevel.Image());
+    }
+    return blob;
+  }
+
+  public static final void DUMPDEBUG() {
+    System.out.println(PrintFork.asProperties().toString());
   }
 }
-//$Id: PrintFork.java,v 1.28 2001/10/10 19:46:04 mattm Exp $
+//$Id: PrintFork.java,v 1.40 2003/10/14 02:36:17 mattm Exp $

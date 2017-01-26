@@ -1,39 +1,48 @@
-/**
-* Title:        ClerkUI
-* Description:  Q&A through a single line display
-* Copyright:    2000 PayMate.net
-* Company:      paymate
-* @author       paymate
-* @version      $Id: ClerkUI.java,v 1.84 2001/11/16 01:34:31 mattm Exp $
-*/
 package net.paymate.terminalClient;
-
+/**
+ * Title:         $Source: /cvs/src/net/paymate/terminalClient/ClerkUI.java,v $
+ * Description:   questions that the posterminal wants answered by a human.
+ * Copyright:     Copyright (c) 2001
+ * Company:       PayMate.net
+ * @author        PayMate.net
+ * @version       $Revision: 1.125 $
+ * @todo: synch the **From() functions (guessing at why menu items remember the last entry.)
+ */
 import net.paymate.data.*;
-
+import net.paymate.lang.ObjectX;
 import net.paymate.awtx.*;//just about everything in here is used.
 import net.paymate.util.*;//logger
-
-import net.paymate.ISO8583.data.*;
+import net.paymate.lang.StringX;
 import net.paymate.jpos.data.*;
 import net.paymate.jpos.Terminal.*;
 import net.paymate.connection.*;
-import jpos.JposException;
+import net.paymate.lang.ContentType;
+import net.paymate.lang.TrueEnum;
 
-public class ClerkUI implements AnswerListener{
-  protected static final ErrorLogStream dbg=new ErrorLogStream(ClerkUI.class.getName());
-  protected final static int fubar=Safe.INVALIDINDEX;
+public class ClerkUI implements AnswerListener {
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(ClerkUI.class);
+  final static int fubar=ObjectX.INVALIDINDEX;
   PosTerminal posterm; //will segregate these out of ClerkUI when time permits
-  protected int nextguid;//is now currentGuid, needs to be renamed
+/**
+ * clear at SalePrice question gets us to function menu. else it just resets
+ * internal sale info and prepares for fresh sale.
+ */
+  boolean clearToTop=true; //legacy setting
+  private int nextguid;//is now currentGuid, needs to be renamed
 
   Question fubard= new Question(fubar,"Software Error!" ,new TextValue("Call 4 Service"));
   //////////////////////////////////////////////////////////
   //the default order is in the enumeration file! not the array index/order!!!
-  protected Question ClerkQuestion[]={      //"0123456789ABCDEF"
+  private Question ClerkQuestion[]={      //"0123456789ABCDEF"
     new Question(ClerkItem.ClerkID           ,"Clerk ID?"       ,new TextValue()),
-    new Question(ClerkItem.ClerkPasscode     ,"Clerk Password?" ,new TextValue()),//+++ Password is too broken!
-    new Question(ClerkItem.SaleType          ,"Function #"      ,new EnumValue(new Functions(Functions.Sale))),
+    new Question(ClerkItem.ClerkPasscode     ,"Clerk Password?" ,new PasscodeValue()),
+    new Question(ClerkItem.SaleType          ,"Function #"      ,new EnumValue(new Functions())),
+    new Question(ClerkItem.SpecialOps        ,"OperationType:"  ,new EnumValue(new SpecialOp())),
+    new Question(ClerkItem.DrawerMenu        ,"Drawer Functions",new EnumValue(new DrawerMenu())),
+    new Question(ClerkItem.StoreMenu         ,"Store Functions" ,new EnumValue(new StoreMenu())),
+
     new Question(ClerkItem.PreApproval       ,"Approval Code:"  ,new TextValue()),
-    new Question(ClerkItem.PaymentSelect     ,"Swipe/Scan/Key..",new EnumValue(new PaySelect(PaySelect.ManualCard))),
+    new Question(ClerkItem.PaymentSelect     ,"Swipe Card ...  ",new EnumValue(new PaySelect())),
     new Question(ClerkItem.CreditNumber      ,"enter card #"    ,new DecimalValue()),
     new Question(ClerkItem.BadCardNumber     ,"try card# again!",new DecimalValue()),
 
@@ -46,33 +55,45 @@ public class ClerkUI implements AnswerListener{
     new Question(ClerkItem.CheckNumber       ,"bad check numbr" ,new MicrValue(6,MICRData.BadSerial )),
     new Question(ClerkItem.License           ,"license number:" ,new TextValue()),
     new Question(ClerkItem.RefNumber         ,"Enter Txn #     ",new TextValue()),
+    new Question(ClerkItem.AVSstreet         ,"Street #"        ,new TextValue()),//only some auths limit this to numerical
+    new Question(ClerkItem.AVSzip            ,"Zipcode #"       ,new DecimalValue()),//USA.
+
+    new Question(ClerkItem.MerchRef          ,"Enter Ref #     ",new TextValue()), //expect this to get overlayed with system sepcific text.
+
     //!!!no colon in SalePrice prompt, so that posterminal can fully override it according to sale type
     new Question(ClerkItem.SalePrice         ,"Enter Amount"    ,new MoneyValue()),
     new Question(ClerkItem.NeedApproval      ,"Get Ok on amount",new TextValue()),
-    new Question(ClerkItem.NeedSig           ,"Get Signature...",new EnumValue(new SigningOption(SigningOption.DoneSigning))),
+    new Question(ClerkItem.NeedPIN           ,"Waiting on PIN"  ,new TextValue()),
+    new Question(ClerkItem.NeedSig           ,"Get Signature...",new EnumValue(new SigningOption())),
     new Question(ClerkItem.WaitApproval      ,"Authorizing...  ",new TextValue()),
     new Question(ClerkItem.ApprovalCode      ,"Approved:       ",new EnumValue(new Remedies(Remedies.Done))),
-    new Question(ClerkItem.Problem           ,"Look at Printer!",new TextValue()),
-    new Question(ClerkItem.OverrideCode      ,"Enter override:" ,new TextValue()), //PasscodeValue()),
-    new Question(ClerkItem.SecondCopy        ,"Another Copy?"   ,new DecimalValue(1)),
+    new Question(ClerkItem.Problem           ,"Look at Printer!",new TextValue()),//use of plain 'value' left "BaseValueError" on hypercom during declines
+    new Question(ClerkItem.OverrideCode      ,"Enter override:" ,new PasscodeValue()), //PasscodeValue()),
+    new Question(ClerkItem.SecondCopy        ,"Another Copy?"   ,new EnumValue(new YesnoEnum())),
     new Question(ClerkItem.WaitAdmin         ,"Please wait..."  ,new TextValue("for listing")),
+    new Question(ClerkItem.SVOperation       ,"GiftCard fn# "   ,new EnumValue(new GiftCard_Op())),
+    new Question(ClerkItem.TerminalOp        ,"ServiceFunction" ,new EnumValue(new TerminalCommand())),
 
     new Question(ClerkItem.BootingUp         ,"CONNECTING..."   ,new TextValue()), //PasscodeValue()),
-    //    new Question(ClerkItem.Blank             ,""             ,new TextValue()),
   };
 
-
-  int onInvalidEnum(TrueEnum ennum){
-    if(ennum==null)      return 0;
-    if(ennum instanceof Functions) return Functions.Sale;
-    if(ennum instanceof PaySelect) return PaySelect.ManualCard;
-    if(ennum instanceof Remedies) return Remedies.Done;
-    if(ennum instanceof SigningOption) return SigningOption.DoneSigning;
+  /**
+  * "menu" defaults
+  */
+  int onInvalidEnum(TrueEnum enum){
+    if(enum==null)                    return 0;
+    if(enum instanceof Functions)     return Functions.Sale;
+    if(enum instanceof PaySelect)     return PaySelect.ManualCard;
+    if(enum instanceof Remedies)      return Remedies.Done;
+    if(enum instanceof SigningOption) return SigningOption.DoneSigning;//lubys "getsignature" problem was here.
+    if(enum instanceof GiftCard_Op)   return GiftCard_Op.GetBalance;
+    if(enum instanceof YesnoEnum)     return YesnoEnum.Yes;
+    if(enum instanceof TerminalCommand) return TerminalCommand.Normal;
     return 0;
   }
 
   //////////////////////////////////////////////////////////
-  protected int questionIndex(int guid){
+  private int questionIndex(int guid){
     for(int qi=ClerkQuestion.length;qi-->0;){
       if(ClerkQuestion[qi].guid==guid){
         return qi;
@@ -81,12 +102,12 @@ public class ClerkUI implements AnswerListener{
     return fubar;
   }
 
-  protected Question QuestionFor(int guid){
+  public Question QuestionFor(int guid){
     int qi=questionIndex(guid);
     return (qi>=0)? ClerkQuestion[qi]: fubard;
   }
 
-  protected long LongFrom  (int guid){
+  private long LongFrom  (int guid){
     Question q=QuestionFor(guid);
     try {
       return q.inandout.asLong();
@@ -95,16 +116,15 @@ public class ClerkUI implements AnswerListener{
     }
   }
 
-  protected int EnumFrom  (int guid){
-    Question q=QuestionFor(guid);
+  private TrueEnum EnumFrom(Question q){
     try {
-      return q.inandout.asInt();
+      return ((EnumValue) q.inandout).Value();
     } finally {
-      q.Clear();//makes entry invalid...
+      q.Clear();
     }
   }
 
-  protected String StringFrom  (int guid){
+  private String StringFrom  (int guid){
     Question q=QuestionFor(guid);
     try {
       return q.inandout.Image();
@@ -113,299 +133,200 @@ public class ClerkUI implements AnswerListener{
     }
   }
 
-  protected String PassCodeFrom  (int guid){
-    return StringFrom(guid); //QuestionFor(guid).inandout.Image();// really need Entry classes fixed! //toString();
+  private String PassCodeFrom  (int guid){
+    Question q=QuestionFor(guid);
+    try {
+      PasscodeValue p=(PasscodeValue)q.inandout;
+      return p.Value();
+    } finally {
+      q.Clear();
+    }
+
+//    return StringFrom(guid); //QuestionFor(guid).inandout.Image();// really need Entry classes fixed! //toString();
   }
 
   //////////////////////////////////////////////////////////
-  public CM3000UI peephole; //single line input with keypad.
-
-  public ClerkUI(PosTerminal posterm) {
+  public DisplayInterface peephole; //single line input with keypad.
+/**
+ * establish dataflow links, coming and going
+ * @param posterm gets answers
+ * @param peephole is one-qustion-at-a-time interface.
+ */
+  public ClerkUI(PosTerminal posterm,DisplayInterface peephole) {
     this.posterm = posterm;
-    peephole=new CM3000UI(""+posterm.termInfo.id());
+    this.peephole= peephole;
+    peephole.attachTo(this);
   }
 
-  //////////////////////////////////////////////////////////
-  void doPing(){//ping the terminal logic
-    dbg.VERBOSE("PING");
-    posterm.Post(new DebugCommand(DebugOp.Refresh));
-  }
-
-  void doID(){
+  boolean doID(){
     ClerkIdInfo id=new ClerkIdInfo(StringFrom(ClerkItem.ClerkID),PassCodeFrom(ClerkItem.ClerkPasscode));
-    posterm.Post(id);
+    return posterm.Post(id);
   }
 
-  void doSale(){//only change amount, card might already be swiped
-    posterm.Post(new RealMoney(LongFrom(ClerkItem.SalePrice)));
+  boolean doSale(){//only change amount, card might already be swiped
+    return posterm.Post(new RealMoney(LongFrom(ClerkItem.SalePrice)));
   }
 
-  void doClerkEvent(int clerkevent){
-    posterm.postClerkEvent(clerkevent);
+  boolean doClerkEvent(int clerkevent){
+    return posterm.postClerkEvent(clerkevent);
   }
 
-  void doClerkCancel(){
-    doClerkEvent(ClerkEvent.Cancel);
+  boolean doClerkCancel(){
+    return doClerkEvent(ClerkEvent.Cancel);
   }
 
-  void cancelThis(int /*ClerkItem*/ ci){
-    posterm.Post(new Cancellation(ci));
+  boolean cancelThis(int /*ClerkItem*/ ci){
+    return posterm.Post(new Cancellation(ci));
   }
 
-  void doRemedy(Remedies funcode){
+  boolean doRemedy(Remedies funcode){
     switch(funcode.Value()){
-      case Remedies.Retry:  return; //NYI
-      case Remedies.Done:   posterm.Post(funcode); return;
-      case Remedies.Reprint:doClerkEvent(ClerkEvent.Reprint); return;
-      //+_+      case Remedies.Void:   doVoid(); return;
+      case Remedies.Retry:  return false; //NYI
+      case Remedies.Done:   return posterm.Post(funcode);
+      case Remedies.Reprint:return doClerkEvent(ClerkEvent.Reprint);
+      //+_+      case Remedies.Void:   return doVoid();
+    }
+    return false;
+  }
+
+  boolean doRemedy(int funkey){
+    return doRemedy(new Remedies(funkey));
+  }
+
+  boolean gotoFunction(){
+    return doClerkEvent(ClerkEvent.Functions);
+  }
+
+  boolean nowAsk(int guid){
+    if(peephole!=null){
+      peephole.ask(QuestionFor(guid)); //we perpetually are asking for something.
+    }
+    return true;
+  }
+
+  boolean punt(Question q){//let host deal with sequencing etc.
+    dbg.WARNING("Punting:"+ q.toSpam());
+    try {
+      if(q.charType().is(ContentType.select)){//then the value is some type of enumeraiton
+        TrueEnum te=EnumFrom(q);
+        if(te!=null){
+          if(!te.isLegal()){//the cm3000 interface occasionally rapes the enumerations.
+            te.setto(onInvalidEnum(te));
+          }
+          return posterm.Post(te);
+        } else {
+          //post some sort of error so that user interface unlocks +++
+          return false;
+        }
+      } else {
+        return posterm.Post(new ItemEntry(q.guid,StringFrom(q.guid)));
+      }
+    }
+    catch (Exception ex) {
+      q.Clear(); //often prevents infintie loops due to wildly unexpected input.
+      return false;
     }
   }
-
-  void doRemedy(int funkey){
-    doRemedy(new Remedies(funkey));
+////////////////////////////////
+// common responses
+  /**
+   * for picks with simple CLEAR response.
+   */
+  private boolean punt(Question beingAsked,int opcode){
+    return (opcode==CANCELLED) ? cancelThis(beingAsked.guid) : punt(beingAsked);
   }
 
-  void gotoFunction(){
-    doClerkEvent(ClerkEvent.Functions);
+  /** +_+  @todo: remove this function per following changes.
+   * the users of this method should use pun() instead and choose to 'doClerkCancell'
+   * inside of posterminal.onCancel(clerkitem).
+   */
+  private boolean puntOrCancel(Question beingAsked,int opcode){
+    return (opcode==CANCELLED) ? doClerkCancel() :  punt(beingAsked);
   }
 
-  void nowAsk(int guid){
-    peephole.ask(QuestionFor(guid),this); //we perpetually are asking for something.
-  }
-
-  void punt(Question q){//let host deal with sequencing etc.
-    dbg.ERROR("Punting:"+ q.toSpam());
-    posterm.Post(new ItemEntry(q.guid,StringFrom(q.guid)));
+  private boolean puntOrAsk(Question beingAsked,int opcode,int guid){
+    return (opcode==CANCELLED) ? nowAsk(guid) :  punt(beingAsked);
   }
 
   /**
+   * @return true if question honored.
   * @param beingAsked is accepted rather than using the local reference so that
   * virtual keyboards can answer questions unrealted to what is being asked. 4debug.
   */
-  public void onReply (Question beingAsked, int opcode){
-    //only a few items care about a change from the last time SUBMITTED
-    //so we compress our 'opcode' range:
-    boolean nochange= opcode==ACCEPTED;
-    if(nochange){
-      opcode=SUBMITTED;
+  public boolean onReply (Question beingAsked, int opcode){
+    boolean cancel= opcode==AnswerListener.CANCELLED;
+    boolean functioned= opcode==AnswerListener.FUNCTIONED;
+    if(functioned){
+      gotoFunction();
     }
     //question dependent behaviors:
     switch(beingAsked.guid){
-      default:
-      case fubar: doClerkCancel(); return;
+      default: //join
+      case fubar:                   return doClerkCancel();
+      case ClerkItem.SpecialOps:    return puntOrCancel(beingAsked,opcode);
+      case ClerkItem.MerchRef:      return punt(beingAsked,opcode);
+      case ClerkItem.AVSstreet:     return punt(beingAsked,opcode);
+      case ClerkItem.AVSzip:        return punt(beingAsked,opcode);
+      case ClerkItem.PreApproval:   return punt(beingAsked,opcode);
+      case ClerkItem.SecondCopy:    {
+        return cancel?cancelThis(ClerkItem.SecondCopy):doClerkEvent(ClerkEvent.Reprint);
+      }
 
-      case ClerkItem.PreApproval: doClerkCancel(); return;//+++ nyi
-
-      case ClerkItem.SecondCopy:{
-        switch(opcode){
-          case SUBMITTED: {
-            doClerkEvent(ClerkEvent.Reprint);
-          } return;
-          case CANCELLED:{
-            cancelThis(ClerkItem.SecondCopy);
-          } return;
+      case ClerkItem.TerminalOp:    {
+        if(cancel){
+          return cancelThis(ClerkItem.TerminalOp);
+        } else {
+          //make a majic event and ask for key and check key.
+          //until then "just do it"
+          Appliance.doCommand((TerminalCommand) EnumFrom(beingAsked));
+          return true;//gotta presume the appliance takes care of any problems.
         }
-      } break;
-
-      case ClerkItem.SaleType:{
-        switch(opcode){
-          case SUBMITTED: {
-            int funcode=EnumFrom(beingAsked.guid);
-            dbg.VERBOSE("Function code:"+funcode);
-            posterm.Post(new Functions(funcode));
-          } return;
-          case CANCELLED: doClerkCancel(); return;
-        }
-      } break;
+      }
+      case ClerkItem.DrawerMenu:    return punt(beingAsked,opcode);
+      case ClerkItem.StoreMenu:     return punt(beingAsked,opcode);
+      //join
+      case ClerkItem.SaleType:      return puntOrCancel(beingAsked,opcode);
 
       case ClerkItem.SalePrice:{
         switch(opcode){
-          case SUBMITTED: {
-            if(nochange){
-              gotoFunction();
-            } else {
-              doSale();
-            }
-          } return;
-          case CANCELLED: {
-            gotoFunction(); //under some conditions doesn't erase card #
-          } return;
+          case SUBMITTED: return doSale();
+          case ACCEPTED:  return gotoFunction();
+          case CANCELLED: return clearToTop ? gotoFunction(): doClerkCancel();
+          default:        return false;
         }
-      } break;
+      }
 
-      case ClerkItem.PaymentSelect     :{
-        try {
-          switch(opcode){
-            case SUBMITTED: posterm.Post(new PaySelect(EnumFrom(beingAsked.guid))); return;
-            case CANCELLED: doClerkCancel();  return;      //want terminal to refresh us...
-          }
-        } finally {
-          beingAsked.Clear();
-        }
-      } break;
-      case ClerkItem.BadCardNumber:
-      case ClerkItem.CreditNumber      :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked); return;
-          case CANCELLED: doClerkCancel();//--- punitive, makes 'em start way over
-          return;
-        }
-      } break;
-      case ClerkItem.BadExpiration:
-      case ClerkItem.CreditExpiration  :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked); return;
-          case CANCELLED: nowAsk(ClerkItem.CreditNumber);  return;
-        }
-      } break;
+      case ClerkItem.PaymentSelect: return puntOrCancel(beingAsked,opcode);
 
-      case ClerkItem.CreditName        :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked);         return;
-          case CANCELLED: nowAsk(ClerkItem.CreditExpiration); return;
-        }
-      } break;
+      case ClerkItem.BadCardNumber://join
+      case ClerkItem.CreditNumber:  return puntOrCancel(beingAsked,opcode);
 
-      case ClerkItem.CheckBank         :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked);    return;
-          case CANCELLED: doClerkCancel();    return;//--- punitive, makes 'em start way over
-        }
-      } break;
-
-      case ClerkItem.CheckAccount      :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked);        return;
-          case CANCELLED: nowAsk(ClerkItem.CheckBank);  return;
-        }
-      } break;
-
-      case ClerkItem.CheckNumber       :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked);                return;
-          case CANCELLED: nowAsk(ClerkItem.CheckAccount);  return;
-        }
-      } break;
-
-      case ClerkItem.License           :{
-        switch(opcode){
-          case SUBMITTED: punt(beingAsked); return;
-          case CANCELLED: doClerkCancel();
-        }
-      } break;
-
-      case ClerkItem.NeedApproval      :{
-        switch(opcode){
-          case SUBMITTED :
-            dbg.ERROR("NeedApproval:"+beingAsked.guid+beingAsked.inandout.Image());
-            punt(beingAsked);    return;
-          case CANCELLED :   doClerkCancel();     return;
-        } break;
-      } //"not reachable"//break;
-
-      case ClerkItem.NeedSig      :{
-        switch(opcode){ //osterm can check passcode if it wishes
-          case SUBMITTED :
-          posterm.Post(new SigningOption(EnumFrom(beingAsked.guid)));
-          return;
-          case CANCELLED : {//manual signature
-            cancelThis(ClerkItem.NeedSig);
-            return;
-          }
-        } break;
-      } //"not reachable"//break;
-
-      case ClerkItem.WaitApproval      :{
-        switch(opcode){
-          case SUBMITTED :{
-            // +_+             posterm.attemptTransaction();
-            //the POSterminal must move us off of this, unless we cancell:
-          } return;
-          case CANCELLED :        doClerkCancel();     return;
-        }
-      } break;
-
-      case ClerkItem.ApprovalCode      :{
-        try {
-          switch(opcode){
-            case SUBMITTED:{
-              //somwhow was sitting on reversal!!!
-              doRemedy(true?Remedies.Done:EnumFrom(beingAsked.guid));
-              return;
-            }
-            case CANCELLED: doRemedy(Remedies.Done);  return;
-          }
-        } finally {
-          beingAsked.Clear();
-        }
-
-      } break;
-
-      case ClerkItem.RefNumber: {//retrieval reference number
-dbg.ERROR("made it to saking refnumber");
-        switch(opcode){
-          case SUBMITTED:  punt(beingAsked);         return;
-          case CANCELLED:  doClerkCancel();  return;
-        }
-      } break;
-
-      case ClerkItem.ClerkID           :{
-        switch(opcode){
-          case SUBMITTED:  nowAsk(ClerkItem.ClerkPasscode);   return;
-          case CANCELLED:  posterm.Post(new Functions(Functions.ChangeUser));
-        }
-      } break;
-
-      case ClerkItem.ClerkPasscode     :{
-        switch(opcode){
-          case SUBMITTED :          doID();                  return;
-          case CANCELLED : nowAsk(ClerkItem.ClerkID);   return;
-        }
-      } break;
-
-      case ClerkItem.Problem:{
-        switch(opcode){
-          case SUBMITTED : doClerkCancel(); return;
-          //temporarily the same as enter, or vice versa:
-          case CANCELLED : doClerkCancel(); return;
-        }
-      } break;
-
-      case ClerkItem.OverrideCode:{                    //+++ placeholder
-        switch(opcode){
-          case SUBMITTED: nowAsk(ClerkItem.ClerkID); return;
-          //tarbaby-once you get here you are stuck here
-          case CANCELLED: nowAsk(ClerkItem.OverrideCode); return;
-        }
-      } break;
-
-      case ClerkItem.BootingUp:{
-        switch(opcode){
-          case SUBMITTED: {
-            //+_+              posterm.whenConnecting(StringFrom(beingAsked.guid));
-          } return;
-          case CANCELLED:{
-            cancelThis(ClerkItem.BootingUp);
-            //            nowAsk(ClerkItem.BootingUp);
-          } return;
-        }
-      } break;
+      case ClerkItem.BadExpiration: //join
+      case ClerkItem.CreditExpiration:  return puntOrAsk(beingAsked,opcode,ClerkItem.CreditNumber);
+      case ClerkItem.CreditName:    return puntOrAsk(beingAsked,opcode,ClerkItem.CreditExpiration);
+      case ClerkItem.CheckBank:     return puntOrCancel(beingAsked,opcode);
+      case ClerkItem.CheckAccount:  return puntOrAsk(beingAsked,opcode,ClerkItem.CheckBank);
+      case ClerkItem.CheckNumber:   return puntOrAsk(beingAsked,opcode,ClerkItem.CheckAccount);
+      case ClerkItem.License:       return puntOrCancel(beingAsked,opcode);
+      case ClerkItem.NeedApproval:  return puntOrCancel(beingAsked,opcode);
+      case ClerkItem.NeedSig:       return punt(beingAsked,opcode);
+      case ClerkItem.SVOperation:   return punt(beingAsked,opcode);
+      case ClerkItem.WaitApproval:  return cancel && doClerkCancel();
+      case ClerkItem.ApprovalCode:  return doRemedy(Remedies.Done);//ignore user input!! //should be : punt(beingAsked)
+      case ClerkItem.RefNumber:     return puntOrCancel(beingAsked,opcode);
+      case ClerkItem.ClerkID:       return cancel ? cancelThis(ClerkItem.ClerkID) : nowAsk(ClerkItem.ClerkPasscode);
+      case ClerkItem.ClerkPasscode: return cancel ? nowAsk(ClerkItem.ClerkID): doID();
+      case ClerkItem.Problem:       return doClerkCancel();
+      case ClerkItem.OverrideCode:  return cancel ? nowAsk(ClerkItem.OverrideCode) : nowAsk(ClerkItem.ClerkID); //tarbaby-once you get here you are stuck here
+      case ClerkItem.BootingUp:     return cancel && cancelThis(ClerkItem.BootingUp);
 
     }//switch question
-    dbg.WARNING("Ignored:"+beingAsked.prompt);
-    doPing(); //uncomment to test that this is still unreachable.
   }
 
-  //    public Sequencer(){
-    //      //formality
-  //    }
-
-
-  //  Sequencer sm=new Sequencer();
   /////////////////////////////////////////////
   public Question preLoad(int guid, String image){//safer than preset()
     Question q=QuestionFor(guid);//points to trashable q on invalid index.
-    if(Safe.NonTrivial(image)){
+    if(StringX.NonTrivial(image)){
       q.inandout.setto(image);
     }
     return q;
@@ -426,7 +347,9 @@ dbg.ERROR("made it to saking refnumber");
   }
 
   public void askInPrompt(int guid, String addend, String image){
-    peephole.ask(splicePrompt(guid, addend, image),this);
+    if(peephole!=null){
+      peephole.ask(splicePrompt(guid, addend, image));
+    }
   }
 
   public void loadCheck(MICRData scanned){ //in case there are bad fields
@@ -436,15 +359,13 @@ dbg.ERROR("made it to saking refnumber");
   }
   //not done for cards, on error data is swallowed by jpos driver.
 
-  //////////////////////////////////////////
-  /**if the question indicated is being asked then mimic pressing ENTER
-  * I say mimic because it will happen on a different thread than is normal.
-  */
-  public boolean autoEnterIf(int aClerkItem){//+_+getting lazy on the type checking
-    return peephole.autoEnterIf(QuestionFor(aClerkItem));
-  }
+//  //////////////////////////////////////////
+//  /**if the question indicated is being asked then mimic pressing ENTER
+//  * I say mimic because it will happen on a different thread than is normal.
+//  * @return true if an enter was generated
+//  */
 
-  public void ask(Question q){//ClerkItem
+  private Question ask(Question q){//ClerkItem
     dbg.VERBOSE("asking question:"+q.toSpam());
     if(q.inandout instanceof EnumValue){
       EnumValue ev= (EnumValue)q.inandout;
@@ -453,22 +374,22 @@ dbg.ERROR("made it to saking refnumber");
         ev.setto(onInvalidEnum(ev.Content()));
       }
     }
-    peephole.ask(q,this);
+    if(peephole!=null){
+      peephole.ask(q);
+    }
+    return q;
   }
 
-  public void ask(int guid){//ClerkItem
-  dbg.VERBOSE("Asking for qid:"+guid);
-    ask(QuestionFor(guid));
+  public Question ask(int guid){//ClerkItem
+    dbg.VERBOSE("Asking for qid:"+guid);
+    return ask(QuestionFor(guid));
   }
-
 
   /**call only on negative approval
-  *
+   *   modify prompt, let someone else do the actual asking
   */
   public void onRejected(String reason){
-    dbg.VERBOSE("rejecting coz:["+reason+"] "+Safe.hexImage(reason));
-    //modify prompt, stuff refnum, let someone else do the asking
-    reason=Safe.OnTrivial(reason,"unknown problem!");
+    reason=StringX.OnTrivial(reason,"unknown problem!");
     dynaPrompt(ClerkItem.Problem,reason,"Press CLEAR");
   }
 
@@ -476,9 +397,10 @@ dbg.ERROR("made it to saking refnumber");
   * @UNdeprecated ... +++ who deprecated this in the first place???
   * what do we use instead? ---
   */
-  public Question showProblem(String problem,String detail){
+  public int showProblem(String problem,String detail){
     dbg.VERBOSE("Showing problem:"+problem+" "+detail);
-    return dynaPrompt(ClerkItem.Problem,Safe.OnTrivial(problem,"unknown problem!"),detail);
+    dynaPrompt(ClerkItem.Problem,StringX.OnTrivial(problem,"unknown problem!"),detail);
+    return ClerkItem.Problem;
   }
 
   public void Clear(){//erase internal data, start new sale
@@ -487,22 +409,25 @@ dbg.ERROR("made it to saking refnumber");
     }
   }
 
-  public void Start(){
-    peephole.Start();
-    ask(ClerkItem.ClerkID);
-  }
-
-  public void refresh(){
-    peephole.refresh();
+  public void Start(){//no longer required..
+    if(peephole!=null) {
+      ask(ClerkItem.BootingUp);
+    }
   }
 
   public String WhatsUp(){
-    return peephole.WhatsUp();
+    if(peephole!=null){
+      return peephole.WhatsUp();
+    } else {
+      return "NO DISPLAY DEVICE";
+    }
   }
 
   public void flash(String blink){
-    peephole.flash(blink);
+    if(peephole!=null){
+      peephole.flash(blink);
+    }
   }
 
 }
-//$Id: ClerkUI.java,v 1.84 2001/11/16 01:34:31 mattm Exp $
+//$Id: ClerkUI.java,v 1.125 2004/02/24 18:31:24 andyh Exp $

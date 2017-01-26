@@ -5,21 +5,23 @@ package net.paymate.ivicm.et1K;
  * Description:
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
- * @author $Author: andyh $
- * @version $Id: VersionInfo.java,v 1.7 2001/10/22 23:33:39 andyh Exp $
+ * @author $Author: mattm $
+ * @version $Id: VersionInfo.java,v 1.12 2003/07/27 05:35:05 mattm Exp $
  */
 
 import net.paymate.util.*;
-
+import net.paymate.io.IOX;
 import java.io.ByteArrayInputStream;
+import net.paymate.lang.Bool;
+import net.paymate.text.Formatter;
 
 public class VersionInfo implements Callback {
-  static final ErrorLogStream dbg=new ErrorLogStream(VersionInfo.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(VersionInfo.class);
 
   protected ByteArrayInputStream blob;
 
   protected void spamText(String whatitis,int len){
-    dbg.WARNING(whatitis+":"+Safe.fromStream(blob,len));
+    dbg.WARNING(whatitis+":"+IOX.fromStream(blob,len));
   }
 
   protected void spamLength(String whatitis){
@@ -41,7 +43,7 @@ public class VersionInfo implements Callback {
         msg.append(" ");
       }
     }
-    dbg.WARNING(msg.toString());
+    dbg.WARNING(String.valueOf(msg));
   }
 
   protected void spam(byte [] payload){
@@ -64,10 +66,10 @@ public class VersionInfo implements Callback {
   public Command Post(Command cmd){
     if(cmd.incoming.isOk()){
       int repcode=cmd.response();
-      if(repcode==Codes.SUCCESS){
+      if(repcode==ResponseCode.SUCCESS){
         spam(cmd.payload());
       } else {
-        dbg.ERROR("et1k version fetch reported:"+Safe.ox2(repcode));
+        dbg.ERROR("et1k version fetch reported:"+Formatter.ox2(repcode));
       }
     } else {
       dbg.ERROR("et1k version fetch failed");
@@ -80,4 +82,4 @@ public class VersionInfo implements Callback {
   }
 
 }
-//$Id: VersionInfo.java,v 1.7 2001/10/22 23:33:39 andyh Exp $
+//$Id: VersionInfo.java,v 1.12 2003/07/27 05:35:05 mattm Exp $

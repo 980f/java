@@ -1,90 +1,67 @@
-/* $Id: Wrapper.java,v 1.39 2001/07/19 01:06:50 mattm Exp $ */
-package net.paymate.jpos.Terminal;
+package net.paymate.jpos.Terminal;//moveto terminalClient or np.peripheral
+/**
+ * Title:        $Source: /cvs/src/net/paymate/jpos/Terminal/Wrapper.java,v $
+ * Description:  legacy wrapper for jpos devices
+ * Copyright:    Copyright (c) 2001
+ * Company:      PayMate.net
+ * @author PayMate.net
+ * @version $Revision: 1.46 $
+ * @todo implement or purge detachAll()
+ */
 
-import jpos.ServiceTracker;
+//until we have a terminalGenerator registry:
+import net.paymate.ivicm.*;
+import net.paymate.ivicm.ec3K.*;
+
+import net.paymate.serial.*;
+
 import net.paymate.util.*;
 import net.paymate.awtx.print.*;
-/*
-This class has almost been gutted. It can be completely removed with a trivial
-effort if someone wishes to do so, moving its contents into PosTerminal.
-*/
 
 public class Wrapper {
-  static final Tracer dbg=new Tracer(Wrapper.class.getName());
+  static final Tracer dbg=new Tracer(Wrapper.class);
 
-  //the common user for the services that follow:
-  protected Listener thePOSapp;
+  private QReceiver posterm;
+  private IviTrio   hardware;
+
   //things that can spontaneoulsy throw JposExceptions that we wish to convert
   //into events.
   public CheckReader    checkReader;
   public CardReader     cardReader ;
   public PinEntry       pinEntry   ;
   public FormEntry      former     ;
-//  public LinePrinter    prn        ;
+  public LinePrinter    prn        ;
   public PrinterModel   printer    ;
-//  public CM3000UI       clerkface  ;
+  public DisplayPad     clerkface  ;
 
-
-  public void restart(){
-  //  detachAll();
-//  former.
-  //  attachAll();
+  public boolean haveSigCap(){
+    return hardware.haveSigCap();
   }
 
   public void detachAll() {//prepare to restart
-    cardReader.Release();
-    pinEntry.Release();
-    former.Release();
-    checkReader.Release();
-    //prn is not a true service,+++ needs a finalizer if we don't implement a Release() for it
+  //unlink components
   }
 
-  public void attachAll(String id) {
-    dbg.Enter("attachAll:"+id);
-    try {
-      //attach each of our parts
-      //+++ all error returns are being ignored!
-      dbg.mark("cardreader");
-      cardReader.Attach(id);
-      dbg.mark("pinentry");
-      pinEntry.Attach(id);
-      dbg.mark("formentry");
-      former.Attach(id);
-      dbg.mark("checkreader");
-      checkReader.Attach(id);
-
-      dbg.mark("printer");
-      try {  //not strictly a jpos device, but wrapper is a nice place for it.
-        printer= (PrinterModel) ServiceTracker.getService(DeviceName.ReceiptPrinter);
-      } catch (Exception jape){
-        dbg.Caught("Attaching printer:",jape);
-      }
-      if(printer==null){
-        printer= new PrinterModel();//on error dummy it up
-      }
-    }
-    catch (Exception caught) {
-      dbg.Caught(caught);
-    } finally {
-      dbg.Exit();
-    }
+  private Wrapper(){
+//
   }
 
-  public Wrapper(Listener jtl){
-    try {
-      dbg.Enter("Wrapper()");
-      thePOSapp=jtl;
-      cardReader =new CardReader (jtl);
-      pinEntry   =new PinEntry   (jtl);
-      former     =new FormEntry  (jtl);
-      checkReader=new CheckReader(jtl);
-//      prn= new LinePrinter("NULL PRINTER");
-    } catch (Exception caught) {
-      dbg.Caught(caught);
-    } finally {
-      dbg.Exit();
-    }
+
+  private static IviTrio ivilegacy(String trackingname,EasyCursor equipmentlist){
+    return IviTrio.New(trackingname,equipmentlist);
+  }
+
+  public static Wrapper fromDescription(QReceiver jtl,EasyCursor equipmentlist){
+    Wrapper newone=new Wrapper();
+    newone.hardware= ivilegacy(String.valueOf(jtl),equipmentlist);
+    newone.checkReader= new CheckReader (newone.hardware.micrReader() ,jtl);
+    newone.cardReader = new CardReader  (newone.hardware.msrReader()  ,jtl);
+    newone.pinEntry=    new PinEntry    (newone.hardware.pinReader()  ,jtl);
+    newone.former  =    new FormEntry   (newone.hardware.cat()        ,jtl);
+    newone.clerkface=   newone.hardware.DisplayPad();//links to jtl later.
+    newone.printer=     newone.hardware.Printer();
+    return newone;
   }
 
 }
-//$Id: Wrapper.java,v 1.39 2001/07/19 01:06:50 mattm Exp $
+//$Id: Wrapper.java,v 1.46 2003/08/04 22:23:48 andyh Exp $

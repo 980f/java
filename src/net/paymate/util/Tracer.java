@@ -5,9 +5,11 @@ package net.paymate.util;
  * Description:  Extension of ErrorLogStream that allows the developer to mark code within a function or try/catch.
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
- * @author $Author: andyh $
- * @version $Id: Tracer.java,v 1.7 2001/06/29 22:29:00 andyh Exp $
+ * @author $Author: mattm $
+ * @version $Id: Tracer.java,v 1.9 2003/07/27 05:35:25 mattm Exp $
  */
+
+import net.paymate.lang.StringX;
 
 public class Tracer extends ErrorLogStream {
   public String location;
@@ -22,7 +24,7 @@ public class Tracer extends ErrorLogStream {
 
   public void mark(String location){
     this.location=location;
-    if(Safe.NonTrivial(location)) {
+    if(StringX.NonTrivial(location)) {
       VERBOSE("mark");
     }
   }
@@ -43,15 +45,27 @@ public class Tracer extends ErrorLogStream {
     super.VERBOSE(prefix()+msg);
   }
 
-  public Tracer(String tag) {
-    super(tag);
+  protected Tracer(LogSwitch ls){
+    super(ls);
+  }
+
+  public Tracer(Class claz,String suffix) {
+    super(LogSwitch.getFor(claz,suffix));
     location="start";
   }
 
-  public Tracer(String cname,int spam){
-    super(cname, spam);
-    location="start";
+  public Tracer(Class claz) {
+    this(claz,null);
+  }
+
+  public Tracer(Class claz,int spam){
+    this(claz,null,spam);
+  }
+
+  public Tracer(Class claz,String suffix,int spam){
+    this(claz,suffix);
+    this.setLevel(spam);
   }
 
 }
-//$Id: Tracer.java,v 1.7 2001/06/29 22:29:00 andyh Exp $
+//$Id: Tracer.java,v 1.9 2003/07/27 05:35:25 mattm Exp $

@@ -4,11 +4,12 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: TableGen.java,v 1.36 2001/10/24 11:01:17 mattm Exp $
+ * @version      $Id: TableGen.java,v 1.50 2004/03/13 01:29:32 mattm Exp $
  */
 
 package net.paymate.web.table;
 import  net.paymate.util.*; // safe, monitor, errologstream
+import  net.paymate.lang.StringX;
 import  net.paymate.web.color.*;
 import  org.apache.ecs.*;
 import  org.apache.ecs.html.*;
@@ -21,11 +22,11 @@ import  net.paymate.web.page.PayMatePage;
 
 public abstract class TableGen extends GenericDBTableElement {
   // logging facilities
-  private static final ErrorLogStream dbg=new ErrorLogStream(TableGen.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(TableGen.class, ErrorLogStream.WARNING);
   // constants ...
-  protected static final Element LF   = PayMatePage.LF; // makes reading the generated files easier
-  protected static final Element br   = PayMatePage.br; // +_+ put these in a class designed just for this stuff, not in PaymatePage or here
-  protected static final Element BRLF = PayMatePage.BRLF;
+  protected static final Element LF   = new StringElement(PayMatePage.LF); // makes reading the generated files easier
+  protected static final Element br   = new StringElement(PayMatePage.BR); // +_+ put these in a class designed just for this stuff, not in PaymatePage or here
+  protected static final Element BRLF = new StringElement(PayMatePage.BRLF);
   // variables ...
   public    ColorScheme colors    = ColorScheme.MONOCHROME; // default
   // these can only be added in the constructor ...
@@ -33,58 +34,21 @@ public abstract class TableGen extends GenericDBTableElement {
   protected HeaderDef   headers[] = null; // !!! (headers.length == data[i].length) !!!
   protected RowEnumeration rowEnum = null;
   protected String absoluteURL = null;
-  // this is for keeping track of queries that have more records than can be displayed
-  // +_+ develop a separate class for this, which extends the HashTable.  Then, instantiate one instance of that class?
-  public static final Hashtable queries = new Hashtable(); // status page needs to get to these
-  public static final TableGen getFromKey(String key) {
-    return (TableGen) queries.remove(key);
-  }
-  private String sessionid = "";
-  public static final void cleanup(String sessionid) {
-    for(Enumeration ennum = queries.elements(); ennum.hasMoreElements();) {
-      try {
-        Object o = ennum.nextElement();
-        if((o != null) && (o instanceof TableGen)) { // should always be
-          TableGen tg = (TableGen)o;
-          if(tg.sessionid.equals(sessionid)) {
-            tg.close();
-          }
-        }
-      } catch (Exception e) {
-        dbg.Caught(e);
-        ennum = queries.elements(); // try again
-      }
-    }
+  protected boolean grid = false;
+
+  public TableGen(String title, ColorScheme colors, HeaderDef headers[], String absoluteURL) {
+    this(title, colors, headers, absoluteURL, false); // legacy
   }
 
-  public static final TextList getUnclosedStatements() {
-    TextList tl = new TextList();
-    for(Enumeration ennum = queries.elements(); ennum.hasMoreElements();) {
-      try {
-        Object o = ennum.nextElement();
-        if((o != null) && (o instanceof TableGen)) { // should always be
-          TableGen tg = (TableGen)o;
-          tl.add(tg.sessionid+"/"+tg.title);
-        }
-      } catch (Exception e) {
-        dbg.Caught(e);
-        ennum = queries.elements(); // try again
-      }
-    }
-    return tl;
-  }
-
-  public TableGen(String title, ColorScheme colors, HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
+  public TableGen(String title, ColorScheme colors, HeaderDef headers[], String absoluteURL, boolean grid) {
     super(null);
     this.title   = title;
     this.colors  = colors;
     this.headers = headers;
-    this.maxRows = howMany;
     this.absoluteURL = absoluteURL;
-    this.sessionid = sessionid;
+    this.grid = grid;
   }
 
-  protected int maxRows = -1;
   private boolean isMore = false;
   public boolean hasMore() {
     return isMore;
@@ -95,42 +59,14 @@ public abstract class TableGen extends GenericDBTableElement {
     return totalRows;
   }
 
-  private String key = null;
-  public String key() {
-    return key;
-  }
-
-  private int page = 0;
-  public String page() {
-    return ""+page;
-  }
-
   public void close() {
-    queries.remove(key);
-  }
-
-  private static long keyIncr = System.currentTimeMillis(); // this should make these very unique (+_+ find a different non-static method for doing this?)
-  private static final Monitor keyMon = new Monitor("TableGenKeyGenerator"); // monitor required since a long is not atomic
-  private static final long genKey() {
-    long ret = -1;
-    try{
-      dbg.Enter("genKey");
-      keyMon.getMonitor();
-      ret = keyIncr++;
-    } catch (Exception e) {
-      dbg.Caught(e);
-    } finally {
-      keyMon.freeMonitor();
-      dbg.Exit();
-      return ret;
-    }
+    // stub for others to overwrite, if needed
   }
 
   public void output(PrintWriter out) {
     ElementContainer result = null;
     Table t = null;
     TBody body = null;
-    key = BaseConverter.itoa(TableGen.genKey(), 16);
     try {
       dbg.Enter("generate");
       result = new ElementContainer();
@@ -147,16 +83,9 @@ public abstract class TableGen extends GenericDBTableElement {
       // footer
       body.addElement(new DBTableFooterElement(this));
       // return the table
-//      long starttime = Safe.utcNow();
       result.output(out);
-//      long endtime = Safe.utcNow();
-//      out.println("tgt:" + (endtime - starttime) + "ms");
       out.flush();
-      if(!hasMore()) {
-        close();
-      } else {
-        queries.put(key, this);
-      }
+      close();
     } catch (Exception t5) {
       dbg.Caught("Exception generating table.", t5);
     } finally {
@@ -172,7 +101,7 @@ public abstract class TableGen extends GenericDBTableElement {
       rowEnum = rows();
     }
     TableGenRow row = null;
-    while((isMore = rowEnum.hasMoreRows()) && ((maxRows < 0) || (rowCount<maxRows))) {
+    while(isMore = rowEnum.hasMoreRows()) {
       row = rowEnum.nextRow();
       if(row == null) {
         isMore = false;
@@ -186,7 +115,7 @@ public abstract class TableGen extends GenericDBTableElement {
       te.output(out);
       LF.output(out);
     }
-    System.gc(); // hope this helps
+//    System.gc(); // hope this helps
     out.flush();
   }
 
@@ -204,7 +133,6 @@ public abstract class TableGen extends GenericDBTableElement {
   }
 
   /*package*/ void fillFooter(PrintWriter out) {
-    page++;
     try {
       for(int feet = 0; feet < _footerRows(); feet++) {
         generateFooterRow(feet).output(out);
@@ -217,22 +145,42 @@ public abstract class TableGen extends GenericDBTableElement {
     }
   }
 
+  // We need to be able to specify that we want a row to be light or dark.
+  // This function lets us override the standard light.medium alternations
+  protected boolean light(int count) {
+    return (count % 2 == 0); // every other one is light
+  }
+
   private Element generateDataRow(TableGenRow row, int count) {
     int numCols = (headers != null) ? headers.length : 0;
-    boolean light = (count % 2 == 0);
+    boolean light = light(count);
     ColorSet color =  light ? colors.LIGHT : colors.MEDIUM;
-    TR trBody = new TR().setBgColor(color.BG);
+    TR trBody = new TR();
+    if(!grid) {
+      trBody.setBgColor(color.BG);
+    }
     for(int col = 0; col < numCols; col++) {
       try {
         Element cell = row.column(col);
+        if(grid) {
+          if(col != 0) {
+            light = !light; // alternate later cells colors
+          }
+          color =  light ? colors.LIGHT : colors.MEDIUM;
+        }
         Font f = new Font();
-        if(!light) {
+        if(!light || grid) {
           f.setColor(color.FG);
         }
         f.addElement(new StringElement(Entities.NBSP)).addElement(cell);
-        trBody.addElement(new TD(f).setAlign(headers[col].colAlign).addElement(LF));
+        TD td = new TD(f);
+        if(grid) {
+          td.setBgColor(color.BG);
+        }
+        td.setAlign(headers[col].colAlign).addElement(LF);
+        trBody.addElement(td);
       } catch (Exception t) {
-        dbg.Caught("generateDataRow: Exception generating column " + col,t);
+        dbg.Caught("generateDataRow: Exception generating column " + col + " for row " + count,t);
       }
     }
     return trBody;
@@ -253,14 +201,18 @@ public abstract class TableGen extends GenericDBTableElement {
                               .setAlign(headers[col].colAlign).addElement(LF));
 */
         Font f = new Font().setColor(colors.DARK.FG);
-        if(!headers[col].colAlign.equalsIgnoreCase(AlignType.LEFT)) {
-          f.addElement(Entities.NBSP);
+        if(headers[col] != null) {
+          if(!headers[col].colAlign.equalsIgnoreCase(AlignType.LEFT)) {
+            f.addElement(Entities.NBSP);
+          }
+          f.addElement(headers[col].title);
+          if(!headers[col].colAlign.equalsIgnoreCase(AlignType.RIGHT)) {
+            f.addElement(Entities.NBSP);
+          }
+          trHead.addElement(new TH(f).setAlign(headers[col].colAlign).addElement(LF));
+        } else {
+          trHead.addElement(new TH(f).setAlign(AlignType.LEFT).addElement(LF));
         }
-        f.addElement(headers[col].title);
-        if(!headers[col].colAlign.equalsIgnoreCase(AlignType.RIGHT)) {
-          f.addElement(Entities.NBSP);
-        }
-        trHead.addElement(new TH(f).setAlign(headers[col].colAlign).addElement(LF));
       }
     } catch (Exception t) {
       dbg.Caught("Exception generating header row at column " + col, t);
@@ -274,15 +226,21 @@ public abstract class TableGen extends GenericDBTableElement {
     int col = -1;
     try {
       for(col = 0; col< headers.length;col++) {
+        String alignment = AlignType.LEFT; // default
+        if(headers[col] == null) {
+          // skip this one
+        } else {
+          alignment = headers[col].colAlign;
+        }
         Font f = new Font().setColor(colors.DARK.FG);
-        if(!headers[col].colAlign.equalsIgnoreCase(AlignType.LEFT)) {
+        if(!StringX.equalStrings(alignment, AlignType.LEFT, true)) {
           f.addElement(Entities.NBSP);
         }
         f.addElement(_footer(row, col));
-        if(!headers[col].colAlign.equalsIgnoreCase(AlignType.RIGHT)) {
+        if(!StringX.equalStrings(alignment, AlignType.RIGHT, true)) {
           f.addElement(Entities.NBSP);
         }
-        trFoot.addElement(new TH(f).setAlign(headers[col].colAlign).addElement(LF));
+        trFoot.addElement(new TH(f).setAlign(alignment).addElement(LF));
       }
     } catch (Exception t) {
       dbg.Caught("Exception generating footer row=" + row + ", col=" + col, t);
@@ -311,7 +269,6 @@ public abstract class TableGen extends GenericDBTableElement {
   protected static final StringElement emptyElement = new StringElement(" ");
   private static final Element emptyFooterCell = emptyElement;
   private static final Element errFooterCell = new StringElement(" !ERROR! ");
-  private static final String moreStr = "next ->";
 
   private Element _footer(int row, int col) {
     Element footerCell = errFooterCell;
@@ -325,18 +282,18 @@ public abstract class TableGen extends GenericDBTableElement {
         // first the count; don't show it if footers are defined
         int theCount = footersNotInited() ? 0 : FOOTERSNOTINITED;
         // then the next/previous/pick
-        int theNext = footersNotInited() ? theCount + 1 : footerRows();
+//        int theNext = footersNotInited() ? theCount + 1 : footerRows();
         if(row == theCount) {
           switch(col) {
             case 0: {
-              footerCell = new StringElement((((maxRows < 0) || !hasMore())? "Count:" : "SubCount:") + " " + rowsYet());
+              footerCell = new StringElement("Count: " + rowsYet());
             } break;
           }
-        } else if(row == theNext) {
-          if((col == (headers.length-1)) || col == 0) {
-            // +++ this is where we put the "next->" stuff (and eventually the "back" stuff and the "select which one" stuff)
-            footerCell = new A(absoluteURL + "&k="+key()+"&pg="+page()).addElement((new Font()).setColor(colors.DARK.FG).addElement(moreStr));
-          }
+//        } else if(row == theNext) {
+//          if((col == (headers.length-1)) || col == 0) {
+//            // +++ this is where we put the "next->" stuff (and eventually the "back" stuff and the "select which one" stuff)
+//            footerCell = new A(absoluteURL + "&k="+key()+"&pg="+page()).addElement((new Font()).setColor(colors.DARK.FG).addElement(nextStr));
+//          }
         } else {
           footerCell = footer(row, col);
         }
@@ -345,6 +302,13 @@ public abstract class TableGen extends GenericDBTableElement {
     return footerCell;
   }
 
+  protected static final Element strikeText(Element text, boolean isStrike) {
+    if(isStrike) {
+      return new Strike(text);
+    } else {
+      return text;
+    }
+  }
 }
 
 class DBTableBodyElement extends GenericDBTableElement {

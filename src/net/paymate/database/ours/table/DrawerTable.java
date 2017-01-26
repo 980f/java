@@ -6,36 +6,33 @@ package net.paymate.database.ours.table;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: DrawerTable.java,v 1.2 2001/11/17 06:16:59 mattm Exp $
+ * @version $Id: DrawerTable.java,v 1.20 2003/10/01 04:33:07 mattm Exp $
  */
 
 import net.paymate.database.*;
 import net.paymate.database.ours.*;
 
-public class DrawerTable extends TableProfile implements DBConstants {
+public class DrawerTable extends GenericTableProfile {
+  public final ColumnProfile associateid  =createColumn("associateid"  ,DBTypesFiltered.INT4,CANNULL,NOAUTO,null);
+  public final ColumnProfile auto         =createColumn("auto"         ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,null);
+  public final ColumnProfile drawerid     =createColumn("drawerid"     ,DBTypesFiltered.INT4,NOTNULL,AUTO  ,null);
+  public final ColumnProfile terminalid   =createColumn("terminalid"   ,DBTypesFiltered.INT4,NOTNULL,NOAUTO,null);
+  // convert to a no-millis int4 field ...
+  public final ColumnProfile transtarttime=createColumn("transtarttime",DBTypesFiltered.TEXT,NOTNULL,NOAUTO,null);
+  public final ColumnProfile txncount     =createColumn("txncount"     ,DBTypesFiltered.INT4,CANNULL,NOAUTO,null);
+  public final ColumnProfile txntotal     =createColumn("txntotal"     ,DBTypesFiltered.INT4,CANNULL,NOAUTO,null);
 
-  private static final String DRAWER = "DRAWER";
-
-  public static final ColumnProfile drawerid       =ColumnProfile.create(DRAWER, DRAWERID      ,DBTypesFiltered.INTEGER, 8,ColumnProfile.NOTNULL  ,"DrawerID"     ,ColumnProfile.AUTO);
-  public static final ColumnProfile terminalid     =ColumnProfile.create(DRAWER, TERMINALID    ,DBTypesFiltered.CHAR   ,32,ColumnProfile.NOTNULL  ,"Terminal ID"  ,ColumnProfile.NOAUTO); // +++ needs unique index in terminal table // replace with TERMID that is integer ???
-  public static final ColumnProfile associateid    =ColumnProfile.create(DRAWER, ASSOCIATEID   ,DBTypesFiltered.INTEGER, 4,ColumnProfile.ALLOWNULL,"Associate ID" ,ColumnProfile.NOAUTO); // +++ needs unique index in associate table // make not null later ++
-  public static final ColumnProfile enterpriseid   =ColumnProfile.create(DRAWER, ENTERPRISEID  ,DBTypesFiltered.INTEGER, 4,ColumnProfile.ALLOWNULL,"Enterprise ID",ColumnProfile.NOAUTO); // +++ needs unique index enterprise table // make it NOTNULL later
-  public static final ColumnProfile storeid        =ColumnProfile.create(DRAWER, STOREID       ,DBTypesFiltered.INTEGER, 4,ColumnProfile.NOTNULL  ,"Store ID#"    ,ColumnProfile.NOAUTO); // +++ needs unique index in the store table
-  public static final ColumnProfile transtarttime  =ColumnProfile.create(DRAWER, TRANSTARTTIME ,DBTypesFiltered.CHAR   ,14,ColumnProfile.NOTNULL  ,"Txn Time"     ,ColumnProfile.NOAUTO);
-
-
-  private static final ColumnProfile [] staticColumns = {
-    drawerid,
-    transtarttime,
-    terminalid,
-    associateid,
-    enterpriseid,
-    storeid,
-  };
+  IndexProfile drassocidx  = new IndexProfile("drassocidx" , this, associateid);
+  IndexProfile drtermidx   = new IndexProfile("drtermidx"  , this, terminalid);
+  IndexProfile drcntidx    = new IndexProfile("drcntidx"   , this, txncount);
+  IndexProfile drttlidx    = new IndexProfile("drttlidx"   , this, txntotal);
+  IndexProfile bmstarttime = new IndexProfile("bmstarttime", this, transtarttime);
+  // partial index ...
+  IndexProfile drauto      = new IndexProfile("drauto"     , this, auto, PayMateDBQueryString.whereIsTrue(auto));
 
   public DrawerTable() {
-    super(new TableInfo(DRAWER), staticColumns);
-  }
-
+    super(DRAWERTABLE, logType);
+    setContents("pkdr_drawerid", drawerid);
+   }
 }
 

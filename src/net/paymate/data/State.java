@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/data/State.Enum]
 package net.paymate.data;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class State extends TrueEnum {
   public final static int AK=0;
@@ -75,11 +74,11 @@ public class State extends TrueEnum {
   public final static int YT=67;
 
   public int numValues(){ return 68; }
-  private static final TextList myText = TrueEnum.nameVector(State.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(State.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final State Prop=new State();
+  public static final State Prop=new State();//for accessing class info
   public State(){
     super();
   }
@@ -96,6 +95,18 @@ public class State extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static State CopyOf(State rhs){//null-safe cloner
+    return (rhs!=null)? new State(rhs) : new State();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

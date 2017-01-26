@@ -4,7 +4,7 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: LogSwitchTableGen.java,v 1.6 2001/10/27 07:17:29 mattm Exp $
+* @version      $Id: LogSwitchTableGen.java,v 1.9 2003/10/30 21:05:16 mattm Exp $
 */
 package net.paymate.web.table;
 import  net.paymate.web.color.*;
@@ -15,7 +15,7 @@ import  java.util.Vector;
 
 public class LogSwitchTableGen extends ArrayTableGen {
 
-  protected static final ErrorLogStream dbg = new ErrorLogStream(LogSwitchTableGen.class.getName());
+  protected static final ErrorLogStream dbg = ErrorLogStream.getForClass(LogSwitchTableGen.class);
 
   protected static final HeaderDef defaultHeaders[] = {
     new HeaderDef(AlignType.LEFT, "Debug or Fork"),
@@ -23,7 +23,7 @@ public class LogSwitchTableGen extends ArrayTableGen {
   };
 
   public LogSwitchTableGen(String title, ColorScheme colors, HeaderDef headers[]){
-    super(title, colors, null, headers, null, -1, null);
+    super(title, colors, null, headers, null);
     Vector debuggers = LogSwitch.Sorted();
     data = new String [debuggers.size()][2];
     for(int i = 0; i < data.length; i++) {
@@ -51,4 +51,4 @@ public class LogSwitchTableGen extends ArrayTableGen {
 
 }
 
-//$Id: LogSwitchTableGen.java,v 1.6 2001/10/27 07:17:29 mattm Exp $
+//$Id: LogSwitchTableGen.java,v 1.9 2003/10/30 21:05:16 mattm Exp $

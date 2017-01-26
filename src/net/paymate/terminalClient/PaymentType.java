@@ -1,6 +1,6 @@
-/* $Id: PaymentType.java,v 1.5 2000/06/04 20:37:36 alien Exp $ */
+/* $Id: PaymentType.java,v 1.6 2003/10/25 20:34:24 mattm Exp $ */
 package net.paymate.terminalClient;
-import  net.paymate.ISO8583.data.PayType;
+import  net.paymate.data.PayType;
 
 public class PaymentType extends PayType {
 
@@ -26,4 +26,4 @@ public class PaymentType extends PayType {
 
 }
 
-//$Id: PaymentType.java,v 1.5 2000/06/04 20:37:36 alien Exp $
+//$Id: PaymentType.java,v 1.6 2003/10/25 20:34:24 mattm Exp $

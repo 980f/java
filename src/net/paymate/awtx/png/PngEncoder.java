@@ -1,6 +1,6 @@
 package net.paymate.awtx.png;
 
-import net.paymate.data.Value;
+//import net.paymate.data.Value;
 
 
 /**
@@ -20,7 +20,7 @@ import net.paymate.data.Value;
  *
  * <a href="http://www.cdrom.com/pub/png/spec/">The PNG Specification</a><br><br>
  *
- * @version $Id: PngEncoder.java,v 1.3 2001/02/03 01:10:07 mattm Exp $
+ * @version $Id: PngEncoder.java,v 1.5 2002/06/30 02:22:15 mattm Exp $
  */
 
 import java.awt.Image;
@@ -535,7 +535,7 @@ public class PngEncoder extends Object {
       scrunch.finish();
       return true;
     } catch (IOException e) {
-      System.err.println( e.toString());
+      System.err.println(String.valueOf(e));
       return false;
     }
   }

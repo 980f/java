@@ -1,19 +1,18 @@
+package net.paymate.ivicm.ec3K;
 /**
-* Title:        Command
-* Description:
+* Title:        $Source: /cvs/src/net/paymate/ivicm/ec3K/Command.java,v $
+* Description:  @todo replace with subvariant of visaBuffer
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Command.java,v 1.2 2001/07/19 01:06:49 mattm Exp $
+* @version      $Id: Command.java,v 1.7 2003/01/14 14:55:25 andyh Exp $
 */
-package net.paymate.ivicm.ec3K;
-//import net.paymate.util.ErrorLogStream;
 
+import net.paymate.util.*;
 public class Command {
-//  static final ErrorLogStream dbg=new ErrorLogStream("EC3K.Command");
 
-  final static int StartFrame=2;  //^b, STX
-  final static int EndFrame  =3;  //^c, ETX
+  final static int StartFrame=Ascii.STX;
+  final static int EndFrame  =Ascii.ETX;
   final static int RcvSize   =256;
 
   public byte[] outgoing;
@@ -31,10 +30,10 @@ public class Command {
     int blocksize=block.length;
     //should find a maxsize to check against.
     outgoing= new byte[3+blocksize];
-    outgoing[0]=StartFrame;
+    outgoing[0]=(byte)StartFrame;
     System.arraycopy(block,0,outgoing,1,blocksize);
-    outgoing[1+blocksize]=EndFrame;
+    outgoing[1+blocksize]=(byte)EndFrame;
   }
 
 }
-//$Id: Command.java,v 1.2 2001/07/19 01:06:49 mattm Exp $
+//$Id: Command.java,v 1.7 2003/01/14 14:55:25 andyh Exp $

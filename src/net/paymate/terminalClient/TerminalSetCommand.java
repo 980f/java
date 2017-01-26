@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/terminalClient/TerminalSetCommand.Enum]
 package net.paymate.terminalClient;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class TerminalSetCommand extends TrueEnum {
   public final static int cardaccountNumber =0;
@@ -16,11 +15,11 @@ public class TerminalSetCommand extends TrueEnum {
   public final static int voidstan          =8;
 
   public int numValues(){ return 9; }
-  private static final TextList myText = TrueEnum.nameVector(TerminalSetCommand.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(TerminalSetCommand.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final TerminalSetCommand Prop=new TerminalSetCommand();
+  public static final TerminalSetCommand Prop=new TerminalSetCommand();//for accessing class info
   public TerminalSetCommand(){
     super();
   }
@@ -37,6 +36,18 @@ public class TerminalSetCommand extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static TerminalSetCommand CopyOf(TerminalSetCommand rhs){//null-safe cloner
+    return (rhs!=null)? new TerminalSetCommand(rhs) : new TerminalSetCommand();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

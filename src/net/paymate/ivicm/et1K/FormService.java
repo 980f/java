@@ -1,44 +1,32 @@
-/* $Id: FormService.java,v 1.33 2001/11/15 03:15:44 andyh Exp $ */
+/* $Id: FormService.java,v 1.55 2003/07/27 05:35:04 mattm Exp $ */
 package net.paymate.ivicm.et1K;
 
 //import net.paymate.ivicm.et1K.ICForm;
 import net.paymate.util.*;
-import net.paymate.jpos.common.*;
-import net.paymate.jpos.Terminal.LinePrinter;//a misplaced class..
-
-import jpos.*;
-import jpos.events.*;
-import jpos.services.*;
-
-import java.awt.Point;
-import java.awt.Dimension;
-
+import net.paymate.jpos.data.*;
+import net.paymate.jpos.Terminal.*;
+import net.paymate.lang.StringX;
+import net.paymate.awtx.*;
 
 import java.io.*;
-import java.util.Vector;
+import java.util.*;
 
-public class FormService extends Service implements FormService14, SignatureCaptureService14, InputServer,FormControlConstant, JposConst {
-  static final ErrorLogStream dbg=new ErrorLogStream(FormService.class.getName());
-  static final ErrorLogStream fff=new ErrorLogStream("FormFormatter");
-  protected final static Dimension graphLimit= new Dimension(320,240);
-  protected final static Dimension textLimit = new Dimension(40,30);
+import net.paymate.terminalClient.IviForm.*;
+
+public class FormService extends Service  {
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(FormService.class);
+  static final ErrorLogStream fff=ErrorLogStream.getExtension(FormService.class, "FormFormatter");
+//  final static XDimension graphLimit= new XDimension(320,240);
+  final static XDimension textLimit = new XDimension(40,30);
   public static final double PollRate=4.0; //four checks per second.
 
   private boolean formEnabled=false;
 
   //jpos defined configuration data
-  private int FontCode;//write only
+  private int FontCode;//write only !!!
 
   //default form options:
   private String compression="512dpi";
-
-  //jpos defined read back data
-  //these are illegitimate re jpos spex but I can't afford to fix it now.
-  //+++ need to store in eventqueue on creation and parse on preparefordataevent
-  //they work because we don't allow polling the entouch until after dataevents
-  //are re-enabled.
-  private byte [] packedButtons;
-  private ncraSignature Signature;
 
   private ByteArrayOutputStream IncomingPointPacket;//accumulate incoming point data
 
@@ -46,44 +34,20 @@ public class FormService extends Service implements FormService14, SignatureCapt
   private FormCommand currentForm;
   /////////////////////////////////////////////////////////////////
 
-  static final String VersionInfo="FormService, (C) PayMate.net 2000, $Revision: 1.33 $";
+  static final String VersionInfo="FormService, (C) PayMate.net 2000, $Revision: 1.55 $";
 
   public FormService(String s,ET1K hw){
     super(s,hw);
-    identifiers(VersionInfo,0,"");
+//    identifiers(VersionInfo,0,"");
     currentForm = new FormCommand();
     IncomingPointPacket= new ByteArrayOutputStream(); //allocated once and reset before each fresh use
-    buttoner=new PolledCommand( finish(new Command(Codes.GET_CONTROLBOX_DATA,"Polling Form"),new PostButtonData()),PollRate,this,dbg);
-  }
-
-  public synchronized void open(String s, EventCallbacks eventcallbacks) throws JposException {
-    compression=(String)ServiceTracker.getService("SignatureCompression");
-    FontCode = 0;
-    super.open(s,eventcallbacks);
-  }
-
-  public synchronized void close() throws JposException {
-    //    storedPcxes.clear();//so that close() then open() forces full reload
-    super.close();
-  }
-
-  public void claim(int i) throws JposException {
-    try {
-      super.claim(i);
-    }
-    catch(Exception exception){
-      Failure("in claim", exception);
-    }
-  }
-  ////////////////////////////////////////////////////////////////////
-  public void prepareForDataEvent(Object blob){//about to post DataEvent
-    //we do nothing, data has already been **illegally** prepared.
+    buttoner=new PolledCommand( finish(new Command(OpCode.GET_CONTROLBOX_DATA,"Polling Form"),new PostButtonData()),PollRate,this,dbg);
   }
 
   /**
   * determine if button report shows that form data entry is ended
   */
-  private boolean enTouchHasStopped() {
+  private boolean enTouchHasStopped(byte [] packedButtons) {
     if(packedButtons != null){
       for(int i = 0; i < packedButtons.length; i += 2){
         if(packedButtons[i] != 2 && packedButtons[i + 1] == 1){
@@ -96,13 +60,14 @@ public class FormService extends Service implements FormService14, SignatureCapt
 
   class PostButtonData implements Callback {
     public Command Post(Command cmd){
+      byte [] packedButtons;
       try {
-        dbg.Enter("PostButtonData");
+        dbg.Enter("PostButtonData");//#gc
         if(gotData(cmd)){
           dbg.VERBOSE("checking button data");
           packedButtons = cmd.payload();
-          if(enTouchHasStopped()) {//if a button says that enTouch has terminated input
-            PostData(packedButtons);
+          if(enTouchHasStopped(packedButtons)) {//if a button says that enTouch has terminated input
+            PostData(new FormButtonData(packedButtons));
           } else {
             if(formEnabled){
               dbg.VERBOSE("Still buttoning");
@@ -110,7 +75,7 @@ public class FormService extends Service implements FormService14, SignatureCapt
             }
           }
         } else {
-          if(cmd.response()==Codes.CONTROL_NOT_DISPLAYED){
+          if(cmd.response()==ResponseCode.CONTROL_NOT_DISPLAYED){
             dbg.VERBOSE("no buttons to poll");//trivial error. we poll even when there are no buttons so we don't have to ask if there are any.
           }
           else {
@@ -122,187 +87,168 @@ public class FormService extends Service implements FormService14, SignatureCapt
         return null;
       }
       finally {
-        dbg.Exit();
+        dbg.Exit();//#gc
       }
     }
 
   }//end postbuttondata class
 
-  public void clearFormInput() throws JposException {
+  public void clearFormInput()  {
     try {
-      dbg.Enter("clearFormInput");
-      assertClaimed();
-      Signature = null;
-      packedButtons = null;
+      dbg.Enter("clearFormInput");//#gc
     }
     finally {
-      dbg.Exit();
+      dbg.Exit();//#gc
     }
   }
 
-  public void clearScreen() throws JposException {
-    Issue(Codes.CLEAR_SCREEN,"Clearing Screen");
+  public void clearScreen() {
+    Issue(OpCode.CLEAR_SCREEN,"Clearing Screen");
     //but polling continues +_+
   }
 
-  public void displayTextAt(int row, int col, String s) throws JposException {
-    assertEnabled();
+  public void displayTextAt(int row, int col, String s){
     Illegal(row >= textLimit.height || col >= textLimit.width ,"Text positioned off screen");
-    Illegal(!Safe.NonTrivial(s),"null string");
+    Illegal(!StringX.NonTrivial(s),"null string");
     JustSend(ET1K.DisplayTextAt(row,col,FontCode,s),"formservice displaytext");
   }
 
-  public void endForm() throws JposException {
-    assertEnabled();
+  public void endForm(){
     TerminateForm(false);//need to get buttons
   }
 
-  /**
-   * @return possibly null or zero length array of button:pressed? pairs
-   */
-  public byte[] getButtonData() throws JposException {
-    assertEnabled();
-    return packedButtons;
-  }
 
-  public int getCols() throws JposException {
-    assertClaimed();
-    return textLimit.width;
-  }
-
-  public int getMaximumX() throws JposException {
-    assertOpened();
-    return graphLimit.width;
-  }
-
-  public int getMaximumY() throws JposException {
-    assertOpened();
-    return graphLimit.height;
-  }
-
-  public Point[] getPointArray() throws JposException {
-    return Signature!=null? Signature.getPoints(): new Point[0];
-  }
-
-  public Point[] getPointArray(int i) throws JposException {
-    assertClaimed();
-    if(i == 0) {
-      return Signature!=null? Signature.getPoints(): new Point[0];
-    }
-    return null;
-  }
-
-  public byte[] getRawData() throws JposException {
-    assertClaimed();
-    return getRawSigData();
-  }
-
-  public byte[] getRawScriptData()  throws JposException  {
-    assertClaimed();
-    return null;
-  }
-
-  public byte[] getRawSigData() throws JposException {
-    assertClaimed();
-    return Signature!=null?Signature.getRawData():new byte[0];
-  }
-
-  public int getRows() throws JposException  {
-    assertClaimed();
-    return textLimit.height;
-  }
-
-  public byte[] getSurveyData() throws JposException {
-    NotImplemented ("Surveys");
-    return null;//packedSurveyData;
-  }
-
-  public void setFont(int fnt, int stile) throws JposException {
-    assertClaimed();
+  public void setFont(int fnt, int stile) {
     FontCode= stile<<4 | fnt ;//presumes legal values
     return;
   }
 
-  //made a member so that we can purge it from queue
-  LrcBuffer showStoredCmd=null;
-
-  private LrcBuffer showStoredCommand(int formNumber){
-    if(showStoredCmd==null){
-      showStoredCmd=Command.Buffer(Codes.DISPLAY_STORED_FORM,2);
-      showStoredCmd.append(0);
-      showStoredCmd.append(formNumber);
-      showStoredCmd.end();
-    }
-    showStoredCmd.replace(5,(byte)formNumber);
-    return showStoredCmd;
-  }
-
-  static final Tracer arf=new Tracer("ARF");
+  static final Tracer arf=new Tracer(FormService.class,"arf");
 
   PolledCommand buttoner;
 
-  public void startForm(String s, boolean alreadyStored) throws JposException {
+  public void startForm(Form iviform, boolean alreadyStored) {
     arf.mark("getform");
-    currentForm=FormCommand.getJposForm(s);
+    currentForm=FormCommand.fromForm(iviform);
     arf.mark("formnum");
     int formNumber = currentForm.FormNumber();
     arf.mark("grafindex");
     int grafNumber = currentForm.grafIndex();
-    arf.mark("whic type");
+    arf.mark("which type");
     BlockCommand cmd;
-    if(alreadyStored) {//if supposedly not stored then
+    if(alreadyStored) {
       arf.mark("already");
       cmd=currentForm.asStored();//commands to show a store form
       hardware.squelch(cmd);//remove anything similar that is pending.
-    } else {//trust caller, will fubar if they are wrong
+    }
+    else {//trust caller, will fubar if they are wrong
+dbg.ERROR("FORM NOT STORED:"+currentForm.toSpam());
       arf.mark("fullcommand");
       cmd=currentForm.fullCommand(false /*for storing*/);//show a NON-stored form
     }
     arf.mark("testhassig");
     if(currentForm.HasSignature()){//compression is not in FormCommand.pmForm scope so we do this in service
       dbg.VERBOSE("Setting signature DPI");
-      Command legacy=new Command(Codes.CONFIGURE, Codes.SET_SIG_TYPE,parseCompression(compression),"setting sig dpi");
+      Command legacy=new Command(OpCode.CONFIGURE, OpCode.SET_SIG_TYPE,parseCompression(compression),"setting sig dpi");
       arf.mark("addsigcomp");
       cmd.addCommand(legacy.outgoing());
     }
     arf.mark("sendpreform");
-    sendPreformed(cmd,new FormLoader("Sending Form"));
+    sendPreformed(cmd,new FormLoader("Sending Form",currentForm.pmForm()));
     formEnabled=true;
-    arf.mark("setpoller");
-    QueueCommand(buttoner.toPoll);
+    if(currentForm.HasButtons()){//suppress cable detect polling. Only poll if it is needed.
+      arf.mark("setpoller");
+      QueueCommand(buttoner.toPoll);
+    }
   }
 
   private void sendPreformed(Command cmd, Callback cb){
     QueueCommand(cmd,cb);
   }
 
+/**
+ *   Appendix A: Host Command and Return Status Cross Reference HEX Status Description
+ *   signature capture peripheral
+ */
+  private String formErrorMessage(int responsecode){
+  switch(responsecode){
+  case 0x03: return "encryption key not loaded, or mixing MSR 4430 commands with UKPT commands";
+  case 0x40: return "Invalid row or column for text or box";
+  case 0x41: return "Box extends beyond LCD screen on the right";
+  case 0x42: return "Box extends beyond LCD screen on the bottom";
+  case 0x45: return "Text string truncated (too long)";
+  case 0x4D: return "unpublished code 0x4D";//unknown error from s/n 0500209093
+  case 0xC7: return "MSR Data unreadable";
+  case 0xE0: return "MSR busy, already enabled with function code 62/80";
+  case 0xE8: return "Invalid record type";
+  case 0xE9: return "Invalid page";
+  case 0xEA: return "Invalid Page Offset";
+  case 0xEC: return "Invalid parameter in data field";
+  case 0xED: return "Cancel button touched on numeric keypad";
+  case 0xEE: return "Insufficient memory";
+  case 0xF6: return "Invalid screen number";
+  case 0xF7: return "Invalid sequence number";
+  case 0xFA: return "Invalid mode for command";
+  default: return super.ErrorMessage(responsecode);
+  }
+  }
+
   class FormLoader extends WantZero {
-    public FormLoader(String s){
+    Form beingLoaded;
+
+    public FormLoader(String s,Form beingLoaded){
       super(s);
+      this.beingLoaded=beingLoaded;
     }
+
     public Command Post(Command cmd){
       int response=cmd.response();
       switch(response){
-        //commm errors now handled in thing that calls this.
-        case Codes.SUCCESS: {
+        //trivial errors, ones that retry won't fix
+        case 0x40: // Invalid row or column for text or box
+        case 0x41: // Box extends beyond LCD screen on the right
+        case 0x42: // Box extends beyond LCD screen on the bottom
+        case 0x45:// Text string truncated (too long)
+        case 0x4D://unknown error from s/n 0500209093
+          dbg.ERROR(formErrorMessage(response));
+//          PostFailure(new FormProblem(formErrorMessage(response),beingLoaded));
+          //join
+          //rewite response to be success then
+          cmd.forceResponse(ResponseCode.SUCCESS);
+          dbg.VERBOSE("ResponseCode After Force:"+cmd.response());
+        case ResponseCode.SUCCESS: {
           return super.Post(cmd);
         }
-        case Codes.InvalidScreenNumber:{ //+++ repost as failure!
-          return null; //else bad form creates infinite loop in loader.
+        case ResponseCode.outofroominflash:{
+          PostFailure(new FormProblem("oorinf"+formErrorMessage(response),beingLoaded));
+//          return new Command(OpCode.AUX_FUNCTION,AuxCode.AUX_COMPRESSFLASH,"CompressFlash");
+          return ET1K.CompressFlashCommand();
+        } //break;
+        //hopeless content errors, retry won't fix
+        case ResponseCode.InvalidScreenNumber:{ //truncate command with an abort
+          if(cmd instanceof BlockCommand){
+            BlockCommand bc=(BlockCommand) cmd;
+            return bc.truncate();
+          } else {
+            cmd.outgoing=FormCommand.AbortCommand;
+            return cmd; //else bad form creates infinite loop in loader.
+          }
         }
-        default:
-        return cmd.restart();
+        //retry any errors that get to here.
+        default:{
+          return cmd.restart();
+        } //break;
       }
     }
   }
 
-  public void storeForm(String s) throws JposException {
-    currentForm=FormCommand.getJposForm(s);// a creator
-    sendPreformed(currentForm.fullCommand(true),new WantZero("Storing Form"));
+  public void storeForm(Form form) {
+    currentForm=FormCommand.fromForm(form);// a creator
+    sendPreformed(currentForm.fullCommand(true),new FormLoader("Storing Form",currentForm.pmForm()));
   }
 
-  private void AbortForm() throws JposException {
-    Issue(Codes.ABORT,"Abort Form");
+  private void AbortForm()  {
+    Issue(OpCode.ABORT,"Abort Form");
   }
   /////////////////////////////
 
@@ -317,40 +263,39 @@ public class FormService extends Service implements FormService14, SignatureCapt
 
   private void addPointFragment(byte [] buffer){
     int size = buffer.length;
-//    dbg.ERROR("IPP:"+Safe.hexImage(buffer));
+//    dbg.ERROR("IPP:"+Formatter.hexImage(buffer));
     IncomingPointPacket.write(buffer,0,size);
   }
 
   private void sigless(){
-    Signature= null;
-    PostData(Signature);
+    PostData(new SigData(new ncraSignature()));
   }
 
+private static SignatureType NCRAType=new SignatureType(SignatureType.NCRA);
+
   public Command endrun(Command cmd){
-    dbg.Enter("sig packet handler");
+    dbg.Enter("sig packet handler");//#gc
     try {
       switch(cmd.response()){
-        case Codes.NO_DATA_READY: {
+        case ResponseCode.NO_DATA_READY: {
           sigless();
         } break;
-        case Codes.CONTROL_NOT_DISPLAYED:{
+        case ResponseCode.CONTROL_NOT_DISPLAYED:{
           //supposedly the box itself is not there
           sigless();
         } break;
-        case Codes.MORE_DATA_READY:{//leading pieces
+        case ResponseCode.MORE_DATA_READY:{//leading pieces
           dbg.VERBOSE("getting sig data");
           dbg.VERBOSE(cmd.incoming.toSpam(20));
           addPointFragment(cmd.payload(1));//skip sequence number
           //+_+ we theoretically should check the sequence number and reissue command if not correct.
-          return finish(new Command(Codes.SEND_NEXT_DATA_BLOCK,"OnSigData"),new OnSigData());//more please
+          return finish(new Command(OpCode.SEND_NEXT_DATA_BLOCK,"OnSigData"),new OnSigData());//more please
         } //break;
         case 0:{ //final piece
           dbg.WARNING("got sig data");
           dbg.VERBOSE(cmd.incoming.toSpam(20));
           addPointFragment(cmd.payload(1));
-          ncraSignature newSignature= ncraSignature.fromRawData(JoinedPointPackets());
-          Signature=newSignature;
-          PostData(Signature);
+          PostData(SigData.CreateFrom(JoinedPointPackets(),NCRAType));
         } break;
         default: {
           PostFailure("In OnSigData: status="+cmd.response());
@@ -363,23 +308,23 @@ public class FormService extends Service implements FormService14, SignatureCapt
       return null;
     }
     finally {
-      dbg.Exit();
+      dbg.Exit();//#gc
     }
   }
 
   class OnSigData implements Callback {
     public Command Post(Command cmd){
-      return endrun(cmd);//can probalby remove this extra level of call now that we are using jdk 1.3
+      return endrun(cmd);//can probably remove this extra level of call now that we are using jdk 1.3
     }
   }
 
-  private byte[] JoinedPointPackets() throws JposException {
+  private byte[] JoinedPointPackets()  {
     return IncomingPointPacket.toByteArray();
   }
 
   public byte parseCompression(String s){
     try {
-      if(Safe.NonTrivial(s)){
+      if(StringX.NonTrivial(s)){
         if(s.equals("64dpi")){
           return  1; //??? seems likethis should be 0 +_+
         }
@@ -401,71 +346,21 @@ public class FormService extends Service implements FormService14, SignatureCapt
     }
   }
 
-  public boolean getCapDisplay() throws JposException {
-    assertOpened();
-    return true;
-  }
-
   private void TerminateForm(boolean buttonsOk) {
-    dbg.Enter("TerminateForm/ "+ (buttonsOk?"on button":"endForm()"));
+    dbg.Enter("TerminateForm/ "+ (buttonsOk?"on button":"endForm()"));//#gc
     try {
       formEnabled=false;   //affects interpreation of various incoming data
       buttoner.Stop();
       IncomingPointPacket.reset();
-      ErrorLogStream.Debug.ERROR("signature slot on form?"+currentForm.HasSignature());
-      ErrorLogStream.Debug.ERROR("currentForm:"+currentForm.toSpam());
-
       if(currentForm.HasSignature()){
         dbg.VERBOSE("Ask4sig");
-        Get(Codes.GET_COMPRESSED_SIG,"Getting Sig",new OnSigData());
+        Get(OpCode.GET_COMPRESSED_SIG,"Getting Sig",new OnSigData());
       }
     }
     finally {
-      dbg.Exit();
+      dbg.Exit();//#gc
     }
-  }
-
-  ////////////////////////////////////////////////
-  //sig capture
-  public void beginCapture(String formkey) throws JposException {
-    //we can keep a "registry" of forms that were stored to supply the boolean below.
-    startForm(formkey,false);//or should we require the form be stored???
-    //NO: the only reason to store is to get graphic background...
-    //but this is a big hole in the jpos spec.
-  }
-
-  public void endCapture(){
-    try {
-      endForm();
-    }
-    catch (Exception ex) {
-      //blow it off
-    }
-  }
-
-  /////////////////////
-  //these should be a new device type!
-  //so that cm3000 can be one of that type as well.
-  public void displayKeyboard() throws JposException {
-    NotImplemented("Keyboard");
-  }
-
-  public void displayKeypad()throws JposException{
-    NotImplemented("Keypad");
-  }
-
-  public String getKeyedData() throws JposException {
-    NotImplemented("KeyPad");
-    return null;
-  }
-
-  public void setKeyboardPrompt(String s) throws JposException {
-    NotImplemented("Keyboard");
-  }
-
-  public void setKeypadPrompts(String s, String s1) throws JposException {
-    NotImplemented("Keypad");
   }
 
 }
-//$Id: FormService.java,v 1.33 2001/11/15 03:15:44 andyh Exp $
+//$Id: FormService.java,v 1.55 2003/07/27 05:35:04 mattm Exp $

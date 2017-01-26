@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: Logout.java,v 1.4 2001/07/19 01:06:56 mattm Exp $
+ * @version      $Id: Logout.java,v 1.6 2004/04/08 09:09:52 mattm Exp $
  */
 
 // This class only exists for the classname to be displayed as an option, etc (key(), name(), url()).
@@ -16,7 +16,7 @@ import  net.paymate.util.*;
 public class Logout extends PayMatePage {
 
   public Logout(String loginInfo) {
-    super(name(), loginInfo);
+    super(name(), loginInfo, null, null, false /*we will never create this page in archive mode*/);
     fillBody(contentFromStrings(contents));
   }
   protected static final String contents[]= {

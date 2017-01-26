@@ -4,60 +4,58 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: LineDisplay.java,v 1.14 2001/10/12 04:11:37 andyh Exp $
+* @version      $Id: LineDisplay.java,v 1.19 2003/07/27 05:35:06 mattm Exp $
 */
 package net.paymate.jpos.Terminal;
 
-import jpos.*;
-import jpos.events.*;
-import jpos.events.DataEvent;
-import net.paymate.util.ErrorLogStream;
-import net.paymate.util.Safe;
-
+import net.paymate.lang.StringX;
+import net.paymate.util.*;
+import net.paymate.ivicm.ec3K.*;
 //not a DEService since with no input it has no listeners.
-public class LineDisplay extends jpos.LineDisplay  implements jpos.LineDisplayConst {
-  private static final ErrorLogStream dbg = new ErrorLogStream(LineDisplay.class.getName());
 
-  boolean fakeit;
+class LineDisplay {
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(LineDisplay.class);
 
-  String id;
-  public String toString(){
-    return id;
+  LineDisplayService device;
+  public void joins(LineDisplayService device,QReceiver posterm){
+    this.device=device;
+    if(device!=null){
+      device.setReceiver(posterm);//only used for errors.
+    }
   }
 
-  protected void Attach(String id) {
-    fakeit=(Fundamental.Attach(this,this.id=id,DeviceName.LineDisplay)!=null);
-  }
+//  public String toString(){
+//    return device.getPhysicalDeviceName();
+//  }
 
-  public JposException  Release() {
-    return Fundamental.Release(this);
-  }
-
+//
+//  protected void Attach(String id) {
+//    fakeit=(Fundamental.Attach(this,this.id=id,DeviceName.LineDisplay)!=null);
+//  }
+//
+//  public JposException  Release() {
+//    return Fundamental.Release(this);
+//  }
+//
   protected String forRefresh="";
 
-  public JposException refresh(){
-    return Display(forRefresh);
+  public void refresh(){
+    Display(forRefresh);
+  }
+///////////
+
+  public void Display(String msg){
+    if(device!=null){
+      //do our own scrolling, don't trigger marquee crap.
+      String scrolled= StringX.tail(msg,device.getColumns());
+      device.displayText(forRefresh=scrolled);
+      dbg.VERBOSE("Should have just displayed: " + scrolled);
+    }
   }
 
-  public JposException Display(String msg){
-    if(fakeit){
-      return null;
-    }
-    try {
-      //do our own scrolling, don't trigger marquee crap.
-      String scrolled= Safe.tail(msg,getColumns());
-      displayTextAt(0,0,forRefresh=scrolled,LineDisplayConst.DISP_DT_NORMAL);
-      dbg.VERBOSE("Should have just displayed: " + scrolled);
-      return null;
-    } catch(jpos.JposException jape){
-      dbg.VERBOSE("Exception displaying: " + msg);
-      if(jape.getErrorCode()==JposConst.JPOS_E_CLOSED){
-        fakeit=true;
-        return null;
-      }
-      return jape;
-    }
+  public LineDisplay(LineDisplayService device,QReceiver posterm){
+    joins(device,posterm);
   }
 
 }
-//$Id: LineDisplay.java,v 1.14 2001/10/12 04:11:37 andyh Exp $
+//$Id: LineDisplay.java,v 1.19 2003/07/27 05:35:06 mattm Exp $

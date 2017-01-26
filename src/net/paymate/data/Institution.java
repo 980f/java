@@ -1,12 +1,12 @@
 package net.paymate.data;
 
 /**
-* Title:
+* Title:        $Source: /cvs/src/net/paymate/data/Institution.java,v $
 * Description:
 * Copyright:    Copyright (c) 2000
 * Company:      PayMate.net
-* @author $Author: andyh $
-* @version $Id: Institution.java,v 1.1 2001/02/07 06:10:32 andyh Exp $
+* @author       Paymate.net
+* @version $Id: Institution.java,v 1.2 2001/11/25 16:34:50 andyh Exp $
 */
 
 public interface Institution {
@@ -22,6 +22,8 @@ public interface Institution {
 
   public String FullName();
 
+  public InstitutionClass Class();
+
   /**
   * someone else figures out this code belongs with this class,
   * this function is called to make an exact object
@@ -33,4 +35,4 @@ public interface Institution {
   //and reflection will be used to create a newInstance and then call setFromIIN...
 
 }
-//$Id: Institution.java,v 1.1 2001/02/07 06:10:32 andyh Exp $
+//$Id: Institution.java,v 1.2 2001/11/25 16:34:50 andyh Exp $

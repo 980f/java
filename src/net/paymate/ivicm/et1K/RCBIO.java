@@ -1,26 +1,31 @@
 package net.paymate.ivicm.et1K;
 
 /**
-* Title:        RCBIO
+* Title:        $Source: /cvs/src/net/paymate/ivicm/et1K/RCBIO.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: RCBIO.java,v 1.34 2001/10/30 19:37:21 mattm Exp $
+* @version      $Revision: 1.41 $
 */
 
 import net.paymate.ivicm.SerialDevice;
 import net.paymate.jpos.Terminal.LinePrinter;
 import net.paymate.util.*;
 import net.paymate.util.timer.*;
+import net.paymate.lang.ThreadX;
+import net.paymate.text.Formatter;
 
 // Referenced classes of package net.paymate.ivicm.et1K:
 //      Command, ET1K, Callback
 
 public class RCBIO {
-  boolean directPriority=false;//name is legacy of directIO stuff
+  private int printPriority=0;
+final static int priorityText=1;
+final static int priorityInit=priorityText+1;
+
   boolean busy;
-  static final ErrorLogStream dbg=new ErrorLogStream(RCBIO.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(RCBIO.class);
   ET1K hw;
   Alarmum  deadlock;
   protected LinePrinter user;
@@ -32,28 +37,28 @@ public class RCBIO {
   boolean haveEnabled=false;
 
   static final byte enablemsg[] = {
-    Codes.AUX_PORT_1,
-    Codes.AUX_BAUD_9600,
-    Codes.AUX_PARITY_NONE,
-    Codes.AUX_DATABITS_8,
-    Codes.AUX_STOPBITS_1
+    AuxCode.AUX_PORT_1,
+    AuxCode.AUX_BAUD_9600,
+    AuxCode.AUX_PARITY_NONE,
+    AuxCode.AUX_DATABITS_8,
+    AuxCode.AUX_STOPBITS_1
   };
 
   public RCBIO(String s, ET1K hw) {
     busy = false;
     lastPayload = 0;
     this.hw = hw;
-    dbg.VERBOSE("My et1l:".concat(String.valueOf(String.valueOf(hw.toString()))));
+    dbg.VERBOSE("My et1l:".concat(String.valueOf(String.valueOf(String.valueOf(hw)))));
     hw.setStartup(toEnable());
   }
 
   int commonresponse(Command cmd) {
     Alarmer.Defuse(deadlock);
     switch(cmd.response()) {
-      case Codes.INVALID_PORT_STATE:  return -1;
-      case Codes.SUCCESS:             return 0;
+      case ResponseCode.INVALID_PORT_STATE:  return -1;
+      case ResponseCode.SUCCESS:             return 0;
     }
-    dbg.ERROR("reply code:".concat(String.valueOf(String.valueOf(Safe.ox2(cmd.response())))));
+    dbg.ERROR("reply code:".concat(String.valueOf(String.valueOf(Formatter.ox2(cmd.response())))));
     return 1;
   }
 
@@ -61,9 +66,9 @@ public class RCBIO {
     public Command Post(Command cmd) {
       switch(commonresponse(cmd)) {
         case -1:{
-        busy = true;
+          busy = true;
         } return toEnable();
-        case Codes.SUCCESS:{ // '\0'
+        case ResponseCode.SUCCESS:{ // '\0'
           sendNext(cmd.responseTime.seconds());
         } break;
         default:{ //errors
@@ -77,7 +82,9 @@ public class RCBIO {
   class EnableResponse implements Callback {
     public Command Post(Command cmd) {
       haveEnabled=commonresponse(cmd)<=0;
-      directPriority=haveEnabled;//to ensure that if we have to enable again the enable cmd precedes any hanging print commands
+      //to ensure that if we have to enable again the enable cmd precedes any hanging print commands
+      printPriority=haveEnabled?Command.priorityExpress:Command.priorityFront-1;
+
       user.CTSEvent(true);
       return null;
     }
@@ -120,18 +127,18 @@ public class RCBIO {
   }
 
   protected Command toEnable(){
-    Command cmd=new Command(Codes.AUX_FUNCTION,Codes.AUX_ENABLE, enablemsg, "RCBsetParms");
+    Command cmd=new Command(OpCode.AUX_FUNCTION,AuxCode.AUX_ENABLE, enablemsg, "RCBsetParms");
     cmd.onReception=new EnableResponse();
-    cmd.highPriority=true;
+    cmd.boostTo(priorityInit);//just above any print
     dbg.WARNING("toEnable:"+cmd.outgoing().toSpam());
     return cmd;
   }
 
   protected Command toPrint(byte msg[]){
-    Command cmd=new Command(Codes.AUX_FUNCTION,Codes.AUX_SEND, msg, "RCBPrint");
+    Command cmd=new Command(OpCode.AUX_FUNCTION,AuxCode.AUX_SEND, msg, "RCBPrint");
     cmd.onReception=new DataResponse();
-    cmd.highPriority=directPriority;
-    cmd.service=null; ///who references this?
+    cmd.boostTo(priorityText);
+    cmd.service=null; ///who references this? alh:error handlers
     return cmd;
   }
 
@@ -169,4 +176,4 @@ public class RCBIO {
 * buffer for the aux port it replies which calls back to post, which calls
 * the CTS function which calls back into this module at sendline.
 */
-//$Id: RCBIO.java,v 1.34 2001/10/30 19:37:21 mattm Exp $
+//$Id: RCBIO.java,v 1.41 2003/07/27 05:35:04 mattm Exp $

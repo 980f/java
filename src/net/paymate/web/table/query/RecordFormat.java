@@ -8,6 +8,7 @@ import  net.paymate.web.color.ColorScheme;
 import  net.paymate.util.*;
 import  java.sql.*;
 import  java.util.*; // timezone
+import net.paymate.lang.StringX;
 // --- remove?
 import  net.paymate.web.page.*; // Acct
 import  net.paymate.web.AdminOp;
@@ -21,20 +22,21 @@ import  net.paymate.web.AdminOp;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: RecordFormat.java,v 1.7 2001/07/19 01:06:59 mattm Exp $
+ * @version $Id: RecordFormat.java,v 1.16 2003/10/30 21:05:18 mattm Exp $
  */
 
 public abstract class RecordFormat extends QueryGen {
-  private static final ErrorLogStream dbg = new ErrorLogStream(RecordFormat.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(RecordFormat.class);
 
   protected LocalTimeFormat ltf;
 
   private Element values [] = null;
   private static final Element EMPTY_STRING_ELEMENT = new StringElement("");
 
-  public RecordFormat(ColorScheme colors, String title, Query q, String absoluteURL, int howMany, String sessionid, LocalTimeFormat ltf) {
-    super(null, colors, q, null, absoluteURL, howMany, sessionid); // and set what these null's are filling to something in the extended class (will have to be AFTER construction)
-    this.title = Safe.TrivialDefault(title, "untitledRecordFormat");
+  public RecordFormat(ColorScheme colors, String title, Query q,
+                      String absoluteURL, LocalTimeFormat ltf) {
+    super(null, colors, q, null, absoluteURL); // and set what these null's are filling to something in the extended class (will have to be AFTER construction)
+    this.title = StringX.TrivialDefault(title, "untitledRecordFormat");
     this.ltf=ltf;
   }
 
@@ -81,7 +83,7 @@ public abstract class RecordFormat extends QueryGen {
   }
 
   protected Element headerLink(String url, String name) {
-    return /*new StringElement("[").addElement(*/new A(url).addElement((new Font()).setColor(colors.DARK.FG).addElement(/*"[" + */name/* + "]"*/))/*).addElement(new StringElement("]"))*/;
+    return new A(url).addElement((new Font()).setColor(colors.DARK.FG).addElement(name));
   }
 
   protected static final Element strikeText(String text, boolean isStrike) {
@@ -93,9 +95,23 @@ public abstract class RecordFormat extends QueryGen {
     }
   }
 
+  public final static String utcdb2web(String date, LocalTimeFormat ltf) {
+    return StringX.NonTrivial(date) ? ltf.format(PayMateDBQueryString.tranUTC(date)) : "-";
+  }
+
+  public final String utcdb2web(String date) {
+    return utcdb2web(date, ltf);
+  }
+
+  protected static final String easyURL2web(String eus) {
+    return new TextList(new EasyUrlString().setencodedto(eus)).asParagraph("<BR>\n");
+  }
+
   public void close() {
-    q.close();
-    q = null;
+    if(q != null) {
+      q.close();
+      q = null;
+    }
     super.close();
   }
 

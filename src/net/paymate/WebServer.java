@@ -10,16 +10,15 @@ package net.paymate;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.8 $
  */
 
 import  net.paymate.util.*;
 
 public class WebServer {
 
-  private static final ErrorLogStream dbg=new ErrorLogStream(WebServer.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(WebServer.class);
   public Main app;
-  public String hostname = "uninitialized";
 
   public WebServer(String argv[]) {
     try {
@@ -27,7 +26,8 @@ public class WebServer {
       app=new Main(WebServer.class);
       // load config
       app.stdStart(argv);
-// start the webserver here, pass the config in
+
+      // start the webserver here, pass the config in
 
     } catch (Throwable caught) {
       dbg.Caught(caught);

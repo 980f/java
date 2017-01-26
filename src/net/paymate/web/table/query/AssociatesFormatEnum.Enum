@@ -1,8 +1,12 @@
 // AssociatesFormatEnum.Enum
 // put these in the order that you want the columns
+NameCol
 LoginnameCol
-LastNameCol
-FirstNameCol
-MICol
 EnterpriseACLCol
-ColorSchemeCol
+// the above should ALWAYS be first!
+AssociateidCol
+ColorschemeidCol
+EnabledCol
+EnauthmsgviewCol
+EncodedpwCol
+EndbCol

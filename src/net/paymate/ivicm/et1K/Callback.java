@@ -5,7 +5,7 @@ package net.paymate.ivicm.et1K;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Callback.java,v 1.5 2001/06/26 01:35:20 andyh Exp $
+* @version      $Id: Callback.java,v 1.6 2005/03/02 05:23:06 andyh Exp $
 */
 
 //public //package specific callback
@@ -15,10 +15,10 @@ interface Callback {
 
 /* inner class template
   class $$ implements Callback {
-    public void Post(Command cmd){
+    public void post(Command cmd){
        //Failure("");
     }
   }
 
  */
-//$Id: Callback.java,v 1.5 2001/06/26 01:35:20 andyh Exp $
+//$Id: Callback.java,v 1.6 2005/03/02 05:23:06 andyh Exp $

@@ -5,20 +5,26 @@ package net.paymate.ivicm.et1K;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: RCBPrinter.java,v 1.22 2001/10/22 23:33:39 andyh Exp $
+* @version      $Id: RCBPrinter.java,v 1.27 2003/07/27 05:35:04 mattm Exp $
 */
 
 import net.paymate.util.*;
-
+import net.paymate.lang.StringX;
 import net.paymate.util.ObjectFifo;
 import net.paymate.util.ErrorLogStream;
 
 import net.paymate.jpos.Terminal.LinePrinter;
 
 public class RCBPrinter extends LinePrinter {
-  static final ErrorLogStream dbg=new ErrorLogStream(RCBPrinter.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(RCBPrinter.class);
 
   RCBIO port;//mixture of port and arbitration therefore
+
+  public void disConnect(){
+    //do our stuff then
+    super.disConnect();
+  }
+
 
   protected void setRTS(boolean beOn){
     dbg.VERBOSE("setRTS:"+beOn);
@@ -51,7 +57,7 @@ public class RCBPrinter extends LinePrinter {
   protected void sendLine(byte [] rawline){
     try {
       thisMonitor.LOCK("sendLine(byte[])");
-      if(!port.SendLine(Safe.insert(rawline,Codes.AUX_PORT_1,0))){
+      if(!port.SendLine(ByteArray.insert(rawline,AuxCode.AUX_PORT_1,0))){
         //should try to deal with it, til then:
         dbg.ERROR("Printer.FailureToSend");
       } else {
@@ -70,4 +76,4 @@ public class RCBPrinter extends LinePrinter {
     port.Attach(this);
   }
 
-} //$Id: RCBPrinter.java,v 1.22 2001/10/22 23:33:39 andyh Exp $
+} //$Id: RCBPrinter.java,v 1.27 2003/07/27 05:35:04 mattm Exp $

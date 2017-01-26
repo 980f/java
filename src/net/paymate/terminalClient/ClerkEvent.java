@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/terminalClient/ClerkEvent.Enum]
 package net.paymate.terminalClient;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class ClerkEvent extends TrueEnum {
   public final static int Clear        =0;
@@ -11,18 +10,17 @@ public class ClerkEvent extends TrueEnum {
   public final static int Send         =3;
   public final static int Reprint      =4;
   public final static int Login        =5;
-  public final static int PrintCoupon  =6;
-  public final static int SendSignature=7;
-  public final static int Reconnect    =8;
-  public final static int Functions    =9;
-  public final static int Debug        =10;
+  public final static int SendSignature=6;
+  public final static int Reconnect    =7;
+  public final static int Functions    =8;
+  public final static int Debug        =9;
 
-  public int numValues(){ return 11; }
-  private static final TextList myText = TrueEnum.nameVector(ClerkEvent.class);
-  protected final TextList getMyText() {
+  public int numValues(){ return 10; }
+  private static final String[ ] myText = TrueEnum.nameVector(ClerkEvent.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final ClerkEvent Prop=new ClerkEvent();
+  public static final ClerkEvent Prop=new ClerkEvent();//for accessing class info
   public ClerkEvent(){
     super();
   }
@@ -39,6 +37,18 @@ public class ClerkEvent extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static ClerkEvent CopyOf(ClerkEvent rhs){//null-safe cloner
+    return (rhs!=null)? new ClerkEvent(rhs) : new ClerkEvent();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

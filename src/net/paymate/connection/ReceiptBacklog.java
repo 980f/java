@@ -6,7 +6,7 @@ package net.paymate.connection;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: ReceiptBacklog.java,v 1.7 2001/11/17 00:38:34 andyh Exp $
+ * @version $Id: ReceiptBacklog.java,v 1.12 2002/07/09 17:51:21 mattm Exp $
  */
 
 import net.paymate.util.*;
@@ -15,10 +15,10 @@ import java.util.Vector;
 import java.io.*;
 
 public class ReceiptBacklog extends Backlog {
-  static final ErrorLogStream dbg=new ErrorLogStream(ReceiptBacklog.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(ReceiptBacklog.class);
 
   public boolean register(ReceiptStoreRequest rsr){
-    return super.register(rsr,rsr.tid.image('.'));
+    return super.register(rsr,rsr.image('.'));//
   }
 
   public ReceiptBacklog(File root) {
@@ -35,4 +35,4 @@ public class ReceiptBacklog extends Backlog {
   }
 
 }
-//$Id: ReceiptBacklog.java,v 1.7 2001/11/17 00:38:34 andyh Exp $
+//$Id: ReceiptBacklog.java,v 1.12 2002/07/09 17:51:21 mattm Exp $

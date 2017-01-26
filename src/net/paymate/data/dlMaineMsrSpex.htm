@@ -1,382 +1,382 @@
-<html>
-
-<head>
-<meta Name="GENERATOR" Content="Microsoft FrontPage 3.0">
-<title>IDENTIFICATION CARD STANDARDS</title>
-<meta HTTP-EQUIV="Bulletin-Text" Contents="Swipe Card Standard Adopted by ISPB 10/31/96">
-<meta HTTP-EQUIV="Bulletin-Date" Contents="11/21/96 4:21PM">
-</head>
-
-<body bgcolor="#FFFFFF">
-<font size="+1"><b>
-
-<p align="center">STATE OF MAINE<br>
-IDENTIFICATION CARD STANDARDS</b></font><br>
-<br>
-<b>Approved by Information Services Managers' Group October 30, 1996 <br>
-Adopted by Information Services Policy Board October 31, 1996<br>
-<br>
-IDENTIFICATION CARD STANDARDS TEAM</b> <br>
-Lars Rydell, Department of the Secretary of State<br>
-Sheldon K. Bird, Department of Labor<br>
-Floyd A. Brown, Department of Human Services<br>
-David H. Ellis, Department of Administration and Finance<br>
-Jeffrey Harmon, Department of Public Safety<br>
-James E. Watkins, Department of Education <font size="+1"><br>
-</font><b><br>
-</b>PURPOSE.<br>
-The intent of Identification Card Standards is two fold:<br>
-<br>
-To ensure that the bar code and magnetic stripe infrastructure developed by one State
-agency is compatible with the infrastructure developed by all other State agencies and
-similar agencies in other states. <br>
-<br>
-To ensure that the content and format of data in bar codes and magnetic stripes on agency
-cards are similar so that cards with magnetic stripe and bar codes will easily adapt to
-use as universal identifier cards.<br>
-<br>
-The American Association of Motor Vehicle Administrators (AAMVA) and the International
-Standards Organization's (ISO) have developed standards for the use of bar codes and
-magnetic stripes on identification cards. To enhance the inter-jurisdictional utility of
-cards, agencies must use these standards whenever possible. <br>
-<br>
-STANDARDS REVIEW GROUP.<br>
-The ISPB shall establish a Standards Review Group. The Standards Review Group will:<br>
-<br>
-Be responsible for coordinating ongoing compliance with national standards setting
-agencies. <br>
-Actively encourage inter state consortia, national standards groups, and federal agencies
-to develop standards compatible with Maine's Identification Card Standards. <br>
-Ensure that the State is issued and where possible agencies use a common ANSI User Code
-and ANSI User ID.<br>
-Establish and assign Agency Designator Numbers to agencies issuing cards. <br>
-Establish mechanism for etting (changing) the CRYPT KEY for encryption.<br>
-<br>
-The Standards Review Group may recommend granting requests for a waver from Maine's
-Identification Card Standards, for final approval by the ISPB, when a waver is necessary
-for an agency to comply with the standards set by a multi-state agreement, a federal
-agency program, or an outsourcing agreement with a third party to both produce the cards
-and handle transaction processing.<br>
-<br>
-STANDARDS FOR IDENTIFICATION CARDS.<br>
-State agencies shall comply with the following standards in the issuance of identification
-cards that use bar codes or magnetic stripes.<br>
-<br>
-CARD SIZE:<br>
-Size of Card: ISO standard.<br>
-<br>
-IDENTIFICATION NUMBER <br>
-The Standard Individual ID Number will be the cardholder's encrypted Social Security
-Number. Agencies can also have an Agency Specific Individual ID Number. <br>
-ONE DIMENSIONAL BAR CODE <br>
-Symbology Standard: Code 128.<br>
-<br>
-Standard for Encryption: Standard UNIX Crypt Function compliant with the ANSI standards.<br>
-<br>
-Standard for Physical Location of Bar Code: The bar code should occupy the area from 0.20
-inch to 0.60 inch (0.5 cm to 1.5 cm) from the edge of the card. It should not be on the
-same edge as the magnetic stripe.<br>
-<br>
-State standard for Identification Number*:<br>
-<br>
-</p>
-
-<table border="1">
-  <tr>
-    <td align="center" valign="top">Standard Individual ID Number (SSN)<br>
-    (9 Characters) </td>
-    <td align="center" valign="top">Duplicate Card<br>
-    Number<br>
-    (2 Characters) </td>
-    <td valign="top">Agency Designator<br>
-    (3 Characters) </td>
-    <td align="center" valign="top">Agency Specific Individual ID Number<br>
-    (Up to 12 Characters)</td>
-  </tr>
-</table>
-
-<p align="center"><br>
-* Agencies, other than the one issuing the Agency Specific ID Number, could use the
-combined Agency Designator and Agency Specific Individual ID Number as an alternative
-unique identifier. The Agency Designator will facilitate inter agency cooperation in
-sharing basic demographic information. <br>
-<br>
-TWO DIMENSIONAL BAR CODE:<br>
-Standard for Physical Location of Bar Code: None.<br>
-<br>
-Symbology Standard: PDF417.<br>
-<br>
-Standard for Compression: None. No compression or compaction beyond Hi-Density, PDF417
-standard.<br>
-<br>
-Character Set: ASCII/ISO 8859-1 (256 character table) or for efficiency the 128 character
-subset in Text Compaction Table.<br>
-<br>
-Standard for Encryption: Standard UNIX Crypt Function.<br>
-<br>
-State Standard for Identification Number: Social Security Number and Alternative ID
-Numbers are included in the AAMVA Hi-Density Symbology Data Structure Template.<br>
-<br>
-Data Structure: AAMVA Hi-Density Symbology Data Structure Template. The general structure
-is outlined below. (A more detailed description is found in the &quot;Catalog of Defined
-Subfile and Data Element Identifiers Used with AAMVA Compliant PDF417 Bar Codes&quot;.)<br>
-<br>
-AAMVA Hi-Density Symbology Data Structure Template:<br>
-HEADER:<br>
-The header contains:<br>
-Compliance Indicator.<br>
-Data Element Separator.<br>
-Record Separator.<br>
-Segment Terminator.<br>
-File Type: AAMVA.<br>
-Jurisdiction Code: Obtained from AAMVA.<br>
-Version Number: Version level of AAMVA Hi-Density bar code format.<br>
-Number of Entries: Specifies the number of subfiles (1-99).<br>
-<br>
-SUBFILE DESIGNATOR(s):<br>
-Lists Subfile Types, Offset, and Length. The Offset indicates the start of the subfile by
-the number of bytes from beginning of file and Length indicates the number of bytes in the
-subfile.<br>
-<br>
-SUBFILE: Subfiles include a Subfile Identifier followed by Data Element Identifiers.<br>
-<br>
-DATA ELEMENT IDENTIFIERS: Data Element Identifiers (DEI) provide a label for the data
-string that follows. <br>
-<br>
-DATA: The data can be either text data or contain Binary Large Objects (BLOBs). <br>
-<i><b><br>
-</b></i>General: AAMVA has developed a list of Subfiles Types and Data Element
-Identifiers. The Standards Review Group will review and approve additional Subfile Types
-or Data Element proposed by agencies. The Group will submit these additional designators
-to AAMVA for approval and registration. Agencies and the Group should foster a single set
-of standard designators. AAMVA has reserved Subfile Type and Data Element Identifiers for
-use by individual jurisdictions. <br>
-<br>
-Data structure must follow ANSI D-20 standard where a definition exists. If no D-20 entry
-exists for a required data element, an agency, through the Review Group, should promote
-that element as an addition to the D-20 standard. <br>
-<br>
-A Data Element Separator, a Record Separator, or Segment Terminator follows each data
-element depending upon whether the next field is an additional data element, record or
-subfile. <br>
-<br>
-MAGNETIC STRIPES <br>
-Standard for Physical Location of Stripe: ISO standard. It should not be on the same edge
-as the one dimensional bar code.<br>
-<br>
-Coercivity: None. (ISO standards are recommended.)<br>
-Encoding standard: Biphase F2F (or Biphase) Encoding Technique. <br>
-<br>
-Data structure: ANSI D-20 standard.<br>
-<br>
-Encryption: Standard UNIX Crypt Function.<br>
-<br>
-Magnetic Stripe Field Layouts: <br>
-Track 1: ISO standard.<br>
-Track 2: AAMVA or ISO standards as indicated table below.<br>
-Track 3: ISO standard.<br>
-<br>
-General: Magnetic stripes are widely used by financial institutions and the State Standard
-must comply as closely as possible to the general ISO standards. ISO has approved an
-alternative Track 2 standard for use with driver licenses. Track 2 is primarily used for
-identifying the cardholder and should either comply with the ISO Standard or the AMVAA
-Alternative (see table below). AAMVA has also proposed alternative standards for Tracks 1
-and 3. However, unless magnetic stripe becomes a widely used standard for interstate motor
-vehicle use, the State should comply with the ISO standards. The Standards Review Group
-will monitor the evolving use in the motor vehicle sector. <br>
-Table: Track 2 Field Layout:<br>
-</p>
-
-<table border="1">
-  <tr>
-    <td colspan="2" align="center" valign="top">ISO STANDARD<br>
-    <br>
-    </td>
-    <td colspan="2" align="center" valign="top">ISO BASED<br>
-    STATE STANDARD </td>
-    <td colspan="2" align="center" valign="top">AAMVA ALTERNATIVE<br>
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">Field Length </td>
-    <td valign="top">Field Name </td>
-    <td valign="top">Field Length </td>
-    <td valign="top">Field Name </td>
-    <td valign="top">Field Length </td>
-    <td valign="top">Field Name </td>
-  </tr>
-  <tr>
-    <td valign="top">1 </td>
-    <td valign="top">Start Sentinel </td>
-    <td valign="top">1 </td>
-    <td valign="top">Start Sentinel </td>
-    <td valign="top">1 </td>
-    <td valign="top">Start Sentinel </td>
-  </tr>
-  <tr>
-    <td valign="top">1 </td>
-    <td valign="top">ANSI User Code </td>
-    <td valign="top">1 </td>
-    <td valign="top">ANSI User Code </td>
-    <td valign="top">1 </td>
-    <td valign="top">ANSI User Code </td>
-  </tr>
-  <tr>
-    <td valign="top">5 </td>
-    <td valign="top">ANSI User ID </td>
-    <td valign="top">5 </td>
-    <td valign="top">ANSI User ID </td>
-    <td valign="top">5 </td>
-    <td valign="top">ANSI User ID </td>
-  </tr>
-  <tr>
-    <td valign="top">10 TO 13 </td>
-    <td valign="top">Individual ID Number </td>
-    <td valign="top">10 </td>
-    <td valign="top">Standard Individual ID Number (SSN) </td>
-    <td valign="top">10 </td>
-    <td valign="top">Standard Individual ID Number (SSN) </td>
-  </tr>
-  <tr>
-    <td valign="top">1 </td>
-    <td valign="top">Filed Separator </td>
-    <td valign="top">1 </td>
-    <td valign="top">Filed Separator </td>
-    <td valign="top">1 </td>
-    <td valign="top">Filed Separator </td>
-  </tr>
-  <tr>
-    <td valign="top">4 </td>
-    <td valign="top">Expiration Date </td>
-    <td valign="top">4 </td>
-    <td valign="top">Expiration Date </td>
-    <td valign="top">4 </td>
-    <td valign="top">Expiration Date </td>
-  </tr>
-  <tr>
-    <td valign="top">3 </td>
-    <td valign="top">Service Code </td>
-    <td valign="top">3 </td>
-    <td valign="top">Service Code </td>
-    <td valign="top">8 </td>
-    <td valign="top">Birth Date </td>
-  </tr>
-  <tr>
-    <td valign="top">5 </td>
-    <td valign="top">PIN </td>
-    <td valign="top">5 </td>
-    <td valign="top">PIN </td>
-    <td valign="top">&nbsp;</td>
-    <td>&nbsp;</td>
-  </tr>
-  <tr>
-    <td valign="top">3 </td>
-    <td valign="top">Card Authentication Value </td>
-    <td valign="top">3 </td>
-    <td valign="top">Card Authentication Value </td>
-    <td valign="top">&nbsp;</td>
-    <td valign="top">&nbsp;</td>
-  </tr>
-  <tr>
-    <td valign="top">2 TO 5 </td>
-    <td valign="top">Remainder for Individual ID </td>
-    <td valign="top">5 </td>
-    <td valign="top">Agency Specific Individual ID </td>
-    <td valign="top">8 </td>
-    <td valign="top">Driver License Number </td>
-  </tr>
-  <tr>
-    <td valign="top">1 </td>
-    <td valign="top">End Sentinel </td>
-    <td valign="top">1 </td>
-    <td valign="top">End Sentinel </td>
-    <td valign="top">1 </td>
-    <td valign="top">End Sentinel </td>
-  </tr>
-  <tr>
-    <td valign="top">1 </td>
-    <td valign="top">LRC </td>
-    <td valign="top">1 </td>
-    <td valign="top">LRC </td>
-    <td valign="top">1 </td>
-    <td valign="top">LRC </td>
-  </tr>
-  <tr>
-    <td valign="top">40 </td>
-    <td valign="top">&nbsp;</td>
-    <td valign="top">40 </td>
-    <td valign="top">&nbsp;</td>
-    <td valign="top">40 </td>
-    <td valign="top">&nbsp;</td>
-  </tr>
-</table>
-
-<p align="center"><br>
-<br>
-STANDARDS DOCUMENT BIBLIOGRAPHY<br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1920/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=2323511%202325431%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=2323511%202325431%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ANSI
-X3.92-1981 (R1987): Data Encryption Algorithm<br>
-<br>
-ANSI X3.149-1986 (R1992) : Financial Transaction Card Form sets - Location of Imprinted
-Information</a> <br>
-<br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1665/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=14311885%2014313550%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=14311885%2014313550%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ANSI/ISO
-4909-1989 : Bank Card - Magnetic Stripe Data Content for Track 3</a> <br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1825/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6710152%206711977%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6710152%206711977%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO/IEC 7810-1995 : Identification Cards - Physical </a><br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1917/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;7=%00;"></a><a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1725/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6711977%206713702%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6711977%206713702%20/netra/ansi/wais_db/ansicat.wais;7=%00;">
-.<br>
-ANSI/ISO/IEC 7811-1-1995 : Identification Cards - Recording Technique - Part 1: Embossing</a>
-<br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1743/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6713702%206715445%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6713702%206715445%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO/IEC 7811-2-1995 : Identification Cards - Recording Technique - Part 2: Magnetic
-Stripe<br>
-<br>
-ANSI/ISO/IEC 7811-3-1995 : Identification Cards - Recording Technique - Part 3: Location
-of Embossed Characters on ID-1 Cards<br>
-</a><a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1833/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6717278%206719111%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6717278%206719111%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO/IEC 7811-4-1995 : Identification Cards - Recording Technique - Part 4: Location
-of Read-O</a>nly Magnetic Tracks - Tracks 1 and 2<br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1839/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6719111%206720950%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6719111%206720950%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO/IEC 7811-5-1995 : Identification Cards - Recording Technique - Part 5: Location
-of Read-Write Magnetic Tracks - Track 3<br>
-<br>
-</a><a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1917/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ANSI/ISO/IEC
-7811-6-1995 : Identification Cards - Part 6: Physical Characteristics<br>
-<br>
-ANSI/ISO/IEC 7812-1-1993 : Identification Cards - Identification of Issuers - Part 1:
-Numbering Systems</a><br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1986/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=19329415%2019331401%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=19329415%2019331401%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO/IEC 7812-2-1993 : Identification Cards - Identification of Issuers - Part 2:
-Application</a><br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1665/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6720950%206722615%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6720950%206722615%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO 7813-1987 : Identification Cards - Financial Transaction Cards</a> <i><br>
-</i><a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1834/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=17804665%2017806499%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=17804665%2017806499%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
-ANSI/ISO 7816-1 to 5 : Identification Cards - Integrated Circuit(s) with Contacts - Part 1
-through Part 5</a> <br>
-<br>
-<a
-href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1882/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=17806499%2017808381%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=17806499%2017808381%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ISO/IEC
-10373: Identification cards - Test Methods</a> <br>
-<br>
-AAMVA standards:<br>
-Best Practices Recommendations for the use of Bar-Codes, Version 2.0, April 1996.<br>
-<br>
-Catalog of Defined Subfile and Data Element Identifiers Used With AAMVA Compliant PDF417
-Bar-Codes, Version 2.0, April 1996.<br>
-<br>
-Best Practices Recommendations for the use of Magnetic Stripes, Version 2.0, April 1996. </p>
-</body>
-</html>
+<html>
+
+<head>
+<meta Name="GENERATOR" Content="Microsoft FrontPage 3.0">
+<title>IDENTIFICATION CARD STANDARDS</title>
+<meta HTTP-EQUIV="Bulletin-Text" Contents="Swipe Card Standard Adopted by ISPB 10/31/96">
+<meta HTTP-EQUIV="Bulletin-Date" Contents="11/21/96 4:21PM">
+</head>
+
+<body bgcolor="#FFFFFF">
+<font size="+1"><b>
+
+<p align="center">STATE OF MAINE<br>
+IDENTIFICATION CARD STANDARDS</b></font><br>
+<br>
+<b>Approved by Information Services Managers' Group October 30, 1996 <br>
+Adopted by Information Services Policy Board October 31, 1996<br>
+<br>
+IDENTIFICATION CARD STANDARDS TEAM</b> <br>
+Lars Rydell, Department of the Secretary of State<br>
+Sheldon K. Bird, Department of Labor<br>
+Floyd A. Brown, Department of Human Services<br>
+David H. Ellis, Department of Administration and Finance<br>
+Jeffrey Harmon, Department of Public Safety<br>
+James E. Watkins, Department of Education <font size="+1"><br>
+</font><b><br>
+</b>PURPOSE.<br>
+The intent of Identification Card Standards is two fold:<br>
+<br>
+To ensure that the bar code and magnetic stripe infrastructure developed by one State
+agency is compatible with the infrastructure developed by all other State agencies and
+similar agencies in other states. <br>
+<br>
+To ensure that the content and format of data in bar codes and magnetic stripes on agency
+cards are similar so that cards with magnetic stripe and bar codes will easily adapt to
+use as universal identifier cards.<br>
+<br>
+The American Association of Motor Vehicle Administrators (AAMVA) and the International
+Standards Organization's (ISO) have developed standards for the use of bar codes and
+magnetic stripes on identification cards. To enhance the inter-jurisdictional utility of
+cards, agencies must use these standards whenever possible. <br>
+<br>
+STANDARDS REVIEW GROUP.<br>
+The ISPB shall establish a Standards Review Group. The Standards Review Group will:<br>
+<br>
+Be responsible for coordinating ongoing compliance with national standards setting
+agencies. <br>
+Actively encourage inter state consortia, national standards groups, and federal agencies
+to develop standards compatible with Maine's Identification Card Standards. <br>
+Ensure that the State is issued and where possible agencies use a common ANSI User Code
+and ANSI User ID.<br>
+Establish and assign Agency Designator Numbers to agencies issuing cards. <br>
+Establish mechanism for etting (changing) the CRYPT KEY for encryption.<br>
+<br>
+The Standards Review Group may recommend granting requests for a waver from Maine's
+Identification Card Standards, for final approval by the ISPB, when a waver is necessary
+for an agency to comply with the standards set by a multi-state agreement, a federal
+agency program, or an outsourcing agreement with a third party to both produce the cards
+and handle transaction processing.<br>
+<br>
+STANDARDS FOR IDENTIFICATION CARDS.<br>
+State agencies shall comply with the following standards in the issuance of identification
+cards that use bar codes or magnetic stripes.<br>
+<br>
+CARD SIZE:<br>
+Size of Card: ISO standard.<br>
+<br>
+IDENTIFICATION NUMBER <br>
+The Standard Individual ID Number will be the cardholder's encrypted Social Security
+Number. Agencies can also have an Agency Specific Individual ID Number. <br>
+ONE DIMENSIONAL BAR CODE <br>
+Symbology Standard: Code 128.<br>
+<br>
+Standard for Encryption: Standard UNIX Crypt Function compliant with the ANSI standards.<br>
+<br>
+Standard for Physical Location of Bar Code: The bar code should occupy the area from 0.20
+inch to 0.60 inch (0.5 cm to 1.5 cm) from the edge of the card. It should not be on the
+same edge as the magnetic stripe.<br>
+<br>
+State standard for Identification Number*:<br>
+<br>
+</p>
+
+<table border="1">
+  <tr>
+    <td align="center" valign="top">Standard Individual ID Number (SSN)<br>
+    (9 Characters) </td>
+    <td align="center" valign="top">Duplicate Card<br>
+    Number<br>
+    (2 Characters) </td>
+    <td valign="top">Agency Designator<br>
+    (3 Characters) </td>
+    <td align="center" valign="top">Agency Specific Individual ID Number<br>
+    (Up to 12 Characters)</td>
+  </tr>
+</table>
+
+<p align="center"><br>
+* Agencies, other than the one issuing the Agency Specific ID Number, could use the
+combined Agency Designator and Agency Specific Individual ID Number as an alternative
+unique identifier. The Agency Designator will facilitate inter agency cooperation in
+sharing basic demographic information. <br>
+<br>
+TWO DIMENSIONAL BAR CODE:<br>
+Standard for Physical Location of Bar Code: None.<br>
+<br>
+Symbology Standard: PDF417.<br>
+<br>
+Standard for Compression: None. No compression or compaction beyond Hi-Density, PDF417
+standard.<br>
+<br>
+Character Set: ASCII/ISO 8859-1 (256 character table) or for efficiency the 128 character
+subset in Text Compaction Table.<br>
+<br>
+Standard for Encryption: Standard UNIX Crypt Function.<br>
+<br>
+State Standard for Identification Number: Social Security Number and Alternative ID
+Numbers are included in the AAMVA Hi-Density Symbology Data Structure Template.<br>
+<br>
+Data Structure: AAMVA Hi-Density Symbology Data Structure Template. The general structure
+is outlined below. (A more detailed description is found in the &quot;Catalog of Defined
+Subfile and Data Element Identifiers Used with AAMVA Compliant PDF417 Bar Codes&quot;.)<br>
+<br>
+AAMVA Hi-Density Symbology Data Structure Template:<br>
+HEADER:<br>
+The header contains:<br>
+Compliance Indicator.<br>
+Data Element Separator.<br>
+Record Separator.<br>
+Segment Terminator.<br>
+File Type: AAMVA.<br>
+Jurisdiction Code: Obtained from AAMVA.<br>
+Version Number: Version level of AAMVA Hi-Density bar code format.<br>
+Number of Entries: Specifies the number of subfiles (1-99).<br>
+<br>
+SUBFILE DESIGNATOR(s):<br>
+Lists Subfile Types, Offset, and Length. The Offset indicates the start of the subfile by
+the number of bytes from beginning of file and Length indicates the number of bytes in the
+subfile.<br>
+<br>
+SUBFILE: Subfiles include a Subfile Identifier followed by Data Element Identifiers.<br>
+<br>
+DATA ELEMENT IDENTIFIERS: Data Element Identifiers (DEI) provide a label for the data
+string that follows. <br>
+<br>
+DATA: The data can be either text data or contain Binary Large Objects (BLOBs). <br>
+<i><b><br>
+</b></i>General: AAMVA has developed a list of Subfiles Types and Data Element
+Identifiers. The Standards Review Group will review and approve additional Subfile Types
+or Data Element proposed by agencies. The Group will submit these additional designators
+to AAMVA for approval and registration. Agencies and the Group should foster a single set
+of standard designators. AAMVA has reserved Subfile Type and Data Element Identifiers for
+use by individual jurisdictions. <br>
+<br>
+Data structure must follow ANSI D-20 standard where a definition exists. If no D-20 entry
+exists for a required data element, an agency, through the Review Group, should promote
+that element as an addition to the D-20 standard. <br>
+<br>
+A Data Element Separator, a Record Separator, or Segment Terminator follows each data
+element depending upon whether the next field is an additional data element, record or
+subfile. <br>
+<br>
+MAGNETIC STRIPES <br>
+Standard for Physical Location of Stripe: ISO standard. It should not be on the same edge
+as the one dimensional bar code.<br>
+<br>
+Coercivity: None. (ISO standards are recommended.)<br>
+Encoding standard: Biphase F2F (or Biphase) Encoding Technique. <br>
+<br>
+Data structure: ANSI D-20 standard.<br>
+<br>
+Encryption: Standard UNIX Crypt Function.<br>
+<br>
+Magnetic Stripe Field Layouts: <br>
+Track 1: ISO standard.<br>
+Track 2: AAMVA or ISO standards as indicated table below.<br>
+Track 3: ISO standard.<br>
+<br>
+General: Magnetic stripes are widely used by financial institutions and the State Standard
+must comply as closely as possible to the general ISO standards. ISO has approved an
+alternative Track 2 standard for use with driver licenses. Track 2 is primarily used for
+identifying the cardholder and should either comply with the ISO Standard or the AMVAA
+Alternative (see table below). AAMVA has also proposed alternative standards for Tracks 1
+and 3. However, unless magnetic stripe becomes a widely used standard for interstate motor
+vehicle use, the State should comply with the ISO standards. The Standards Review Group
+will monitor the evolving use in the motor vehicle sector. <br>
+Table: Track 2 Field Layout:<br>
+</p>
+
+<table border="1">
+  <tr>
+    <td colspan="2" align="center" valign="top">ISO STANDARD<br>
+    <br>
+    </td>
+    <td colspan="2" align="center" valign="top">ISO BASED<br>
+    STATE STANDARD </td>
+    <td colspan="2" align="center" valign="top">AAMVA ALTERNATIVE<br>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">Field Length </td>
+    <td valign="top">Field Name </td>
+    <td valign="top">Field Length </td>
+    <td valign="top">Field Name </td>
+    <td valign="top">Field Length </td>
+    <td valign="top">Field Name </td>
+  </tr>
+  <tr>
+    <td valign="top">1 </td>
+    <td valign="top">Start Sentinel </td>
+    <td valign="top">1 </td>
+    <td valign="top">Start Sentinel </td>
+    <td valign="top">1 </td>
+    <td valign="top">Start Sentinel </td>
+  </tr>
+  <tr>
+    <td valign="top">1 </td>
+    <td valign="top">ANSI User Code </td>
+    <td valign="top">1 </td>
+    <td valign="top">ANSI User Code </td>
+    <td valign="top">1 </td>
+    <td valign="top">ANSI User Code </td>
+  </tr>
+  <tr>
+    <td valign="top">5 </td>
+    <td valign="top">ANSI User ID </td>
+    <td valign="top">5 </td>
+    <td valign="top">ANSI User ID </td>
+    <td valign="top">5 </td>
+    <td valign="top">ANSI User ID </td>
+  </tr>
+  <tr>
+    <td valign="top">10 TO 13 </td>
+    <td valign="top">Individual ID Number </td>
+    <td valign="top">10 </td>
+    <td valign="top">Standard Individual ID Number (SSN) </td>
+    <td valign="top">10 </td>
+    <td valign="top">Standard Individual ID Number (SSN) </td>
+  </tr>
+  <tr>
+    <td valign="top">1 </td>
+    <td valign="top">Filed Separator </td>
+    <td valign="top">1 </td>
+    <td valign="top">Filed Separator </td>
+    <td valign="top">1 </td>
+    <td valign="top">Filed Separator </td>
+  </tr>
+  <tr>
+    <td valign="top">4 </td>
+    <td valign="top">Expiration Date </td>
+    <td valign="top">4 </td>
+    <td valign="top">Expiration Date </td>
+    <td valign="top">4 </td>
+    <td valign="top">Expiration Date </td>
+  </tr>
+  <tr>
+    <td valign="top">3 </td>
+    <td valign="top">Service Code </td>
+    <td valign="top">3 </td>
+    <td valign="top">Service Code </td>
+    <td valign="top">8 </td>
+    <td valign="top">Birth Date </td>
+  </tr>
+  <tr>
+    <td valign="top">5 </td>
+    <td valign="top">PIN </td>
+    <td valign="top">5 </td>
+    <td valign="top">PIN </td>
+    <td valign="top">&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td valign="top">3 </td>
+    <td valign="top">Card Authentication Value </td>
+    <td valign="top">3 </td>
+    <td valign="top">Card Authentication Value </td>
+    <td valign="top">&nbsp;</td>
+    <td valign="top">&nbsp;</td>
+  </tr>
+  <tr>
+    <td valign="top">2 TO 5 </td>
+    <td valign="top">Remainder for Individual ID </td>
+    <td valign="top">5 </td>
+    <td valign="top">Agency Specific Individual ID </td>
+    <td valign="top">8 </td>
+    <td valign="top">Driver License Number </td>
+  </tr>
+  <tr>
+    <td valign="top">1 </td>
+    <td valign="top">End Sentinel </td>
+    <td valign="top">1 </td>
+    <td valign="top">End Sentinel </td>
+    <td valign="top">1 </td>
+    <td valign="top">End Sentinel </td>
+  </tr>
+  <tr>
+    <td valign="top">1 </td>
+    <td valign="top">LRC </td>
+    <td valign="top">1 </td>
+    <td valign="top">LRC </td>
+    <td valign="top">1 </td>
+    <td valign="top">LRC </td>
+  </tr>
+  <tr>
+    <td valign="top">40 </td>
+    <td valign="top">&nbsp;</td>
+    <td valign="top">40 </td>
+    <td valign="top">&nbsp;</td>
+    <td valign="top">40 </td>
+    <td valign="top">&nbsp;</td>
+  </tr>
+</table>
+
+<p align="center"><br>
+<br>
+STANDARDS DOCUMENT BIBLIOGRAPHY<br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1920/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=2323511%202325431%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=2323511%202325431%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ANSI
+X3.92-1981 (R1987): Data Encryption Algorithm<br>
+<br>
+ANSI X3.149-1986 (R1992) : Financial Transaction Card Form sets - Location of Imprinted
+Information</a> <br>
+<br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1665/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=14311885%2014313550%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=14311885%2014313550%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ANSI/ISO
+4909-1989 : Bank Card - Magnetic Stripe Data Content for Track 3</a> <br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1825/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6710152%206711977%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6710152%206711977%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO/IEC 7810-1995 : Identification Cards - Physical </a><br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1917/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;7=%00;"></a><a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1725/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6711977%206713702%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6711977%206713702%20/netra/ansi/wais_db/ansicat.wais;7=%00;">
+.<br>
+ANSI/ISO/IEC 7811-1-1995 : Identification Cards - Recording Technique - Part 1: Embossing</a>
+<br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1743/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6713702%206715445%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6713702%206715445%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO/IEC 7811-2-1995 : Identification Cards - Recording Technique - Part 2: Magnetic
+Stripe<br>
+<br>
+ANSI/ISO/IEC 7811-3-1995 : Identification Cards - Recording Technique - Part 3: Location
+of Embossed Characters on ID-1 Cards<br>
+</a><a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1833/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6717278%206719111%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6717278%206719111%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO/IEC 7811-4-1995 : Identification Cards - Recording Technique - Part 4: Location
+of Read-O</a>nly Magnetic Tracks - Tracks 1 and 2<br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1839/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6719111%206720950%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6719111%206720950%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO/IEC 7811-5-1995 : Identification Cards - Recording Technique - Part 5: Location
+of Read-Write Magnetic Tracks - Track 3<br>
+<br>
+</a><a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1917/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=19327498%2019329415%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ANSI/ISO/IEC
+7811-6-1995 : Identification Cards - Part 6: Physical Characteristics<br>
+<br>
+ANSI/ISO/IEC 7812-1-1993 : Identification Cards - Identification of Issuers - Part 1:
+Numbering Systems</a><br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1986/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=19329415%2019331401%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=19329415%2019331401%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO/IEC 7812-2-1993 : Identification Cards - Identification of Issuers - Part 2:
+Application</a><br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1665/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=6720950%206722615%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=6720950%206722615%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO 7813-1987 : Identification Cards - Financial Transaction Cards</a> <i><br>
+</i><a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1834/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=17804665%2017806499%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=17804665%2017806499%20/netra/ansi/wais_db/ansicat.wais;7=%00;"><br>
+ANSI/ISO 7816-1 to 5 : Identification Cards - Integrated Circuit(s) with Contacts - Part 1
+through Part 5</a> <br>
+<br>
+<a
+href="catalog.pl?waisdoc=1&amp;ansicat/TEXT/1882/1=mailserv.ansi.org%3A210;2=/netra/ansi/wais_db/ansicat;3=17806499%2017808381%20/netra/ansi/wais_db/ansicat.wais;4=%3A210;5=/netra/ansi/wais_db/ansicat;6=17806499%2017808381%20/netra/ansi/wais_db/ansicat.wais;7=%00;">ISO/IEC
+10373: Identification cards - Test Methods</a> <br>
+<br>
+AAMVA standards:<br>
+Best Practices Recommendations for the use of Bar-Codes, Version 2.0, April 1996.<br>
+<br>
+Catalog of Defined Subfile and Data Element Identifiers Used With AAMVA Compliant PDF417
+Bar-Codes, Version 2.0, April 1996.<br>
+<br>
+Best Practices Recommendations for the use of Magnetic Stripes, Version 2.0, April 1996. </p>
+</body>
+</html>

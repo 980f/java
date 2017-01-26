@@ -6,17 +6,21 @@ package net.paymate.terminalClient;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 
 public class ItemAction extends ClerkCommand {
-  int msgid;
+//  int msgid;
+  ClerkItem item;
   public ClerkItem ClerkItem(){
-    return new ClerkItem(msgid);
+    return item;
   }
   public ItemAction(int msgid,ClerkEvent type) {
     super(type);
-    this.msgid=msgid;
+    this.item=new ClerkItem(msgid);
+  }
+  public String toString(){
+    return item.Image();
   }
 
 }

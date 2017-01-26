@@ -4,28 +4,28 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: LineDrawer.java,v 1.4 2000/10/14 04:20:30 mattm Exp $
+* @version      $Id: LineDrawer.java,v 1.8 2003/12/08 22:45:42 mattm Exp $
 */
 package net.paymate.jpos.awt;
 import net.paymate.jpos.awt.Math;
-import java.awt.Point;
+import net.paymate.awtx.XPoint;
 import  net.paymate.util.ErrorLogStream;
 
 public class LineDrawer {//a line draw using only integers
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(LineDrawer.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(LineDrawer.class);
 
-  Point adjuster=new Point();//+/- 1
-  Point twiddle= new Point();//absolute deltas
+  XPoint adjuster=new XPoint();//+/- 1
+  XPoint twiddle= new XPoint();//absolute deltas
   int   Fxy=0;
   int stepCount;
-  Point cursor=new Point();
+  XPoint cursor=new XPoint();
 
   public boolean moreSteps(){
     return stepCount>0;
   }
 
-  public Point nextStep(){
+  public XPoint nextStep(){
     if(Fxy>=0){//step x
       cursor.x+=adjuster.x;
       Fxy-=twiddle.y; //yes , y not x
@@ -36,13 +36,21 @@ public class LineDrawer {//a line draw using only integers
     --stepCount; //not our problem if this goes negative...
     return cursor; //and the user can screw with our cursor, user beware!!
   }
+/**
+ * sets internal cursor for generating points from @param start
+ * you really should call drawTo before drawing anything.
+ * @return start
+ */
 
-  public Point moveTo(Point start){
+  public XPoint moveTo(XPoint start){
     return cursor=start;
     //loophole: don't reset other parameters.
   }
-
-  public int drawTo(Point end){
+/**
+ * sets internal info for generating points from current location to @param end
+ * @return number of steps til end.
+ */
+  public int drawTo(XPoint end){
     twiddle=Math.Direction(cursor,end);
     adjuster=Math.unit(twiddle);//takes absolute of twiddle!
 //now we can use first quadrant reasoning, for the following and for the nextStep()
@@ -52,4 +60,4 @@ public class LineDrawer {//a line draw using only integers
   }
 
 }
-//$Id: LineDrawer.java,v 1.4 2000/10/14 04:20:30 mattm Exp $
+//$Id: LineDrawer.java,v 1.8 2003/12/08 22:45:42 mattm Exp $

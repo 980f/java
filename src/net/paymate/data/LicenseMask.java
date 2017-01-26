@@ -6,10 +6,10 @@ package net.paymate.data;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author $Author: mattm $
- * @version $Id: LicenseMask.java,v 1.3 2001/07/19 01:06:47 mattm Exp $
+ * @version $Id: LicenseMask.java,v 1.4 2003/07/27 05:34:57 mattm Exp $
  */
 
-import net.paymate.util.Safe;
+import net.paymate.lang.StringX;
 
 public class LicenseMask {
   String mta;
@@ -32,7 +32,7 @@ public class LicenseMask {
   }
 
   public static final char Code(String mask,int index){
-    if(Safe.NonTrivial(mask)&&index<mask.length()){
+    if(StringX.NonTrivial(mask)&&index<mask.length()){
       return mask.charAt(index);
     } else {
       return 'x';

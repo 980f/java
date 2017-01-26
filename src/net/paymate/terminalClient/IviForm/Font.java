@@ -5,10 +5,12 @@ package net.paymate.terminalClient.IviForm;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Font.java,v 1.10 2001/07/19 01:06:53 mattm Exp $
+* @version      $Id: Font.java,v 1.12 2003/07/27 05:35:17 mattm Exp $
 */
 
 import  net.paymate.util.*;
+import net.paymate.lang.Bool;
+import net.paymate.lang.MathX;
 
 public class Font {
   public int font=0;
@@ -21,7 +23,7 @@ public class Font {
   }
 
   public int et1k(){
-    return Safe.packNibbles(attr(),(font == 3)? 6:font);
+    return MathX.packNibbles(attr(),(font == 3)? 6:font);
   }
 
   public int code(){
@@ -50,9 +52,9 @@ public class Font {
   }
 
   public void parse(String fontspec){
-    reversed    = fontspec.indexOf("r")>=0;
-    underlined  = fontspec.indexOf("u")>=0;
-    italic      = fontspec.indexOf("i")>=0;
+    reversed    = Bool.flagPresent("r",fontspec);
+    underlined  = Bool.flagPresent("u",fontspec);
+    italic      = Bool.flagPresent("i",fontspec);
     font= Character.getNumericValue(fontspec.charAt(0));
   }
 
@@ -111,4 +113,4 @@ public class Font {
     Xml.member("reverse",  reversed));
   }
 
-}//$Id: Font.java,v 1.10 2001/07/19 01:06:53 mattm Exp $
+}//$Id: Font.java,v 1.12 2003/07/27 05:35:17 mattm Exp $

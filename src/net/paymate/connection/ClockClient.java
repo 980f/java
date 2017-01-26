@@ -1,60 +1,101 @@
 package net.paymate.connection;
 
 /**
-* Title:
+* Title:        $Source: /cvs/src/net/paymate/connection/ClockClient.java,v $
 * Description:
-* Copyright:    Copyright (c) 2000
+* Copyright:    Copyright (c) 2000,2001
 * Company:      PayMate.net
 * @author $Author: mattm $
-* @version $Id: ClockClient.java,v 1.6 2001/10/30 19:37:20 mattm Exp $
+* @version $Revision: 1.10 $
 */
 
 import java.net.Socket;
 import java.io.InputStream;
 import net.paymate.util.*;
+import net.paymate.lang.ThreadX;
+import net.paymate.lang.StringX;
 
 public class ClockClient implements Runnable {
-  Thread periodic;
+  Thread periodic=null;
+  //+_+ use IpSpec.
   int port=3942;//2nd generation server
   String hostname="clkserver";
+
   Socket server;
   InputStream is;
-  // +_+ this is too long!  make it shorter so that incremental time fixes can happen
-  //... maybe once per hour. So as not to ever rollback very much
-  long forAwhile=86400000L;//one-day in milliseconds.
+  long forAwhile=Ticks.forDays(1);
+
+  boolean killed=false;
+  public void Stop(){
+    killed=true;
+    periodic.interrupt();
+  }
+
+  /**
+  * @return true if a sincere attempt was made.
+  */
+  public boolean UpdateNow(){
+    if(periodic!=null){
+      periodic.interrupt(); //break it out of sleep
+      ThreadX.sleepFor(Ticks.forSeconds(30));//+++ do wait and notify with demon.
+      return true;
+    } else {
+      return UpdateOurClock();
+    }
+  }
+
+
+  /**
+  * @return true if a sincere attempt was made.
+  */
+  private boolean UpdateOurClock(){
+    try {
+
+      server=new Socket(hostname,port);
+      is=server.getInputStream();
+      byte [] image=new byte[20];
+      if(is.read(image)>0){//+_+ trusts integral reception of packet, malformed packets will do wierd things here.
+        long time=StringX.parseLong(new String(image));
+        if(time>0){
+          //          DateX.setSystemClock(time);
+          return true;
+        }
+      }
+
+      return false;
+
+    }
+    catch (Exception ex) {
+      ex.printStackTrace();
+      return false;
+    }
+  }
 
   /**
   * read time then hang for a while
   */
   public void run(){
-    byte [] image=new byte[20];
-    try {
-      server=new Socket(hostname,port);
-      is=server.getInputStream();
 
-      while(true){
-        if(is.read(image)>0){
-          long time=Safe.parseLong(new String(image));
-          if(time>0){
-            String pureclock=Long.toString(time);
-            //          Executor.runProcess("hwclock -? "+pureclock,"Setting Hardware Clock");
-          }
-        }
+    try {
+      while(!killed){
+        UpdateOurClock();
         ThreadX.sleepFor(forAwhile);
       }
     } catch(Exception any){
       //dbg.Caught(any);
     }
-    //only get here on serious fault
+    //only get here on serious fault, or explcit kill request
   }
 
-  public ClockClient(int port) {
+  public ClockClient(int port, boolean asDemon) {
     if(port!=0){
       this.port = port;
     }
-    periodic=new Thread(this);
-    periodic.start();
+    if(asDemon){
+      periodic=new Thread(this, "ClockClientDaemon:"+port);
+      periodic.start();
+    }
   }
 
 }
-//$Id: ClockClient.java,v 1.6 2001/10/30 19:37:20 mattm Exp $
+//$Id: ClockClient.java,v 1.10 2003/09/25 02:06:10 mattm Exp $

@@ -1,18 +1,17 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/web/table/query/RunTimeFormatRowEnum.Enum]
 package net.paymate.web.table.query;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class RunTimeFormatRowEnum extends TrueEnum {
   public final static int DFDataRow=0;
 
   public int numValues(){ return 1; }
-  private static final TextList myText = TrueEnum.nameVector(RunTimeFormatRowEnum.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(RunTimeFormatRowEnum.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final RunTimeFormatRowEnum Prop=new RunTimeFormatRowEnum();
+  public static final RunTimeFormatRowEnum Prop=new RunTimeFormatRowEnum();//for accessing class info
   public RunTimeFormatRowEnum(){
     super();
   }
@@ -29,6 +28,18 @@ public class RunTimeFormatRowEnum extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static RunTimeFormatRowEnum CopyOf(RunTimeFormatRowEnum rhs){//null-safe cloner
+    return (rhs!=null)? new RunTimeFormatRowEnum(rhs) : new RunTimeFormatRowEnum();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

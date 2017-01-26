@@ -4,11 +4,14 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: DecimalValue.java,v 1.1 2000/11/21 03:03:06 andyh Exp $
+* @version      $Id: DecimalValue.java,v 1.4 2003/07/27 05:34:57 mattm Exp $
 */
 package net.paymate.data;
 
-import net.paymate.util.Safe;
+import net.paymate.util.*;
+import net.paymate.lang.Value;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ContentType;
 
 public class DecimalValue extends Value {
   long content;
@@ -22,12 +25,16 @@ public class DecimalValue extends Value {
   }
 
   public boolean setto(String image){
-    content=Safe.parseLong(image);
+    content=StringX.parseLong(image);
     return true; //+++ detect overflow
   }
 
   public void Clear(){
     content=0;
+  }
+
+  public int asInt(){
+    return (int) content;
   }
 
   public long asLong(){
@@ -51,4 +58,4 @@ public class DecimalValue extends Value {
   }
 
 }
-//$Id: DecimalValue.java,v 1.1 2000/11/21 03:03:06 andyh Exp $
+//$Id: DecimalValue.java,v 1.4 2003/07/27 05:34:57 mattm Exp $

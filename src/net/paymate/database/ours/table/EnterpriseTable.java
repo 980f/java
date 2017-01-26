@@ -6,56 +6,39 @@ package net.paymate.database.ours.table;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.27 $
  */
 
 import net.paymate.database.*;
 import net.paymate.database.ours.*;
+import net.paymate.data.EnterpriseType;
+import net.paymate.data.sinet.business.Enterprise;
+import net.paymate.util.*;
+import net.paymate.lang.Bool;
 
-public class EnterpriseTable extends TableProfile implements DBConstants {
+public class EnterpriseTable extends GenericTableProfile {
 
-  public static final String ENTERPRISE = "ENTERPRISE";
+  public final ColumnProfile address1      =createColumn(Enterprise.ADDRESS1      ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
+  public final ColumnProfile address2      =createColumn(Enterprise.ADDRESS2      ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
+  public final ColumnProfile city          =createColumn(Enterprise.CITY          ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,Enterprise.CITYDEFAULT);
+  public final ColumnProfile country       =createColumn(Enterprise.COUNTRY       ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,Enterprise.COUNTRYDEFAULT);
+  public final ColumnProfile enabled       =createColumn(Enterprise.ENABLED       ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,Enterprise.ENABLEDDEFAULT);
+  public final ColumnProfile enterpriseid  =createColumn(Enterprise.ENTERPRISEID  ,DBTypesFiltered.INT4,NOTNULL,AUTO  ,null);
+  public final ColumnProfile enterprisename=createColumn(Enterprise.ENTERPRISENAME,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null); // notnull enforced on this in code!
+//  public final ColumnProfile enterprisetype=createColumn(Enterprise.ENTERPRISETYPE,DBTypesFiltered.CHAR,NOTNULL,NOAUTO,(new EnterpriseType()).TextFor(EnterpriseType.M)); // defaults to a merchant type, for when the system adds the field to the database
+  public final ColumnProfile notes         =createColumn(Enterprise.NOTES         ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
+  public final ColumnProfile phone         =createColumn(Enterprise.PHONE         ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
+//  public final ColumnProfile spenterpriseid=createColumn(Enterprise.SPENTERPRISEID,DBTypesFiltered.INT4,CANNULL,NOAUTO,null); // +++ Change to NOTNULL once all of the code is in place
+//  public final ColumnProfile spenabled     =createColumn(Enterprise.SPENABLED     ,DBTypesFiltered.BOOL,CANNULL,NOAUTO,Bool.FALSE());
+  public final ColumnProfile state         =createColumn(Enterprise.STATE         ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,Enterprise.STATEDEFAULT);
+  public final ColumnProfile zipcode       =createColumn(Enterprise.ZIPCODE       ,DBTypesFiltered.TEXT,CANNULL,NOAUTO,null);
 
-  // fieldname constants
-  public static final String ADDRESS1       = "ADDRESS1";
-  public static final String ADDRESS2       = "ADDRESS2";
-  public static final String CITY           = "CITY";
-  public static final String COUNTRY        = "COUNTRY";
-  public static final String ENTERPRISENAME = "ENTERPRISENAME";
-  public static final String HOMEPAGE       = "HOMEPAGE";
-  public static final String PHONE          = "PHONE";
-  public static final String STATE          = "STATE";
-  public static final String ZIPCODE        = "ZIPCODE";
-
-  public static final ColumnProfile enterpriseid  = ColumnProfile.create(ENTERPRISE, ENTERPRISEID  , DBTypesFiltered.INTEGER,  4, ColumnProfile.NOTNULL  , "EnterpriseId"  , ColumnProfile.AUTO);
-
-  public static final ColumnProfile address1      = ColumnProfile.create(ENTERPRISE, ADDRESS1      , DBTypesFiltered.CHAR   , 20, ColumnProfile.ALLOWNULL, "Address1"      , ColumnProfile.NOAUTO);
-  public static final ColumnProfile address2      = ColumnProfile.create(ENTERPRISE, ADDRESS2      , DBTypesFiltered.CHAR   , 20, ColumnProfile.ALLOWNULL, "Address2"      , ColumnProfile.NOAUTO);
-  public static final ColumnProfile city          = ColumnProfile.create(ENTERPRISE, CITY          , DBTypesFiltered.CHAR   , 20, ColumnProfile.ALLOWNULL, "City"          , ColumnProfile.NOAUTO);
-  public static final ColumnProfile country       = ColumnProfile.create(ENTERPRISE, COUNTRY       , DBTypesFiltered.CHAR   ,  2, ColumnProfile.ALLOWNULL, "Country"       , ColumnProfile.NOAUTO);
-  public static final ColumnProfile enterprisename= ColumnProfile.create(ENTERPRISE, ENTERPRISENAME, DBTypesFiltered.CHAR   , 40, ColumnProfile.NOTNULL  , "EnterpriseName", ColumnProfile.NOAUTO);
-  public static final ColumnProfile homepage      = ColumnProfile.create(ENTERPRISE, HOMEPAGE      , DBTypesFiltered.CHAR   , 80, ColumnProfile.ALLOWNULL, "Homepage"      , ColumnProfile.NOAUTO);
-  public static final ColumnProfile phone         = ColumnProfile.create(ENTERPRISE, PHONE         , DBTypesFiltered.CHAR   , 18, ColumnProfile.ALLOWNULL, "Phone"         , ColumnProfile.NOAUTO);
-  public static final ColumnProfile state         = ColumnProfile.create(ENTERPRISE, STATE         , DBTypesFiltered.CHAR   ,  2, ColumnProfile.ALLOWNULL, "TX"            , ColumnProfile.NOAUTO);
-  public static final ColumnProfile zipcode       = ColumnProfile.create(ENTERPRISE, ZIPCODE       , DBTypesFiltered.CHAR   , 10, ColumnProfile.ALLOWNULL, "Zipcode"       , ColumnProfile.NOAUTO);
-
-
-  private static final ColumnProfile [] staticColumns = {
-    address1,
-    address2,
-    city,
-    country,
-    enterpriseid,
-    enterprisename,
-    homepage,
-    phone,
-    state,
-    zipcode,
-  };
+//  IndexProfile ei_type = new IndexProfile("ei_type"     , this, enterprisetype);
 
   public EnterpriseTable() {
-    super(new TableInfo(ENTERPRISE), staticColumns);
+    super(ENTERPRISETABLE, cfgType); // +++ should be set from the Enterprise object, not from here!
+    setContents("enterprisepk", enterpriseid);
   }
 }
 
-// $Id: EnterpriseTable.java,v 1.1 2001/11/16 01:34:31 mattm Exp $
+// $Id: EnterpriseTable.java,v 1.27 2003/11/24 04:52:30 mattm Exp $

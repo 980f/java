@@ -6,26 +6,23 @@ package net.paymate.connection;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.5 $
  * @todo reduce legacy method names to something shorter.
  */
 
 import net.paymate.util.*;
 
 import java.util.Date;
-
+/** @deprecated @see UTC (which was built from this but with a different interface)
+ */
 public class TransactionTime {
-  public final static String transtarttimeFormat = "yyyyMMddHHmmss";//maimsail's choice
+  public final static String transtarttimeFormat = "yyyyMMddHHmmss";
   private static final LocalTimeFormat trantime=LocalTimeFormat.Utc(transtarttimeFormat);
-
-//  public static final TimeRange ForAllTime(){
-//    return TimeRange.Create(transtarttimeFormat,TRANSTARTTIME).
-//    setStart(LocalTimeFormat.genesis).setEnd(Safe.Now());
-//  }
 
   private static final Monitor tranTimeMonitor = new Monitor("TransactionTime");
  /**
   * convert @param date into string for transtarttime field
+  * @deprecated @see UTC
   */
   public static final String forTrantime(Date utc){
     String ret = "";
@@ -41,28 +38,31 @@ public class TransactionTime {
       return ret;
     }
   }
-  /**
-  * convert @param utcTix into string for transtarttime field
-  */
-
-  public static final String forTrantime(long utcTix){
-    return forTrantime(new Date(utcTix));
-  }
-
-  public static final Date tranUTC(String dbvalue){
-      Date date = Safe.Now();
-    try {
-      tranTimeMonitor.getMonitor();
-      date = trantime.parse(dbvalue);
-    }
-//    catch (Exception e) {
-//      dbg.Caught(e);
+//  /**
+//  * convert @param utcTix into string for transtarttime field
+//  *   * @deprecated @see UTC
+//  */
+//
+//  public static final String forTrantime(long utcTix){
+//    return forTrantime(new Date(utcTix));
+//  }
+///**
+// *   * @deprecated @see UTC
+// */
+//  public static final Date tranUTC(String dbvalue){
+//      Date date = Safe.Now();
+//    try {
+//      tranTimeMonitor.getMonitor();
+//      date = trantime.parse(dbvalue);
 //    }
-    finally {
-      tranTimeMonitor.freeMonitor();
-      return date;
-    }
-  }
-
+  //    catch (Exception e) {
+  //      dbg.Caught(e);
+  //    }
+//    finally {
+//      tranTimeMonitor.freeMonitor();
+//      return date;
+//    }
+//  }
 
 }
+//$Id: TransactionTime.java,v 1.5 2002/05/20 22:33:23 mattm Exp $

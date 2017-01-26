@@ -1,5 +1,8 @@
 // UnsettledTransactionFormatEnum.Enum
 // put these in the order that you want the columns
-CardTypeCol
+PayTypeCol
+InstitutionCol
+InstSubCountCol
+InstSubTotalCol
 CountCol
 SumCol

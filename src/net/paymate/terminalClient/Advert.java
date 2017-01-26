@@ -5,8 +5,8 @@ package net.paymate.terminalClient;
  * Description:
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
- * @author $Author: andyh $
- * @version $Id: Advert.java,v 1.4 2001/06/17 00:14:27 andyh Exp $
+ * @author $Author: mattm $
+ * @version $Id: Advert.java,v 1.6 2003/07/27 19:36:57 mattm Exp $
  */
 
 import net.paymate.jpos.awt.*;
@@ -14,6 +14,8 @@ import net.paymate.util.*;
 import java.io.*;
 import net.paymate.awtx.print.*;
 import net.paymate.awtx.*;
+import net.paymate.lang.StringX;
+import net.paymate.io.Streamer;
 
 public class Advert {
   //advert pcx data gets stored in service tracker than tag gets stored here
@@ -26,7 +28,7 @@ public class Advert {
   }
 
   public boolean haveAd(){
-    return Safe.NonTrivial(pcxresource);
+    return StringX.NonTrivial(pcxresource);
   }
 
   Raster couponFromDisk(String fname){
@@ -57,6 +59,6 @@ public class Advert {
   }
 
 }
-//$Id: Advert.java,v 1.4 2001/06/17 00:14:27 andyh Exp $
+//$Id: Advert.java,v 1.6 2003/07/27 19:36:57 mattm Exp $
 
 

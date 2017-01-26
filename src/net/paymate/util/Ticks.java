@@ -6,8 +6,10 @@ package net.paymate.util;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: Ticks.java,v 1.2 2001/07/19 01:06:55 mattm Exp $
+ * @version $Id: Ticks.java,v 1.4 2002/11/08 05:06:29 mattm Exp $
  */
+
+// +++ create a date/time class (UTC?) and merge the Ticks.java class with it, renaming the ticks stuff with millis or ms.
 
 public class Ticks {
 
@@ -36,5 +38,10 @@ public class Ticks {
     return days*perDay;
   }
 
+  // should be longs?
+  public static final int toIntSeconds(long ticks) { // truncates for now
+    return (int)(ticks/perSecond);
+  }
+
 }
-//$Id: Ticks.java,v 1.2 2001/07/19 01:06:55 mattm Exp $
+//$Id: Ticks.java,v 1.4 2002/11/08 05:06:29 mattm Exp $

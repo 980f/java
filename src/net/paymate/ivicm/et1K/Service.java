@@ -1,17 +1,12 @@
 package net.paymate.ivicm.et1K;
 
-/* $Id: Service.java,v 1.23 2001/10/12 04:11:37 andyh Exp $ */
+/* $Id: Service.java,v 1.32 2003/07/27 05:35:05 mattm Exp $ */
 
 import net.paymate.ivicm.Base;
-import net.paymate.jpos.common.*;
 import net.paymate.util.*;
-
+import net.paymate.text.Formatter;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
-import jpos.JposConst;
-import jpos.JposException;
-import jpos.services.EventCallbacks;
-import jpos.events.*;
 
 /**
 * manage response to ping command
@@ -20,31 +15,14 @@ import jpos.events.*;
 /**
 * common parts of enTouch based jpos devices.
 */
-public class Service extends Base implements InputServer, JposConst {
-  private static final ErrorLogStream dbg=new ErrorLogStream(Service.class.getName());
-  static final String VersionInfo = "ET1K Service, (C) Paymate 2000 $Revision: 1.23 $";
+public class Service extends Base {
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(Service.class);
+  static final String VersionInfo = "ET1K Service, (C) Paymate 2000 $Revision: 1.32 $";
   protected ET1K hardware;
 
   public Service(String s,ET1K hw){
-    super(s);
+    super(String.valueOf(hw));
     hardware = hw;
-    setState(JPOS_S_CLOSED);
-  }
-
-  public void prepareForDataEvent(Object blob){
-    //post error!! should be overridden in derived classes if input is actually expected
-  }
-
-  public void PostFailure(String s){
-    hardware.ClearError();
-    super.PostFailure(s);
-  }
-
-  public synchronized void open(String s, EventCallbacks eventcallbacks) throws JposException {
-    if(hardware==null) {
-      Failure("Port Can Not Be Opened");
-    }
-    super.open(this,s,eventcallbacks);
   }
 
   protected Command finish(Command cmd, Callback cb){
@@ -103,33 +81,44 @@ public class Service extends Base implements InputServer, JposConst {
     QueueCommand(new Command(pollcommand,locus),new WantZero(locus));
   }
 
-  public boolean getCapRealTimeData() throws JposException {
-    assertOpened();
-    return false;
-  }
-
-  public boolean getRealTimeDataEnabled() throws JposException {
-    assertOpened();
-    Illegal("Real time not supported");
-    return false;
-  }
-
-  public void setRealTimeDataEnabled(boolean flag) throws JposException {
-    assertOpened();
-    Illegal("Real time not supported");
-  }
-
-  protected boolean bCapUserTerminated;
-
-  public boolean getCapUserTerminated() throws JposException {
-    assertOpened();
-    return bCapUserTerminated;
-  }
-
   public void getVersionInfo(){
-    Command gs=new Command(8,"gettingVersionInfo");
+    Command gs=new Command(OpCode.getVersionInfo,"gettingVersionInfo");
     QueueCommand(gs,new VersionInfo());
   }
 
+  public String ErrorMessage(int responsecode){
+  switch(responsecode){
+  case 0x70: return "No OS loaded, or Level 0 diagnostic test failed";
+  case 0x80: return "More data available";
+  case 0x90: return "No Application loaded";
+  case 0xC7: return "MSR Data unreadable";
+  case 0xE0: return "MSR busy, already enabled with function code 62/80";
+  case 0xE1: return "Mismatch of Base/Secure firmware, OS, or model";
+  case 0xE6: return "Invalid DATA field in host message(not enough or too much data)";
+  case 0xE7: return "Invalid hardware configuration";
+  case 0xE8: return "Invalid record type";
+  case 0xE9: return "Invalid page";
+  case 0xEA: return "Invalid Page Offset";
+  case 0xEC: return "Invalid parameter in data field";
+  case 0xED: return "Cancel button touched on numeric keypad";
+  case 0xEE: return "Insufficient memory";
+  case 0xEF: return "Power failure occurred";
+  case 0xF0: return "No data available";
+  case 0xF1: return "Invalid VLI field in host message";
+  case 0xF2: return "Communications time-out occurred.";
+  case 0xF4: return "Invalid time value";
+  case 0xF5: return "Communications adapter failure (check tallies)";
+  case 0xF6: return "Invalid screen number";
+  case 0xF7: return "Invalid sequence number";
+  case 0xF8: return "Flash memory compression failed";
+  case 0xFA: return "Invalid mode for command";
+  case 0xFB: return "Receive buffer full/message overflow";
+  case 0xFD: return "Invalid command, or function code missing in host message";
+  case 0xFF: return "Invalid BCC in host message";
+  default: return "Unusual error, code:"+Formatter.ox2(responsecode);
+  }
+
+  }
+
 }
-//$Id: Service.java,v 1.23 2001/10/12 04:11:37 andyh Exp $
+//$Id: Service.java,v 1.32 2003/07/27 05:35:05 mattm Exp $

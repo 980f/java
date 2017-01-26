@@ -5,8 +5,8 @@ package net.paymate.net;
  * Description:
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
- * @author $Author: andyh $
- * @version $Id: SSLOutputStream.java,v 1.1 2001/02/21 00:11:54 andyh Exp $
+ * @author $Author: mattm $
+ * @version $Id: SSLOutputStream.java,v 1.3 2002/07/09 17:51:30 mattm Exp $
  */
 
 import java.io.OutputStream;
@@ -14,7 +14,7 @@ import java.io.IOException;
 import net.paymate.util.ErrorLogStream;
 
 public class SSLOutputStream extends OutputStream {
-  protected static final ErrorLogStream dbg=new ErrorLogStream(SSLOutputStream.class.getName());
+  protected static final ErrorLogStream dbg=ErrorLogStream.getForClass(SSLOutputStream.class);
 
     protected OutputStream innerstream=null;
     public void write(int b) throws IOException {
@@ -57,4 +57,4 @@ public class SSLOutputStream extends OutputStream {
     }
 
 }
-//$Id: SSLOutputStream.java,v 1.1 2001/02/21 00:11:54 andyh Exp $
+//$Id: SSLOutputStream.java,v 1.3 2002/07/09 17:51:30 mattm Exp $

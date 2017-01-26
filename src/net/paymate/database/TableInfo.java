@@ -1,15 +1,16 @@
 package net.paymate.database;
 import  net.paymate.util.*;
+import net.paymate.lang.StringX;
 /**
  * Title:
  * Description:
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: TableInfo.java,v 1.2 2001/06/17 16:48:40 mattm Exp $
+ * @version $Id: TableInfo.java,v 1.8 2003/08/27 02:20:11 mattm Exp $
  */
 
-public class TableInfo {
+public class TableInfo implements Comparable {
 
   private String catalog;
   private String schema;
@@ -18,11 +19,11 @@ public class TableInfo {
   private String remark;
 
   public TableInfo(String catalog, String schema, String name, String type, String remark) {
-    this.catalog=Safe.TrivialDefault(catalog, "");
-    this.schema=Safe.TrivialDefault(schema, "");
-    this.name=Safe.TrivialDefault(name, "");
-    this.type=Safe.TrivialDefault(type, "");
-    this.remark=Safe.TrivialDefault(remark, "");
+    this.catalog=StringX.TrivialDefault(catalog, "");
+    this.schema=StringX.TrivialDefault(schema, "");
+    this.name=StringX.TrivialDefault(name, "").toLowerCase(); // FOR PG!
+    this.type=StringX.TrivialDefault(type, "");
+    this.remark=StringX.TrivialDefault(remark, "");
   }
 
   public TableInfo(String name) {
@@ -43,5 +44,10 @@ public class TableInfo {
   }
   public String remark() {
     return remark;
+  }
+
+  public int compareTo(Object o) {
+    TableInfo ti = (TableInfo)o;
+    return name().compareTo(ti.name());
   }
 }

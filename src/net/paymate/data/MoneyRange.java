@@ -6,18 +6,18 @@ package net.paymate.data;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.9 $
  */
 import net.paymate.util.*;
-import net.paymate.data.*;
-import  net.paymate.ISO8583.data.*;
 import java.util.*;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ObjectX;
 
 public class MoneyRange extends ObjectRange  {
   public final static String moneyFormat="#0.00";
 
   public Comparable filter(String filthy){
-    if(Safe.NonTrivial(filthy)) {
+    if(StringX.NonTrivial(filthy)) {
       if(filthy.indexOf(".") < 0) {
         filthy += ".00";
       }
@@ -29,5 +29,16 @@ public class MoneyRange extends ObjectRange  {
   public MoneyRange(String one, String two){
     super(one,two,true); //money is always sorted and filtered
   }
+
+  public String oneImage(){
+    Object one = one();
+    return ObjectX.NonTrivial(one) ? String.valueOf(((LedgerValue)one).Value()) : "";
+  }
+
+  public String twoImage(){
+    Object two = two();
+    return ObjectX.NonTrivial(two) ? String.valueOf(((LedgerValue)two).Value()) : "";
+  }
+
 
 }

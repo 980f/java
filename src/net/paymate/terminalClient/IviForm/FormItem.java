@@ -1,18 +1,19 @@
+package net.paymate.terminalClient.IviForm;
+
 /**
-* Title:        FormItem
+* Title:        $Source: /cvs/src/net/paymate/terminalClient/IviForm/FormItem.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: FormItem.java,v 1.6 2001/06/17 00:14:28 andyh Exp $
+* @version      $Id: FormItem.java,v 1.8 2003/12/08 22:45:43 mattm Exp $
 */
-package net.paymate.terminalClient.IviForm;
-import  net.paymate.util.Xml;
 
-import java.awt.Rectangle;
+import net.paymate.util.Xml;
+import net.paymate.awtx.*;
 
 public class FormItem {
-  protected Rectangle shape=new Rectangle();
+  protected XRectangle shape=new XRectangle();
 
   public int x(){
     return shape.x;
@@ -48,4 +49,4 @@ public class FormItem {
   }
 
 }
-//$Id: FormItem.java,v 1.6 2001/06/17 00:14:28 andyh Exp $
+//$Id: FormItem.java,v 1.8 2003/12/08 22:45:43 mattm Exp $

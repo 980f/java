@@ -4,14 +4,19 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: DriversLicense.java,v 1.16 2001/07/19 01:06:47 mattm Exp $
+* @version      $Id: DriversLicense.java,v 1.21 2003/07/29 21:22:00 andyh Exp $
 */
 
 package net.paymate.data;
 import net.paymate.util.*;
+import net.paymate.lang.Value;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ObjectX;
+import net.paymate.lang.TrueEnum;
+
 
 public class DriversLicense implements isEasy {
-  static final ErrorLogStream dbg=new ErrorLogStream(DriversLicense.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(DriversLicense.class);
 
   protected MajorTaxArea state=new MajorTaxArea();
   protected String Number="NO NUMBER"; //accounting types are so much fun to deal with
@@ -21,7 +26,7 @@ public class DriversLicense implements isEasy {
   public final static String NumberKey = "DLnumber";
 
   public DriversLicense Clear(){
-    state.setto(Safe.INVALIDINDEX);
+    state.setto(ObjectX.INVALIDINDEX);
     setNumber("");
     return this;
   }
@@ -137,13 +142,13 @@ public class DriversLicense implements isEasy {
       dbg.VERBOSE("IIN extracted:"+iin);
       state=MajorTaxArea.FromIIN(iin);
       dbg.VERBOSE("Found state:"+state.Abbreviation());
-      StringBuffer whatever=new StringBuffer(asSwiped.substring(6,Safe.cutPoint(asSwiped,'=')));
+      StringBuffer whatever=new StringBuffer(asSwiped.substring(6,StringX.cutPoint(asSwiped,'=')));
       dbg.VERBOSE("raw number:"+whatever);
       String mask= LicenseMask.forState(state)[0];//for now always use first found +_+
       dbg.VERBOSE("pattern:"+mask);
       compress(whatever,mask);
       dbg.VERBOSE("escaped number:"+whatever);
-      setNumber(whatever.toString());
+      setNumber(String.valueOf(whatever));
     } catch (Exception caught){
       dbg.Caught(caught);
     } finally {
@@ -176,4 +181,4 @@ public class DriversLicense implements isEasy {
   }
 
 }
-//$Id: DriversLicense.java,v 1.16 2001/07/19 01:06:47 mattm Exp $
+//$Id: DriversLicense.java,v 1.21 2003/07/29 21:22:00 andyh Exp $

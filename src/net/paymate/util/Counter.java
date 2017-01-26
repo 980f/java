@@ -6,7 +6,7 @@ package net.paymate.util;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.8 $
  */
 
 public class Counter {
@@ -76,7 +76,8 @@ public class Counter {
       // +++ bitch !!!
     } finally {
       long ret = count;
-      //we must wait until after setting teh return value before freeing the monitor.
+      //we must wait until after setting the return value before freeing the monitor,
+      //because longs are not guaranteed to be atomic.
       mon.freeMonitor();
       return ret;
     }
@@ -85,18 +86,24 @@ public class Counter {
   /**
    * @return object after clearing
    */
-  public final Counter Clear(){
+  public final long Clear(){
     try {
       mon.getMonitor();
-      count=0;
-      return this;
+      count=min;
+//      return this;
     } catch (Exception ex) {
       // +++ bitch !!!
-      return this;
+//      return this;
+      return norm();
     } finally {
+      long retval= norm();
       mon.freeMonitor();
+      return retval;
     }
   }
+
+  // only really valid if you are incrementing
+  private int rollOverCount = 0;
 
   /**
    * normalize
@@ -104,10 +111,16 @@ public class Counter {
   private final long norm() {
     if(count < min) {
       count = max; // ??? roll over ???
+      rollOverCount++;
     } else if(count > max) {
       count = min; // roll over
+      rollOverCount++;
     }
     return count;
   }
+
+  public final int getRollover() {
+    return rollOverCount;
+  }
 }
-//$Id: Counter.java,v 1.6 2001/10/03 23:56:04 mattm Exp $
+//$Id: Counter.java,v 1.8 2002/09/19 16:36:07 andyh Exp $

@@ -5,6 +5,8 @@ import java.util.*;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
+import net.paymate.lang.StringX;
+import  net.paymate.util.*; // Safe
 
 public class ChatServlet
 extends HttpServlet
@@ -99,7 +101,7 @@ extends HttpServlet
     String string_5_11_ = "";
     String string_6_12_ = "";
     String string_11_13_ = "";
-    string_3_9_ = HttpUtils.getRequestURL(httpservletrequest_1_7_).toString();
+    string_3_9_ = String.valueOf(HttpUtils.getRequestURL(httpservletrequest_1_7_));
     int i_12_15_;
     if ((i_12_15_ = string_3_9_.indexOf("?")) > 0)
     string_3_9_ = string_3_9_.substring(0, i_12_15_);
@@ -264,7 +266,7 @@ extends HttpServlet
             addMessage(hashtable_17_38_, string_6_12_, string_11_13_, httpservletrequest_1_7_.getParameter("user"), string_7_40_);
           }
           string_7_40_ = (String) hashtable_17_38_.get("messages");
-          long l_13_45_ = Long.parseLong(string_7_40_);
+          long l_13_45_ = StringX.parseLong(string_7_40_);
           Vector vector_15_46_ = getMsgsVector(string_6_12_);
           synchronized (hashtable_17_38_.get("messages")) {
             for (i_12_15_ = 0; i_12_15_ < vector_15_46_.size() && (long) i_12_15_ < l_13_45_; i_12_15_++) {
@@ -370,7 +372,7 @@ extends HttpServlet
     stringbuffer_4_66_.append("</do>" + NEWLINE);
     stringbuffer_4_66_.append("<p>Email: <input name=\"sEmail\" emptyok=\"true\"/></p>" + NEWLINE);
     stringbuffer_4_66_.append("</card>" + NEWLINE);
-    return stringbuffer_4_66_.toString();
+    return String.valueOf(stringbuffer_4_66_);
   }
 
   private String loginWml(String string_1_68_, String string_2_69_, String string_3_70_, HttpServletRequest httpservletrequest_4_71_) {
@@ -387,7 +389,7 @@ extends HttpServlet
     } else
     addMessage(hashtable_5_72_, string_2_69_, string_3_70_, "0", "<i>just login ...</i>");
     stringbuffer_6_73_.append(mainWml(string_1_68_, string_2_69_, string_3_70_, hashtable_5_72_));
-    return stringbuffer_6_73_.toString();
+    return String.valueOf(stringbuffer_6_73_);
   }
 
   private String sendWml(String string_1_77_, String string_2_78_, String string_3_79_) {
@@ -402,7 +404,7 @@ extends HttpServlet
     stringbuffer_4_80_.append("</do>" + NEWLINE);
     stringbuffer_4_80_.append("<p>Msg: <input name=\"sName\" value=\"\" emptyok=\"false\"/></p>" + NEWLINE);
     stringbuffer_4_80_.append("</card>" + NEWLINE);
-    return stringbuffer_4_80_.toString();
+    return String.valueOf(stringbuffer_4_80_);
   }
 
   private String acceptWml(String string_1_82_, String string_2_83_, String string_3_84_, HttpServletRequest httpservletrequest_4_85_) {
@@ -451,7 +453,7 @@ extends HttpServlet
     }
     stringbuffer_5_101_.append("<p><a href=\"" + string_1_97_ + "?" + "conf" + "=" + string_2_98_ + "&amp;" + "actn" + "=" + "logout" + "&amp;" + "id" + "=" + string_3_99_ + "\">Logout</a></p>" + NEWLINE);
     stringbuffer_5_101_.append("</card>" + NEWLINE);
-    return stringbuffer_5_101_.toString();
+    return String.valueOf(stringbuffer_5_101_);
   }
 
   private String prepareWml(String string_1_108_) {
@@ -496,13 +498,13 @@ extends HttpServlet
     } catch (Exception exception_130_) {
       /* empty */
     }
-    return stringbuffer_2_127_.toString();
+    return String.valueOf(stringbuffer_2_127_);
   }
 
   private String getId() {
     String string_3_132_ = "";
     synchronized (forLock) {
-      long l_1_134_ = System.currentTimeMillis();
+      long l_1_134_ = DateX.utcNow();
       Random random_4_135_ = new Random();
       string_3_132_ = String.valueOf(l_1_134_);
       for (int i_5_136_ = 1; i_5_136_ <= 6; i_5_136_++)
@@ -691,7 +693,7 @@ extends HttpServlet
     long l_7_210_ = date_6_209_.getTime();
     long l_9_211_ = 600L;
     String string_11_212_ = (String) hashtable_4_207_.get("inactivity");
-    l_9_211_ = Long.parseLong(string_11_212_);
+    l_9_211_ = StringX.parseLong(string_11_212_);
     l_9_211_ *= 1000L;
     synchronized (hashtable_3_206_) {
       Enumeration enumeration_14_214_ = hashtable_3_206_.keys();
@@ -786,7 +788,7 @@ extends HttpServlet
     if (string_17_235_.length() > 0)
     stringbuffer_8_227_.append("</font>" + NEWLINE);
     stringbuffer_8_227_.append("</body>" + NEWLINE);
-    printwriter_4_223_.println(stringbuffer_8_227_.toString());
+    printwriter_4_223_.println(String.valueOf(stringbuffer_8_227_));
     Object object_8_244_ = null;
     Object object_7_245_ = null;
   }
@@ -794,7 +796,7 @@ extends HttpServlet
   private void addMessage(Hashtable hashtable_1_247_, String string_2_248_, String string_3_249_, String string_4_250_, String string_5_251_) {
     Vector vector_6_252_ = getMsgsVector(string_2_248_);
     Date date_8_253_ = new Date();
-    String string_9_254_ = date_8_253_.toString();
+    String string_9_254_ = String.valueOf(date_8_253_);
     int i_11_255_ = string_9_254_.indexOf(":");
     String[] strings_12_256_ = {
       "", "", "#000000"
@@ -1150,7 +1152,7 @@ extends HttpServlet
     hashtable_2_309_.put("inactivity", String.valueOf(600L));
     else {
       try {
-        Long.parseLong(string_4_316_);
+        StringX.parseLong(string_4_316_);
       } catch (Exception exception_317_) {
         hashtable_2_309_.put("inactivity", String.valueOf(600L));
       }
@@ -1163,7 +1165,7 @@ extends HttpServlet
     hashtable_2_309_.put("messages", String.valueOf(60L));
     else {
       try {
-        Long.parseLong(string_4_316_);
+        StringX.parseLong(string_4_316_);
       } catch (Exception exception_319_) {
         hashtable_2_309_.put("messages", String.valueOf(60L));
       }
@@ -1201,7 +1203,7 @@ extends HttpServlet
       else
       stringbuffer_2_329_.append(c_3_331_);
     }
-    return stringbuffer_2_329_.toString();
+    return String.valueOf(stringbuffer_2_329_);
   }
 }
-//$Id: ChatServlet.java,v 1.2 2001/06/28 02:25:32 andyh Exp $
+//$Id: ChatServlet.java,v 1.6 2003/07/27 05:35:14 mattm Exp $

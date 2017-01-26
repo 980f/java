@@ -6,89 +6,92 @@ package net.paymate.serial;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.18 $
  */
 
 import net.paymate.util.*;
 import net.paymate.*;
+import net.paymate.lang.StringX;
 
 public class tester extends Receiver{
-  static final Tracer dbg=new Tracer("serialtester");
+  static final Tracer dbg=new Tracer(tester.class);
+  Stream stream; //what we are testing...
+
+  boolean emitCR=true;
 
   static final void pout(String s){
     dbg.VERBOSE(s);
   }
 
-  Stream stream; //what we are testing...
-
   /**
    * implements Receiver:
    */
   public synchronized int onByte(int b){
-    if(b>0){
-      System.out.write(b);//echo comm
-    } else {
-      System.out.println("[eventcode "+b+"]");
+    System.out.println(Receiver.imageOf(b));
+    if(b==Ascii.CR || b == Ascii.LF){
+      System.out.print((char)b);
     }
     return Receiver.TimeoutNever;
   }
 
+//////////////////////////////////////////
+// the below may have been broken, don't trust it.
+  void runtest(Parameters port, boolean localecho){
+    stream=new Stream(this);//set reception pathway
+    Port notrxtx;
 
-  void runtest(String portname, boolean localecho){
-      stream=new Stream(this);//set reception pathway
-      Port notrxtx;
+    notrxtx=PortProvider.makePort(port.getPortName());
+    if(!notrxtx.openas(port)){
+      pout("port didn't open, bailing");
+      return;
+    }
+    pout("Constructed:"+notrxtx.nickName());
 
-      if(portname.startsWith("/dev")){
-        Parameters sp=new Parameters(portname);
-        sp.setBaudRate(9600);
-        sp.setParity("None");
-        sp.setDatabits(8);
-        sp.setStopbits(1);
-        notrxtx=PortProvider.makeJavaxPort(sp);
-      } else {
-        notrxtx=PortProvider.makeFilePort(portname);
-      }
-      //if the above fails we have a virtual LoopBack
-      pout("Constructed a "+notrxtx.getClass().getName()+" named:"+notrxtx.nickName());
+    stream.Attach(notrxtx); //get to the system streams
+    pout("Attached...");
+    stream.startReception(TimeoutNever);//allow reception
 
-      stream.Attach(notrxtx); //get to the system streams
-      pout("Attached...");
-      stream.startReception(TimeoutNever);//allow reception
-
-      try {
-        int c;
-        while((c=System.in.read())!=-1){//blocking read from console
-          if(localecho){
-            System.out.write(c);
-          }
-          stream.write(c);
+    try {
+      int c;
+      while((c=System.in.read())!=Receiver.EndOfInput){//blocking read from console
+        if(localecho){
+          System.out.write(c);
         }
-      } catch(Exception t){
-        System.out.println("Exception on keybd->commport:"+t);
+        if(emitCR && c == Ascii.LF){
+          stream.write(Ascii.CR);
+        }
+        stream.write(c);
       }
+    } catch(Exception t){
+      System.out.println("Exception on keybd->commport:"+t);
+    }
+  }
+
+  private static void tty(String[] args){
+    TextListIterator arg=TextListIterator.New(args);
+    Parameters sp= Parameters.CommandLine(arg,9600,"N81");
+    boolean localecho= StringX.OnTrivial(arg.next(),true);
+    pout("port:"+sp.portName+" local echo:"+localecho);
+//      boolean emitCR=true;
+//      sp.setStopbits(1);
+    Main app=new Main(tester.class);
+
+    LogSwitch.SetAll(LogSwitch.ERROR);
+    PrintFork.SetAll(LogSwitch.VERBOSE);
+    app.stdStart(args);//includes processing logcontrol.properties
+
+    tester javaisapain=new tester();
+    javaisapain.emitCR=true;
+    javaisapain.runtest(sp,localecho);
   }
 
   public static final void main(String[] args) {
     try {
-      pout("args:"+TextList.CreateFrom(args).asParagraph());
-      String portname=   (args.length>0)?args[0]:"/dev/ttyS0";
-      boolean localecho= (args.length>1)?Boolean.valueOf(args[1]).booleanValue():true;
-      pout("port:"+portname+" local echo:"+localecho);
-
-      Main app=new Main(tester.class);
-      app.stdStart(args);//includes processing logcontrol.properties
-
-      LogSwitch.SetAll(LogSwitch.VERBOSE);
-      PrintFork.SetAll(LogSwitch.VERBOSE);
-
-      pout("port:"+portname+" local echo:"+localecho);
-
-      tester javaisapain=new tester();
-      javaisapain.runtest(portname,localecho);
+      tty(args);
     } catch(Throwable t) {
       System.out.println(t);
     }
 
   }
 }
-//$Id: tester.java,v 1.6 2001/09/14 21:10:39 andyh Exp $
+//$Id: tester.java,v 1.18 2003/07/27 05:35:14 mattm Exp $

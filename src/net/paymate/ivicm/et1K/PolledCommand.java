@@ -5,7 +5,7 @@ package net.paymate.ivicm.et1K;
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: PolledCommand.java,v 1.8 2001/11/15 03:15:45 andyh Exp $
+* @version      $Id: PolledCommand.java,v 1.13 2004/02/25 16:50:14 andyh Exp $
 */
 
 import net.paymate.util.timer.*;
@@ -16,13 +16,13 @@ public class PolledCommand implements TimeBomb {
   Command toPoll;
   int ticks;
 
-  static ErrorLogStream DBG=new ErrorLogStream(PolledCommand.class.getName());
+ // static ErrorLogStream DBG;
   private ErrorLogStream dbg;
 
   Alarmum delay;
 
   public String toSpam(){
-    return (delay!=null?delay.toSpam():"No alarm ")+ toString()+" delay:"+ticks+" served by:"+service.toString();
+    return (delay!=null?delay.toSpam():"No alarm ")+ toString()+" delay:"+ticks+" served by:"+String.valueOf(service);
   }
 
   public String toString(){//used by alrmlist dump()
@@ -61,13 +61,13 @@ public class PolledCommand implements TimeBomb {
     service.hardware.squelch(toPoll);
   }
 
-  public PolledCommand(Command toPoll,double rate,Service service,ErrorLogStream dbg) {
+  public PolledCommand(Command toPoll,double rate,Service service,ErrorLogStream adbg) {
+    this.dbg=(adbg==null)?ErrorLogStream.getForClass(PolledCommand.class):adbg;
     this.ticks=(int)Ticks.forSeconds(rate>0? 1.0/rate : 0);
     dbg.VERBOSE("Rate:"+rate+" becomes Ticks:"+ticks);
     this.service=service;
     this.toPoll=toPoll;
     this.toPoll.isaPoller=true; //filters this out of debug
-    this.dbg= dbg!=null? dbg:DBG;
     dbg.VERBOSE(this.toSpam());
   }
 
@@ -76,4 +76,4 @@ public class PolledCommand implements TimeBomb {
   }
 
 }
-//$Id: PolledCommand.java,v 1.8 2001/11/15 03:15:45 andyh Exp $
+//$Id: PolledCommand.java,v 1.13 2004/02/25 16:50:14 andyh Exp $

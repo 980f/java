@@ -5,10 +5,10 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: URI.java,v 1.2 2000/10/12 19:08:08 mattm Exp $
+ * @version      $Id: URI.java,v 1.4 2003/07/27 05:35:13 mattm Exp $
  */
 package net.paymate.net;
-import  net.paymate.util.Safe;
+import net.paymate.lang.StringX;
 
 public class URI {
 
@@ -46,13 +46,13 @@ public class URI {
   }
 
   public String toString() {
-    String authority = Safe.unNull(host) + ((port == defaultPort) ? "" : (portPrefix + port));
-    String queryStr  = query.toString();
-    return Safe.unNull(scheme) +
+    String authority = StringX.unNull(host) + ((port == defaultPort) ? "" : (portPrefix + port));
+    String queryStr  = String.valueOf(query);
+    return StringX.unNull(scheme) +
            schemePostfix +
            authority +
-           Safe.unNull(path) +
-           ((Safe.NonTrivial(queryStr)) ? (queryPrefix + queryStr) : "");
+           StringX.unNull(path) +
+           ((StringX.NonTrivial(queryStr)) ? (queryPrefix + queryStr) : "");
   }
   // +++ NEED A fromString() !!!!!
 }

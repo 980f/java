@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/web/color/ColorSchema.Enum]
 package net.paymate.web.color;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class ColorSchema extends TrueEnum {
   public final static int PLAIN      =0;
@@ -17,11 +16,11 @@ public class ColorSchema extends TrueEnum {
   public final static int HEAT       =9;
 
   public int numValues(){ return 10; }
-  private static final TextList myText = TrueEnum.nameVector(ColorSchema.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(ColorSchema.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final ColorSchema Prop=new ColorSchema();
+  public static final ColorSchema Prop=new ColorSchema();//for accessing class info
   public ColorSchema(){
     super();
   }
@@ -38,6 +37,18 @@ public class ColorSchema extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static ColorSchema CopyOf(ColorSchema rhs){//null-safe cloner
+    return (rhs!=null)? new ColorSchema(rhs) : new ColorSchema();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

@@ -4,15 +4,19 @@
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: HexDump.java,v 1.7 2001/07/19 01:06:54 mattm Exp $
+ * @version $Id: HexDump.java,v 1.13 2004/01/09 11:46:07 mattm Exp $
+ *
+ * TODO: Add textlist output to these functions (???)
  */
 
 package net.paymate.util;
 import  java.io.*;
+import net.paymate.lang.StringX;
+import net.paymate.lang.Fstring;
 
 public class HexDump {
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(HexDump.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(HexDump.class);
 
   public static final String rightIndention = "    ";
   public static final String hexBlank = "   ";
@@ -27,7 +31,7 @@ public class HexDump {
   public static final String dump(String header, String content) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     dump(header, content, baos, System.getProperty("line.separator"));
-    return baos.toString();
+    return String.valueOf(baos);
   }
 */
 
@@ -37,7 +41,7 @@ public class HexDump {
 
   public static final void dump(String header, String content, OutputStream os, String eol) {
     try {
-      byte [] bytes = Safe.TrivialDefault(content, "").getBytes();
+      byte [] bytes = StringX.TrivialDefault(content, "").getBytes();
       dump(header, new ByteArrayInputStream(bytes), os, eol);
     } catch (Exception e) {
       dbg.Caught("dump(): Exception opening ByteArrayInputStream.",e);
@@ -53,7 +57,7 @@ public class HexDump {
       dbg.VERBOSE("dump(): OutputStream == null!");
     } else {
       OutputStreamWriter osw = new OutputStreamWriter(os);
-      TextColumn formattedHeader = new TextColumn(Safe.TrivialDefault(header, ""), availableHeaderWidth);
+      TextColumn formattedHeader = new TextColumn(StringX.TrivialDefault(header, ""), availableHeaderWidth);
       // now that we have formatted the header, let's output it:
       int lines = formattedHeader.size();
       for(int i = 0; i < lines; i++) {
@@ -109,12 +113,12 @@ public class HexDump {
     try {
       Fstring hexMarkerFmt = new Fstring(8, '0');
       Fstring hexFormatter = new Fstring(hexWidth-1, '0');
-      osw.write(hexMarkerFmt.righted(Long.toHexString(start).toUpperCase()).toString());
+      osw.write(String.valueOf(hexMarkerFmt.righted(Long.toHexString(start).toUpperCase())));
       osw.write(markerTrailer);
       for(int i = 0; i < numWide; i++) {
         if(i < size) {
           osw.write(' ');
-          osw.write(hexFormatter.righted(Integer.toHexString(content[i]).toUpperCase()).toString());
+          osw.write(String.valueOf(hexFormatter.righted(Integer.toHexString(content[i]).toUpperCase())));
         } else {
           // now any necessary padding
           osw.write(hexBlank);
@@ -140,19 +144,15 @@ public class HexDump {
     }
   }
 
-  public static final String Usage() {
-    return "takes a filename for input; outputs to stdout";
-  }
-
-  public static final void Test(String[] args) {
+  public static final void main(String[] args) {
     if(args.length < 1) {
-      System.out.println(Usage());
+      System.out.println("takes a filename for input; outputs to stdout");
     } else {
       try {
         FileInputStream fis = new FileInputStream(args[0]);
         dump("Filename: " + args[0], fis, System.out);
       } catch (Exception e) {
-        dbg.Caught("Test(): Exception!",e);
+        dbg.Caught(e);
       }
     }
   }

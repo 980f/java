@@ -6,12 +6,13 @@ package net.paymate.web.table.query;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.29 $
  */
 
 import  net.paymate.database.*; // db
+import  net.paymate.data.*; // id's
 import  net.paymate.database.ours.*; // DBConstants
-import  net.paymate.database.ours.query.*; // Tranjour
+import  net.paymate.database.ours.query.*; // Txn
 import  net.paymate.util.*; // ErrorlogStream
 import  net.paymate.web.*; // logininfo
 import  net.paymate.web.table.*; //DBTableGen
@@ -20,35 +21,38 @@ import  java.sql.*; // resultset
 import  org.apache.ecs.*; // element
 import  org.apache.ecs.html.*; // various html elements
 import  net.paymate.awtx.*;
-import  net.paymate.ISO8583.data.*;
 
 public class TerminalsFormat extends RecordFormat {
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(TerminalsFormat.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(TerminalsFormat.class, ErrorLogStream.WARNING);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef[(new TerminalsFormatEnum()).numValues()];
   static {
     theHeaders[TerminalsFormatEnum.TerminalNameCol]  = new HeaderDef(AlignType.LEFT , "Terminal");
     theHeaders[TerminalsFormatEnum.ModelCodeCol]     = new HeaderDef(AlignType.LEFT , "Model");
     theHeaders[TerminalsFormatEnum.LastCloseTimeCol] = new HeaderDef(AlignType.LEFT , "Last Closed");
+    theHeaders[TerminalsFormatEnum.LastTxnTimeCol]   = new HeaderDef(AlignType.LEFT , "Last Txn");
     theHeaders[TerminalsFormatEnum.ApprCountCol]     = new HeaderDef(AlignType.RIGHT, "#");
     theHeaders[TerminalsFormatEnum.ApprAmountCol]    = new HeaderDef(AlignType.RIGHT, "Pending");
+    theHeaders[TerminalsFormatEnum.ApplianceCol]     = new HeaderDef(AlignType.LEFT , "Appliance");
+    theHeaders[TerminalsFormatEnum.CSVCol]           = new HeaderDef(AlignType.RIGHT,"Export");
   }
 
   private TerminalPendingRow terminal = null;
-
-  public TerminalsFormat(LoginInfo linfo, TerminalPendingRow terminal, String title, String absoluteURL, int howMany, String sessionid, PayMateDB db) {
-    super(linfo.colors, title, terminal, absoluteURL, howMany, sessionid, linfo.ltf);
+  private boolean isagawd = false;
+  public TerminalsFormat(LoginInfo linfo, TerminalPendingRow terminal,
+                         String title, String absoluteURL) {
+    super(linfo.colors(), title, terminal, absoluteURL, linfo.ltf());
     this.terminal = terminal;
     headers = theHeaders;
-    this.db = db;
+    isagawd = linfo.isaGod();
   }
 
-  private PayMateDB db = null; // this is so we can get the rest of the stuff.  It can't be packed into one nice query.  :(  We can fix it better when we have our own tables.
-
-  public static final String MONEYFORMAT = "#0.00";
-  private int  apprCount    = 0; // qty
-  private LedgerValue approvedTtl = new LedgerValue(MONEYFORMAT);
+  private long apprCount    = 0; // qty
+  private long total = 0;
+  private int termcount = 0;
+  private LedgerValue amount = new LedgerValue(UnsettledTransactionFormat.moneyformat); //+_+ to keep the drawer report and this report looking the same
+  public static final String TERMID = "t";
 
   public TableGenRow nextRow() {
     TableGenRow tgr = null;
@@ -56,19 +60,34 @@ public class TerminalsFormat extends RecordFormat {
       dbg.Enter("nextRow");
       zeroValues();
       tgr = super.nextRow();//returns either null or 'this'
-      LedgerValue amount = new LedgerValue(MONEYFORMAT); //+_+ to keep the drawer report and this report looking the same
       if(tgr != null) {
-        db.getTerminalTotals(terminal);
-
-        setColumn(TerminalsFormatEnum.TerminalNameCol, terminal.terminalName); // +_+ link to terminal config entry using terminal.terminalid
+        termcount++;
+        PayMateDBDispenser.getPayMateDB().getTerminalPendingTotals(terminal);
+        Element nameL = null;
+        Element appl = null;
+        String applurl = Acct.key() + "?adm=" +
+            (new AdminOpCode(AdminOpCode.appliance)).Image() +
+            "&"+AppliancesFormat.APPLID+"=" + terminal.applianceid;
+        if(isagawd) {
+          String configurl = Acct.key() + "?" + AdminOp.t1pg.url() + "&" +
+              TERMID + "=" + terminal.terminalid;
+          nameL = new A(configurl, terminal.terminalName);
+        } else {
+          nameL = new StringElement(terminal.terminalName);
+        }
+        appl = new A(applurl, terminal.applianceid);
+        setColumn(TerminalsFormatEnum.TerminalNameCol, nameL);
         setColumn(TerminalsFormatEnum.ModelCodeCol, terminal.modelCode);
-        setColumn(TerminalsFormatEnum.LastCloseTimeCol, ltf.format(PayMateDB.tranUTC(terminal.lastCloseTime())));
-
+dbg.ERROR("terminal.lastCloseTime="+terminal.lastCloseTime()+", terminal.lastTxnTime="+terminal.lastTxnTime());
+        setColumn(TerminalsFormatEnum.LastCloseTimeCol, utcdb2web(terminal.lastCloseTime()));
+        setColumn(TerminalsFormatEnum.LastTxnTimeCol  , utcdb2web(terminal.lastTxnTime()));
         apprCount+=terminal.apprCount();
-        approvedTtl.add(new RealMoney(terminal.apprAmount()));
+        total    +=terminal.apprAmount();
         setColumn(TerminalsFormatEnum.ApprCountCol, ""+terminal.apprCount());
         amount.setto(terminal.apprAmount());//unsigned amount
-        setColumn(TerminalsFormatEnum.ApprAmountCol, new A(Acct.key() + "?adm=" + (new AdminOpCode(AdminOpCode.t)).Image() + "&t=" + (new TerminalID(Safe.parseInt(terminal.terminalid), Safe.parseInt(terminal.storeid))).fullname(), amount.Image()));
+        setColumn(TerminalsFormatEnum.ApprAmountCol, new A(Acct.key() + "?adm=" + (new AdminOpCode(AdminOpCode.drawer)).Image() + "&t=" + terminal.terminalid, amount.Image()));
+        setColumn(TerminalsFormatEnum.ApplianceCol, appl);
+        setColumn(TerminalsFormatEnum.CSVCol, Acct.TSVTerminalLink(terminal.terminalid));
       } else {
         dbg.WARNING("RecordFormat.next() returned null!");
       }
@@ -91,11 +110,15 @@ public class TerminalsFormat extends RecordFormat {
         case TerminalsFormatEnum.TerminalNameCol: {
           ret = "TOTALS:";
         } break;
+        case TerminalsFormatEnum.ModelCodeCol: {
+          ret = String.valueOf(termcount);
+        } break;
         case TerminalsFormatEnum.ApprCountCol: {
           ret = Long.toString(apprCount);
         } break;
         case TerminalsFormatEnum.ApprAmountCol: {
-          ret = approvedTtl.Image();
+          amount.setto(total);
+          ret = amount.Image();
         } break;
       }
     } catch (Exception t) {
@@ -107,4 +130,4 @@ public class TerminalsFormat extends RecordFormat {
 }
 
 
-//$Id: TerminalsFormat.java,v 1.7 2001/11/17 06:17:00 mattm Exp $
+//$Id: TerminalsFormat.java,v 1.29 2004/03/25 08:14:41 mattm Exp $

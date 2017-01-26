@@ -4,4 +4,7 @@ TimeCol
 StoreCol
 TermCol
 AssociateCol
+CountCol
+AmountCol
+CSVCol
 //SelectCol

@@ -1,4 +1,4 @@
-//$Id: ClerkItem.Enum,v 1.16 2001/07/14 23:12:30 andyh Exp $
+//$Id: ClerkItem.Enum,v 1.24 2004/01/31 00:00:11 andyh Exp $
 /*
  an enumeration of each of the items that get displayed to the clerk
  on the one-line-display
@@ -7,7 +7,9 @@ BootingUp
 ClerkID
 ClerkPasscode
 SaleType
-TerminalOp
+SpecialOps
+DrawerMenu
+StoreMenu
 PreApproval
 PaymentSelect
 CreditNumber
@@ -20,15 +22,22 @@ CheckAccount
 CheckNumber
 License
 MTA
-RefNumber
+RefNumber     //original transaction's reference number
+AVSstreet
+AVSzip
+MerchRef      //new transaction's arbitrary reference info
 SalePrice
-//Tendered
+//Tendered    //for cash drawer integration
 NeedApproval  //from customer
+NeedPIN       //from customer
 NeedSig
 WaitApproval  //from cardsystems
 ApprovalCode
 Problem
 OverrideCode
-SecondCopy   //for when sig capture fubars
-WaitAdmin //batch listings, future slow stuff
-//$Id: ClerkItem.Enum,v 1.16 2001/07/14 23:12:30 andyh Exp $
+SecondCopy    //for when sig capture fubars
+WaitAdmin     //batch listings, future slow stuff
+SVOperation
+ShowForm      //a diagnostic
+TerminalOp   //a diagnostic
+//$Id: ClerkItem.Enum,v 1.24 2004/01/31 00:00:11 andyh Exp $

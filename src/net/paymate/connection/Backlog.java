@@ -6,15 +6,19 @@ package net.paymate.connection;
 * Copyright:    Copyright (c) 2001
 * Company:      PayMate.net
 * @author PayMate.net
-* @version $Revision: 1.17 $
+* @version $Revision: 1.36 $
 */
 import net.paymate.util.*;
-
+import net.paymate.io.*;
 import java.util.*;
 import java.io.*;
+import net.paymate.util.codec.CipherP86B2;
 
 public class Backlog {
   private ErrorLogStream dbg;//shares debugger with parent
+  int myCryptoKey=2345987; //someday have a per terminal variable. set non-zero for encryption.
+  private static final int padlength=12;
+
   /**
   * a directory of objects
   */
@@ -24,7 +28,7 @@ public class Backlog {
   */
   protected Vector files=new Vector();
   Monitor listlock;
-  static TimeSortFile sorter=new TimeSortFile();
+  TimeSortFile sorter;
 
   ///////////////
   private void enlist(File f){
@@ -53,10 +57,33 @@ public class Backlog {
   }
 
   /**
-  * @return the file(name) that should be the next receipt to store
+  * @return the file(name) that should be the next thing to send to server
   */
   private File nextFile(){//throws
     return (File) files.remove(files.size()-1);//humm looks like an objectstack
+  }
+
+  public ActionRequest loadFile(File frap) {
+    try {
+      if (frap != null) {
+        String before = IOX.FileToString(frap.getAbsolutePath());
+        dbg.VERBOSE("loadFile()-before="+before);
+        String after = (myCryptoKey > 0) ? new String(CipherP86B2.crypt(myCryptoKey, frap.toString().getBytes(), before.getBytes())) : before;
+        dbg.VERBOSE("loadFile()-after="+after);
+        EasyCursor ezp = new EasyCursor(after);
+        ActionRequest ar = ActionRequest.fromProperties(ezp);
+        if (ar != null && ar instanceof canBacklog) {
+          ( (canBacklog) ar).setLocalFile(frap);
+        }
+        return ar;
+      }
+      else {
+        return null;
+      }
+    }
+    catch (Exception ex) {
+     return null;
+    }
   }
 
   /**
@@ -66,9 +93,9 @@ public class Backlog {
     dbg.Enter("next("+files.size()+" left)");
     File frap=null;//4debug
     try {
-      return ActionRequest.fromFile(frap=nextFile());
+      return loadFile(nextFile());
     }
-    catch (ArrayIndexOutOfBoundsException mt){//used as 'empty' check.
+    catch (ArrayIndexOutOfBoundsException mt){//#normal. used as 'empty' check.
       dbg.VERBOSE("empty.");
       return null;
     }
@@ -85,12 +112,21 @@ public class Backlog {
     dbg.Enter("storeRequest");
     try {
       if(fullpath.exists()){//we need to kill the reply.
-        dbg.ERROR(fullpath+" already exists");
+        dbg.ERROR(String.valueOf(fullpath)+" already exists");
         return null;
       }
       FileOutputStream fos=new FileOutputStream(fullpath);
-      fos.write(request.toEasyCursorString().getBytes());
-      return Safe.Close(fos)? fullpath : null;
+      EasyProperties rqp= request.toProperties();
+      //@todo: apply stream encrypter here.
+      OutputStream crypter;
+      if(myCryptoKey>0){
+        crypter= net.paymate.util.codec.CipherP86B2.getOutputStream(fos,fullpath.toString().getBytes(),myCryptoKey);
+      } else {
+        crypter= fos;
+      }
+//      crypter.write(AsciiPadder.);
+      rqp.store(crypter,fullpath.toString());
+      return IOX.Close(fos)? fullpath : null;
     } catch (Exception any){
       dbg.Caught(any);
       return null;
@@ -110,23 +146,26 @@ public class Backlog {
     }
   }
 
-  static final boolean markDone(canBacklog request) {
-    return Safe.deleteFile(request.getLocalFile());
+
+  /**
+   * while this could be static it isn't so that extensions can do something upon this event.
+   * but such extensions had damn well better super this.
+   * but now it is static ... someone needed to call it without an object in scope.
+   */
+  static boolean markDone(canBacklog request) {
+    return IOX.deleteFile(request.getLocalFile());
   }
 
   protected int init(){
     try {
       listlock.getMonitor();
       dbg.Enter("init:"+root.getAbsolutePath());
-      File [] dirlist=Safe.listFiles(root);
+      File [] dirlist=IOX.listFiles(root);
       dbg.WARNING("# of files:"+dirlist.length);
-      Arrays.sort(dirlist,sorter);
-      //it is astonishing that collections cannot be initialized from arrays!
-      //I couldn't find anything in the source.jar that implies that they can
-      //need to look into reflection... not there either! but can be used to make one
       files= new Vector(dirlist.length);
-      for(int i=0;i<dirlist.length;i++){//preserve sorter's order
-        files.add(dirlist[i]);
+      for(int i=dirlist.length;i-->0;){
+      //using enlist() function despite the overhead to ensure identical sorting.
+        enlist(dirlist[i]);
       }
       return files.size();
     }
@@ -136,15 +175,15 @@ public class Backlog {
     }
   }
 
-  public Backlog(File root,ErrorLogStream dbg) {
-    this.root=root;
-    this.dbg= dbg!=null?dbg: new ErrorLogStream(Backlog.class.getName());
-    dbg.WARNING("Backlog directory is "+root.getAbsolutePath());
-    sorter=new TimeSortFile(true);//makes oldest come out first
-    listlock= new Monitor (root.getPath()+".BackLock");
-    Safe.createDir(root);
+  public Backlog(File root,ErrorLogStream adbg) {
+    this.root = root;
+    dbg = adbg != null ? adbg : ErrorLogStream.getForClass(Backlog.class);
+    dbg.WARNING("Backlog directory is " + root.getAbsolutePath());
+    sorter = TimeSortFile.Descending(NameSortFile.Descending()); //makes oldest come out first
+    listlock = new Monitor(root.getPath() + ".BackLock");
+    IOX.createDir(root);
     init();
   }
 
 }
-//$Id: Backlog.java,v 1.17 2001/11/17 00:38:33 andyh Exp $
+//$Id: Backlog.java,v 1.36 2004/03/08 22:54:14 andyh Exp $

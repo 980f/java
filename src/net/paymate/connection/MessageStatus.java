@@ -1,8 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/connection/MessageStatus.Enum]
 package net.paymate.connection;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
 
 public class MessageStatus extends TrueEnum {
   public final static int New     =0;
@@ -12,11 +11,11 @@ public class MessageStatus extends TrueEnum {
   public final static int Done    =4;
 
   public int numValues(){ return 5; }
-  private static final TextList myText = TrueEnum.nameVector(MessageStatus.class);
-  protected final TextList getMyText() {
+  private static final String[ ] myText = TrueEnum.nameVector(MessageStatus.class);
+  protected final String[ ] getMyText() {
     return myText;
   }
-  public static final MessageStatus Prop=new MessageStatus();
+  public static final MessageStatus Prop=new MessageStatus();//for accessing class info
   public MessageStatus(){
     super();
   }
@@ -33,6 +32,18 @@ public class MessageStatus extends TrueEnum {
     setto(rhs.Value());
     return this;
   }
+  public static MessageStatus CopyOf(MessageStatus rhs){//null-safe cloner
+    return (rhs!=null)? new MessageStatus(rhs) : new MessageStatus();
+  }
+/** @return whether it was invalid */
+  public boolean AssureValid(int defaultValue){//setto only if invalid
+    if( ! isLegal() ){
+       setto(defaultValue);
+       return true;
+    } else {
+       return false;
+    }
+  }
 
 }
-//$Id: makeenum.java,v 1.18 2001/07/19 01:06:45 mattm Exp $
+

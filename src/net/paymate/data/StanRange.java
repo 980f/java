@@ -6,18 +6,23 @@ package net.paymate.data;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.9 $
  */
 
 import net.paymate.util.*;
-import  net.paymate.ISO8583.data.*;
 import java.util.*;
+import net.paymate.lang.StringX;
 
-public
-class StanRange extends StringRange {
+public class StanRange extends StringRange {
 
   public Comparable filter(String stan){
-    return Safe.NonTrivial(stan)?Fstring.zpdecimal(Safe.parseInt(stan)%1000000,6):null;
+    // this makes sure what we took in was really an integer; is this necessary?  Can we just leave it the original String
+    //if we leave alhpa trash in it won't the query get a syntax error?
+    String ret = Integer.toString(StringX.parseInt(stan));
+    if(StringX.equalStrings(ret, "0")) { // parseInt returns 0 if Trivial, then that makes it NonTrivial!  However, a stan of 0 *is* trivial!
+      ret = "";
+    }
+    return ret;
   }
 
   public StanRange(String one, String two){
@@ -25,4 +30,4 @@ class StanRange extends StringRange {
   }
 
 }
-//$Id: StanRange.java,v 1.3 2001/11/14 01:47:49 andyh Exp $
+//$Id: StanRange.java,v 1.9 2003/10/25 20:34:21 mattm Exp $

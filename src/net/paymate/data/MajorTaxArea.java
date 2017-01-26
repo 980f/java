@@ -4,16 +4,21 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: MajorTaxArea.java,v 1.10 2001/08/14 23:25:29 andyh Exp $
+* @version      $Id: MajorTaxArea.java,v 1.15 2003/07/29 21:22:00 andyh Exp $
 */
 
 package net.paymate.data;
 
 import net.paymate.data.State;
 import net.paymate.util.ErrorLogStream;
+import net.paymate.lang.TrueEnum;
 
 public class MajorTaxArea extends State implements Institution {//'State' is a TrueEnum
-  static final ErrorLogStream dbg=new ErrorLogStream(MajorTaxArea.class.getName());
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(MajorTaxArea.class);
+
+  public InstitutionClass Class(){
+    return new InstitutionClass(InstitutionClass.DriversLicenseBureau);
+  }
 
   public final static int Base=636000;
   public String Abbreviation(){
@@ -42,7 +47,7 @@ public class MajorTaxArea extends State implements Institution {//'State' is a T
   public String IIN(){
     String twochar=this.Abbreviation();
     int offset=findInArray(aamvaIinTable,twochar);
-    return offset>=0? Integer.toString(Base+offset) : "999999";
+    return offset>=0? Integer.toString(Base+offset) : "000000";//jw7
   }
 
   public MajorTaxArea(State mtacode){
@@ -58,7 +63,7 @@ public class MajorTaxArea extends State implements Institution {//'State' is a T
   }
 
   public static final boolean isKnown(MajorTaxArea mta){
-    return mta!=null && mta.isLegal();
+    return TrueEnum.IsLegal(mta);
   }
 
   public boolean isYankee(){//includes all us states and territories
@@ -131,4 +136,4 @@ public class MajorTaxArea extends State implements Institution {//'State' is a T
   }
 
 }
-//$Id: MajorTaxArea.java,v 1.10 2001/08/14 23:25:29 andyh Exp $
+//$Id: MajorTaxArea.java,v 1.15 2003/07/29 21:22:00 andyh Exp $

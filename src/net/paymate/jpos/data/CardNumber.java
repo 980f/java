@@ -1,69 +1,119 @@
-/**
-* Title:        CardNumber
-* Description:
-* Copyright:    2000 PayMate.net
-* Company:      paymate
-* @author       paymate
-* @version      $Id: CardNumber.java,v 1.14 2001/10/02 17:06:39 mattm Exp $
-*/
 package net.paymate.jpos.data;
 
-import  net.paymate.util.Safe;
+/**
+ * Title:        $Source: /cvs/src/net/paymate/jpos/data/CardNumber.java,v $
+ * Description:  bank card account number
+ * Copyright:    2000 -2003 PayMate.net
+ * Company:      paymate.net
+ * @author       paymate.net
+ * @version      $Revision: 1.26 $
+ */
+
+import net.paymate.util.*;
+import net.paymate.lang.*;
 
 public class CardNumber {
-  private static final net.paymate.util.ErrorLogStream dbg = new net.paymate.util.ErrorLogStream(CardNumber.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(CardNumber.class);
+  protected String cardImage = "BYTEME"; //internally a string because so many folk want string format of it
+  public final static int MinDigits = 12;
+  public final static int MaxDigits = 19;
+  protected boolean ckValid = false;
+  public final static String greekfix = "...";
 
-  protected String cardImage="BYTEME"; //because so many folk want string format of it
-  public final static int MinDigits=12;//really 13 ... if memory serves
-  public final static int MaxDigits=16;//+++need industry spex
-  protected boolean ckValid=false;
-  public final static String greekfix="...";
-
-  public boolean isTrivial(){
-    return !Safe.NonTrivial(cardImage) || cardImage.equals("0");
+  public boolean isTrivial() {
+    return!StringX.NonTrivial(cardImage) || cardImage.equals("0");
   }
 
-  public boolean equals (CardNumber rhs){
-    return rhs!=null && rhs.cardImage.equals(cardImage);
+  public static boolean NonTrivial(CardNumber probate) {
+    return probate != null && !probate.isTrivial();
   }
 
-  public String Image(){
+  public boolean equals(CardNumber rhs) {
+    return rhs != null && rhs.cardImage.equals(cardImage);
+  }
+
+  public String Image() {
     return cardImage;
   }
 
-  public String Greeked(String prefix){
-    int realcard=cardImage.length()-4;
-    return realcard>0 ? (prefix+cardImage.substring(realcard)) : "";
+  /**
+   * for messaging that wants a zero filled fixed length field
+   */
+  public long asLong() {
+    return StringX.parseLong(cardImage);
   }
 
-  public String Greeked(){
+  public String toString() {
+    return cardImage;
+  }
+
+  public int cardHash() {
+    return cardHash(cardImage);
+  }
+  // use this to hash a string that a user types in for a search!
+  public static int cardHash(String cardImage) {
+    return StringX.NonTrivial(cardImage) ? cardImage.hashCode() : 0;
+  }
+
+  public int BinNumber() {
+    return StringX.parseInt(StringX.subString(cardImage, 0, 6));
+  }
+
+  public String Greeked(String prefix) {
+    if (prefix == null) { //trivial is ok.
+      prefix = "";
+    }
+    int realcard = cardImage.length() - 4;
+    String hellenic = realcard > 0 ? (prefix + cardImage.substring(realcard)) :
+        "";
+    hellenic = StringX.right(hellenic, StringX.lengthOf(cardImage));
+    return hellenic;
+  }
+
+  public String last4() {
+    String last4 = StringX.right(cardImage, 4);
+    return Fstring.righted(last4, 4, '0');
+  }
+
+  public int last4int() {
+    return Integer.valueOf(last4()).intValue();
+  }
+
+  public String Greeked() {
     return Greeked(greekfix);
   }
 
-  public boolean isValid(){
+  public boolean isValid() {
     return ckValid;
   }
 
-/**
- *
- */
-  public boolean setto(String incoming){
-    if(Safe.NonTrivial(incoming)&&(incoming.length()>=6)){//6 is ISO number committee id number length
+  /**
+   * call this when mod10 checksum is irrelevent, in case someone later forgets to check the relevency.
+   */
+  public void mootSum(){
+    ckValid=true;
+  }
+
+  /**
+   *
+   */
+  public boolean setto(String incoming) {
+    if (StringX.NonTrivial(incoming) && (incoming.length() >= 6)) { //6 is ISO number committee id number length
       // also remove internal spaces for when pulled from track1:
-      cardImage=Safe.removeAll(" ",incoming);
-      return ckValid=Mod10.zerosum(incoming);
+      cardImage = StringX.removeAll(" ", incoming);
+      return ckValid = Mod10.zerosum(incoming);//cached in case it isn't relevent.
     } else {
-      cardImage="0";
-      return ckValid=false;
+      cardImage = "0";
+      return ckValid = false;
     }
   }
 
-  public void Clear(){
+  public void Clear() {
     setto("");
   }
 
-  public boolean synthesize(String shortByOne){
-    return setto(shortByOne+Character.forDigit(Mod10.sum(shortByOne),10));
+  public boolean synthesize(String shortByOne) {
+    return setto(shortByOne + Character.forDigit(Mod10.sum(shortByOne), 10));
   }
 
   public CardNumber(String image) {
@@ -83,4 +133,4 @@ public class CardNumber {
   }
 
 }
-//$Id: CardNumber.java,v 1.14 2001/10/02 17:06:39 mattm Exp $
+//$Id: CardNumber.java,v 1.26 2003/11/02 07:59:10 mattm Exp $

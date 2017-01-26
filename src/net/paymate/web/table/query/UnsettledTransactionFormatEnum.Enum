@@ -1,13 +1,17 @@
 // UnsettledTransactionFormatEnum.Enum
 // put these in the order that you want the columns
 TimeCol
-TermCol
-StanCol
-SiCol
+//TermCol
+MerchRefCol // invoice number
+StanCol // this is the stan
+TraceCol // this is the txnid
 StatusCol
 ApprovalCol
+AVSCodeCol
+PayTypeCol
+InstitutionCol
 AcctNumCol
-ExpDateCol
 SaleCol
 ReturnCol
-SumCol
+VoidChgCol
+NetCol

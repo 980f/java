@@ -6,13 +6,13 @@ package net.paymate.data;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.6 $
  */
 
 import net.paymate.util.*;
 
 public class StringRange extends ObjectRange {
-  private static final ErrorLogStream dbg = new ErrorLogStream(StringRange.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(StringRange.class);
 
   public Comparable filter(String input){
     return input;
@@ -31,4 +31,4 @@ public class StringRange extends ObjectRange {
   }
 
 }
-//$Id: StringRange.java,v 1.4 2001/07/19 01:06:47 mattm Exp $
+//$Id: StringRange.java,v 1.6 2002/07/09 17:51:23 mattm Exp $

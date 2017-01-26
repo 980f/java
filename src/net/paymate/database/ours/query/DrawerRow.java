@@ -9,7 +9,7 @@ import  net.paymate.database.*;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: DrawerRow.java,v 1.1 2001/11/16 01:34:30 mattm Exp $
+ * @version $Id: DrawerRow.java,v 1.5 2003/10/29 08:33:17 mattm Exp $
  */
 
 public class DrawerRow extends Query {
@@ -33,7 +33,7 @@ public class DrawerRow extends Query {
   }
 
   /**
-   * Makes a tranjour that CAN scroll.
+   * Makes a drawer that CAN scroll.
    */
   public static final DrawerRow NewSet(Statement stmt) {
     return new DrawerRow(stmt);
@@ -41,9 +41,10 @@ public class DrawerRow extends Query {
 
   public String transtarttime = "";
   public String drawerid = "";
-  public String associateName = "";
-  public String storeName = "";
+  public String associateid = "";
+  public String storeid = "";
   public String terminalName = "";
-
+  public String txncount = "";
+  public String txntotal = "";
 }
-//$Id: DrawerRow.java,v 1.1 2001/11/16 01:34:30 mattm Exp $
+//$Id: DrawerRow.java,v 1.5 2003/10/29 08:33:17 mattm Exp $

@@ -4,13 +4,12 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: ReScaler.java,v 1.11 2001/09/07 03:55:11 andyh Exp $
+* @version      $Id: ReScaler.java,v 1.15 2003/12/08 22:45:42 mattm Exp $
 */
 package net.paymate.jpos.awt;
 
-import java.awt.Point;
-import java.awt.Dimension;
-import java.awt.geom.Point2D;
+import net.paymate.awtx.*;
+
 import java.lang.Math;
 
 /**
@@ -22,21 +21,25 @@ public class ReScaler {
   public static final boolean preserveAspectRatio=true;
   public static final boolean noZoom=false;
 //computed at construction
-  protected Point2D.Float scaling= new Point2D.Float(ONE,ONE);//init 4debug
+  private XPoint2D.Float scaling= new XPoint2D.Float(ONE,ONE);//init 4debug
 //--- move reflectingY functionality into raster dump...
-  protected int reflectY; //Y coordinate polarity inverted awt vs. sigcap
-  protected int border=0; //to keep from clipping pixels at extremes of display area
+  private XPoint reflect = new XPoint(); //Y coordinate polarity inverted awt vs. sigcap
+
+  private int border=0; //to keep from clipping pixels at extremes of display area
   //separate x and y borders is not worth implementing at this time.
   /**
    * @param p gets modified from present coords to new ones
    */
-  public Point remap(Point p){
+  public XPoint remap(XPoint p){
     p.x *= scaling.x;
     p.x += border;
     p.y *= scaling.y;
     p.y += border;
-    if(reflectY>0){
-      p.y=reflectY-p.y;
+    if(reflect.y>0){
+      p.y=reflect.y-p.y;
+    }
+    if(reflect.x>0){
+      p.x=reflect.x-p.x;
     }
     return p;
   }
@@ -45,8 +48,8 @@ public class ReScaler {
    * @return new target space point computed from
    * @param p const source space point
    */
-  public Point Remap(Point p){
-    return remap(new Point(p));
+  public XPoint Remap(XPoint p){
+    return remap(new XPoint(p));
   }
 
   /**
@@ -55,11 +58,13 @@ public class ReScaler {
    * @param border squeeze a little extra to leave some whitespace ...
    * @param aspect
    */
-  public ReScaler(Point extreme, Dimension desired, int border, Dimension aspect){//mapp one to the other..
-    scaling= new Point2D.Float(ONE,ONE); //reset
+  public ReScaler(XPoint extreme, XDimension desired, int border, XDimension aspect,Quadrant quad){//mapp one to the other..
+    scaling= new XPoint2D.Float(ONE,ONE); //reset
     if(border<0){
       border=0;
     }
+    reflect.y= quad.YisNegative()? desired.height-1:0;//top-bottom reversal
+    reflect.x= quad.XisNegative()? desired.width-1 :0;//potential top-bottom reversal
 
     // NOTE! Extreme of (0,0) will NOT work!
     if(extreme.x == 0) {
@@ -85,18 +90,22 @@ public class ReScaler {
         scaling.x = scaling.y/aspectRatio;
       }
     }
-    //reflectY does NOT get affected by border!
-    reflectY=desired.height-1;//1st quadrant to 4th quadrant conversion
   }
 
-  public ReScaler(Point extreme, Dimension desired, int border){
-    this(extreme,desired,border,new Dimension(1,1));
+  /**
+   * default scaling is fourth quadrant 1:1
+   * @param extreme incoming coordinates
+   * @param desired pixel coordinates
+   * @param border white space around image
+   */
+  public ReScaler(XPoint extreme, XDimension desired, int border){
+    this(extreme,desired,border,new XDimension(1,1),Quadrant.Fourth());
   }
 
   public String toString(){
-    return "Factors:"+scaling+" reflectY:"+reflectY;
+    return "Factors:"+scaling+" reflect (x:y):"+reflect.x+':'+reflect.y;
   }
 
 }
 
-//$Id: ReScaler.java,v 1.11 2001/09/07 03:55:11 andyh Exp $
+//$Id: ReScaler.java,v 1.15 2003/12/08 22:45:42 mattm Exp $

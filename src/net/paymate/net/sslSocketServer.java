@@ -1,4 +1,4 @@
-// $Id: sslSocketServer.java,v 1.12 2001/07/19 01:06:52 mattm Exp $
+// $Id: sslSocketServer.java,v 1.17 2003/06/25 05:50:30 mattm Exp $
 
 /*  This is a Multi-Threaded SSL socketed Server. SUpports RSA and DSA/DSS
 *  Signatures. It uses a keytore that has a "myserver" alias.
@@ -17,11 +17,10 @@ import javax.net.ssl.*;
 import javax.net.*;
 import java.security.*;
 import java.security.cert.*;
-import com.sun.net.ssl.*;
 
 
 public class sslSocketServer extends Thread implements AtExit {
-  static final protected ErrorLogStream dbg=new ErrorLogStream(sslSocketServer.class.getName());
+  static final protected ErrorLogStream dbg=ErrorLogStream.getForClass(sslSocketServer.class);
 
   private static final String suites[] =  {    "SSL_RSA_WITH_RC4_128_SHA"  };
 
@@ -38,7 +37,7 @@ public class sslSocketServer extends Thread implements AtExit {
 
   public void go(int port) {
     try {
-      ssl_ss = (SSLServerSocket) Trustee.makeContext(new KeyStoreAccess()).getServerSocketFactory().createServerSocket(port);
+      ssl_ss = (SSLServerSocket) Trustee.makeContext().getServerSocketFactory().createServerSocket(port);
       ssl_ss.setEnableSessionCreation(true);
       ssl_ss.setNeedClientAuth(false);
       ssl_ss.setUseClientMode (false);
@@ -72,7 +71,7 @@ public class sslSocketServer extends Thread implements AtExit {
 }
 
 class MTSktServer extends Thread implements AtExit {
-  static final protected ErrorLogStream dbg=new ErrorLogStream(MTSktServer.class.getName());
+  static final protected ErrorLogStream dbg=ErrorLogStream.getForClass(MTSktServer.class);
 
   public void AtExit() {
     // this is just for playing, but if you ever use it for real, fill this in
@@ -107,4 +106,4 @@ class MTSktServer extends Thread implements AtExit {
   }
 }
 
-//$Id: sslSocketServer.java,v 1.12 2001/07/19 01:06:52 mattm Exp $
+//$Id: sslSocketServer.java,v 1.17 2003/06/25 05:50:30 mattm Exp $

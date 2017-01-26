@@ -1,5 +1,5 @@
 /*
- * $Id: PenetrationTestServlet.java,v 1.9 2001/10/02 17:06:39 mattm Exp $
+ * $Id: PenetrationTestServlet.java,v 1.12 2002/12/09 23:15:46 mattm Exp $
  * Copyright 2000, PayMate, Inc.
  */
 
@@ -27,7 +27,7 @@ import org.apache.ecs.html.*;
 
 public class PenetrationTestServlet extends HttpServlet {
 
-  private static final ErrorLogStream dbg=new ErrorLogStream(PenetrationTestServlet.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(PenetrationTestServlet.class);
   private static final String defString = "You know something I could really do without?  " +
         "The Space Shuttle ... it's irresponsible.  " +
         "The last thing we should be doing is sending our grotesquely distorted DNA out into space. " +
@@ -65,14 +65,14 @@ public class PenetrationTestServlet extends HttpServlet {
         String  oldStr  = (String)session.getValue(title);
         // get some parameters
         boolean getting = (req.getParameter("get") != null);
-        String  setStr  = URLDecoder.decode(req.getParameter("set"));
+        String  setStr  = req.getParameter("set");
         boolean setting = (setStr != null);
         dbg.VERBOSE("Q=" + req.getQueryString());
         if(getting || setting) {
           docLog(doc, "ACK: Test string " + (setting ? "was" : "is") + " '" + oldStr + "'.");
         } else { // !getting && !setting (just testing)
           String query = req.getQueryString();
-          docLog(doc, ((query != null) && URLDecoder.decode(query).equals(oldStr)) ?
+          docLog(doc, ((query != null) && query.equals(oldStr)) ?
                       "ACK: String matched.":
                       "NAK: String match failed.");
         }

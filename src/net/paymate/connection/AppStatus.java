@@ -6,11 +6,12 @@ package net.paymate.connection;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.16 $
  */
 
 import net.paymate.util.*;
 import net.paymate.util.timer.*;
+import net.paymate.lang.ThreadX;
 
 public class AppStatus implements isEasy {
 //  public static int threadThrashLimit=12;
@@ -25,6 +26,8 @@ public class AppStatus implements isEasy {
   final static String activeAlarmsCountKey="activeAlarmsCount";
   public String revision;
   final static String revisionKey="revision";
+  public String threadDump;
+  final static String threadDumpKey = "threadDump";
 
 
   /**
@@ -40,6 +43,7 @@ public class AppStatus implements isEasy {
     activeCount=Thread.currentThread().getThreadGroup().activeCount();
     activeAlarmsCount=Alarmer.alarmCount();
     revision = net.paymate.Revision.Version();
+    threadDump = ThreadX.ThreadDump(ThreadX.RootThread()).asParagraph("|");
     snapped=true;
     return this;
   }
@@ -54,16 +58,7 @@ public class AppStatus implements isEasy {
     ezp.setInt(activeCountKey,activeCount);
     ezp.setInt(activeAlarmsCountKey,activeAlarmsCount);
     ezp.setString(revisionKey,revision);
-//    if(activeCount>threadThrashLimit){
-      ezp.setString("threadDump",ThreadX.ThreadDump(ThreadX.RootThread()).asParagraph("|"));
-//    }
-  }
-
-  public EasyCursor saveas(String key,EasyCursor ezp){
-    if(ezp==null){
-      ezp=new EasyCursor();
-    }
-    return ezp.addBlock(this,key);
+    ezp.setString(threadDumpKey,threadDump);
   }
 
   public void load(EasyCursor ezp){
@@ -72,14 +67,8 @@ public class AppStatus implements isEasy {
     activeCount=ezp.getInt(activeCountKey);
     activeAlarmsCount=ezp.getInt(activeAlarmsCountKey);
     revision=ezp.getString(revisionKey);
+    threadDump=ezp.getString(threadDumpKey);
     snapped=true;
-  }
-
-  public EasyCursor loadfrom(String key,EasyCursor ezp){
-    if(ezp!=null){
-      return ezp.getBlock(this,key);
-    }
-    return null;
   }
 
   public AppStatus() {
@@ -87,8 +76,8 @@ public class AppStatus implements isEasy {
   }
 
   public String toString(){
-    return EasyCursor.spam(this);
+    return EasyCursor.spamFrom(this);
   }
 
 }
-//$Id: AppStatus.java,v 1.10 2001/10/30 19:37:20 mattm Exp $
+//$Id: AppStatus.java,v 1.16 2003/07/27 05:34:54 mattm Exp $

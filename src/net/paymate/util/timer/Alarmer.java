@@ -9,11 +9,12 @@ package net.paymate.util.timer;
 *  The active alarm list is mutexed. Please keep it that way!
 * Copyright:    2001 Paymate.net
 * @author PayMate.net
-* @version $Revision: 1.12 $
+* @version $Revision: 1.25 $
 */
 
 import  net.paymate.util.*;
 import java.util.*;
+import net.paymate.lang.ThreadX;
 
 class AlarmList {
   ErrorLogStream dbg;
@@ -175,17 +176,30 @@ class AlarmList {
       }
       spam.Add("</ActiveAlarms>");
       return spam;
-    }
-    finally {
+    } finally {
       lock.UNLOCK("spamlist");
+    }
+  }
+
+  EasyProperties toEzpSpam() {
+    EasyProperties ret = new EasyProperties();
+    try {
+      lock.LOCK("spamlist");
+      for(int i=list.size();i-->0;){
+        ret.setString(""+i, alarm(i).toSpam());
+      }
+    } finally {
+      lock.UNLOCK("spamlist");
+      return ret;
     }
   }
 
 }//end AlarmList
 
-public class Alarmer implements Runnable {
-  static ErrorLogStream dbg;
+// the following is a singleton ONLY
 
+public class Alarmer implements Runnable {
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(Alarmer.class,ErrorLogStream.OFF);
   static Alarmer my;//the default Alarm manager
   Thread thread;
   int priority;
@@ -193,13 +207,20 @@ public class Alarmer implements Runnable {
 
   boolean paused=false; //for clock update
 
+  private static void setMy() {
+    my=new Alarmer();
+    my.thread.start();
+  }
+
+  static {
+    setMy();
+  }
+
   private Alarmer(){//only one instance allowed at present.
-    dbg=new ErrorLogStream(Alarmer.class.getName(),ErrorLogStream.OFF);//##ignores logcontrol##
     thread=new Thread(this,"PM.Alarmer");
+    thread.setDaemon(true);
     priority=Thread.NORM_PRIORITY;//-1;
     active=new AlarmList(dbg);
-    ErrorLogStream.Debug.ERROR("Alarmer debug level is:"+dbg.myLevel.Image());
-    //seems to be one of those that ignore the config file!
   }
 
   /**
@@ -214,16 +235,16 @@ public class Alarmer implements Runnable {
           dbg.WARNING("no alarms, sleeping for along time");
           ThreadX.sleepFor(100000);//just a little safer than 'forever'
         } else {
-          long interval=nexttime-Safe.utcNow();//convert to timedifference
+          long interval=nexttime-DateX.utcNow();//convert to timedifference
           if(interval>0){
-            dbg.WARNING("next check at "+Safe.timeStamp(nexttime)+" Sleeping for "+interval);
+            dbg.WARNING("next check at "+DateX.timeStamp(nexttime)+" Sleeping for "+interval);
             ThreadX.sleepFor(interval);
           }
         }
         if(!paused){
           dbg.WARNING("check alarms");
           //ignore why we quit sleeping, try to do some alarms NOW
-          doRingers(active.ringers(Safe.utcNow()));
+          doRingers(active.ringers(DateX.utcNow()));
         }
       }
       catch (Throwable ex) {
@@ -269,39 +290,34 @@ public class Alarmer implements Runnable {
     return (my!=null && my.active !=null) ? my.active.size():0;
   }
 
-  private  Alarmum getState(Alarmum alarm){
+  private Alarmum getState(Alarmum alarm){
     return active.info(alarm);
   }
 
-  public  static Alarmum GetState(Alarmum alarm){
+  public static Alarmum GetState(Alarmum alarm){
     return my.getState(alarm);
   }
 
-  public  static void Defuse(Alarmum alarm){
+  public static void Defuse(Alarmum alarm){
     if(alarm!=null){
       alarm.defuse();
       my.active.remove(alarm);
     }
   }
 
-  public  static boolean isTicking(Alarmum alarm){
+  public static boolean isTicking(Alarmum alarm){
     return (alarm!=null)?alarm.isTicking():false;
   }
 
-  private  static Alarmum Set(Alarmum newone){
-    if(my==null){
-      my=new Alarmer();
-      my.thread.setDaemon(true);
-      my.thread.start();
-    }
+  private static Alarmum Set(Alarmum newone){
     if(my.active.insert(newone)){
       my.thread.interrupt();
     }
     return newone;
   }
 
-  public  static Alarmum New(int fuse,TimeBomb dynamite){
-      return Set(new Alarmum(dynamite,fuse));//to provide access so that it can be defused.
+  public static Alarmum New(int fuse,TimeBomb dynamite){
+    return Set(new Alarmum(dynamite,fuse));//to provide access so that it can be defused.
   }
 
   /**
@@ -311,7 +327,11 @@ public class Alarmer implements Runnable {
     Defuse(alarm);
     dbg.Enter("NewAlarm");
     try {
-      return Set(alarm.refuse(fuse));//to provide access so that it can be defused.
+      if(alarm!=null){
+        return Set(alarm.refuse(fuse)); //to provide access so that it can be defused.
+      } else {
+        return null;
+      }
     } finally {
       dbg.Exit();
     }
@@ -324,34 +344,22 @@ public class Alarmer implements Runnable {
     return my.active.toSpam(spam);
   }
 
+  private EasyProperties ezpDump(){
+    return my.active.toEzpSpam();
+  }
+
   public static TextList dump(){
     return my.dump(null);
   }
 
-  public static void dump(ErrorLogStream els,int importance){
-//    els.rawMessage(importance,dump().asParagraph());
+  public static EasyProperties EzpDump() {
+    return my.ezpDump();
   }
 
-/**
- * @totally untested!
- * stop watches are screwed by this!
- */
-  public static synchronized int adjustSystemClock(long whatnowshouldbe){
-  // stop the alarm checking,
-    my.paused=true;
-  //save "now",
-    long was=Safe.utcNow();
-    Safe.setSystemClock(whatnowshouldbe);
-  //read the system clock,   //diff with "now"
-    int diff=(int)(Safe.utcNow()-was);
-  //and adjust all alarms in the active list,
-    my.active.adjust(diff);//diff gets added
-  //then reenable alarm checking.
-    my.paused=false;
-    my.thread.interrupt();
-  //FYI return value.
-    return diff;
+  public static void dump(ErrorLogStream els,int importance){
+//debugger construction loop    els.rawMessage(importance,dump().asParagraph());
   }
+
 
 }
-//$Id: Alarmer.java,v 1.12 2001/11/14 01:47:58 andyh Exp $
+//$Id: Alarmer.java,v 1.25 2003/12/16 19:58:11 mattm Exp $

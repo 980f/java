@@ -1,62 +1,116 @@
 package net.paymate.serial;
-/* $Id: Parameters.java,v 1.2 2001/09/28 02:10:43 andyh Exp $ */
+
+/**
+ * <p>Title: $Source: /cvs/src/net/paymate/serial/Parameters.java,v $</p>
+ * <p>Description: </p>
+ * <p>Copyright: Copyright (c) 2002</p>
+ * <p>Company: PayMate.net</p>
+ * @author PayMate.net
+ * @version $Revision: 1.18 $
+ */
+
 import net.paymate.util.*;
+import net.paymate.lang.Bool;
+import net.paymate.lang.MathX;
+import net.paymate.lang.StringX;
 
-import javax.comm.*;//for interfaces...
+public class Parameters implements isEasy, Key {
 
-public class Parameters implements isEasy {
-
-  final static String VersionInfo= "$Revision: 1.2 $";
+  final static String VersionInfo= "$Revision: 1.18 $";
   String portName;
-  int baudRate;
-  int databits;
-  int stopbits;
-  int parity;
+  int baudRate=9600;
+  int databits=8;
+  int stopbits=1;
+  int niceness=1000000000; //millis per false eof
+
+/**
+ * @return the greater of the actual niceness or the parameter given.
+ * the rationale is this is the amount of time someone else should wait
+ * before deciding that the wait implied by our niceness has failed.
+ */
+  int niceness(int minniceness){
+    return Math.max(niceness,minniceness);
+  }
+
+  boolean haveparity=false;
+  boolean evenparity=false;
+
   int flowControl;
+
+  public boolean hasrx=true; //true if device providesd data stream, false ==output only
+  public boolean initialRTS=true;
+  public boolean initialDTR=true;
+
   public int obufsize;//+++ protect
   public int priority=Thread.NORM_PRIORITY;//+1;//+_+ protect
 
+    // Fields
+  public static final int FLOWCONTROL_NONE = 0;
+  public static final int FLOWCONTROL_RTSCTS_IN = 1;
+  public static final int FLOWCONTROL_RTSCTS_OUT = 2;
+  public static final int FLOWCONTROL_XONXOFF_IN = 4;
+  public static final int FLOWCONTROL_XONXOFF_OUT = 8;
+
   public int Wordsize(){
-    return databits+stopbits+ (parity!=0?1:0);//---ignores 1.5 stopbits
+    return databits+stopbits+ Bool.asInt(haveparity);//---ignores 1.5 stopbits
   }
 
   public double CharTime(){
-    return Safe.ratio(Wordsize(),baudRate) ;
+    return MathX.ratio(Wordsize(),baudRate) ;
   }
 
+  /**
+   * need to wrap the horribly ancient technique of pacling bitsinto an int for flow control options.
+   */
   public Parameters setFlow(int bitmask){
     flowControl=bitmask;
     return this;
   }
 
-  public int parseFlow(String ennum){
-    if(Safe.NonTrivial(ennum)){
-      if(ennum.equalsIgnoreCase("hard")) return SerialPort.FLOWCONTROL_RTSCTS_OUT+SerialPort.FLOWCONTROL_RTSCTS_IN;
-      if(ennum.equalsIgnoreCase("soft")) return SerialPort.FLOWCONTROL_XONXOFF_OUT+SerialPort.FLOWCONTROL_XONXOFF_IN;
+  public boolean FlowIs(int bitpat){
+    return (flowControl&bitpat) !=0;
+  }
+
+  public boolean FlowIs(String modern){
+    return FlowIs(parseFlow(modern));
+  }
+
+
+  public static int parseFlow(String enum){
+    if(StringX.NonTrivial(enum)){
+      if(enum.equalsIgnoreCase("hard")) return FLOWCONTROL_RTSCTS_OUT+FLOWCONTROL_RTSCTS_IN;
+      if(enum.equalsIgnoreCase("soft")) return FLOWCONTROL_XONXOFF_OUT+FLOWCONTROL_XONXOFF_IN;
     }
-    return SerialPort.FLOWCONTROL_NONE;
+    return FLOWCONTROL_NONE;
   }
 
   public Parameters(String s) {
     portName = s;
   }
 
+
+
   public void save(EasyCursor cfg){
-    cfg.setInt("baud",baudRate);
-    cfg.setInt("dataBits",databits);
-    cfg.setInt("stopBits",stopbits);
-    cfg.setString("parity","None"); //+_+
-    cfg.getString("flow","None");   //+_+ +++
-    cfg.setInt("obufsize",obufsize);
+    cfg.setString(nameKey,portName);
+    cfg.setInt(baudRateKey,baudRate);
+    cfg.setChar(parityKey,parityCode());
+    cfg.setInt(databitsKey,databits);
+    cfg.setInt(stopbitsKey,stopbits);
+    cfg.setString(flowcontrolKey,"None");   //+_+ +++
+    cfg.setInt(bufsizeKey,obufsize);
+    cfg.setInt(nicenessKey,niceness);
   }
 
   public void load(EasyCursor cfg){
-    baudRate = cfg.getInt("baud",9600);
-    databits = cfg.getInt("dataBits",8);
-    stopbits = cfg.getInt("stopBits",1);
-    setParity(cfg.getString("parity","None")) ;
-    setFlow( parseFlow(cfg.getString("flow","None")));
-    obufsize= cfg.getInt("obufsize",8192);
+    portName=cfg.getString(nameKey,portName);//legacy, node carried portName
+    baudRate = cfg.getInt(baudRateKey,9600);
+    setParity(cfg.getChar(parityKey,'N')) ;
+    databits = cfg.getInt(databitsKey,8);
+    stopbits = cfg.getInt(stopbitsKey,1);
+    setFlow( parseFlow(cfg.getString(flowcontrolKey,"None")));
+    obufsize= cfg.getInt(bufsizeKey,8192);
+    niceness= cfg.getInt(nicenessKey,1000000000);
+    setProtocol(cfg.getString(protocolKey));//late addition for testser usage
   }
 
   public Parameters(String s, EasyCursor cfg) {
@@ -76,10 +130,6 @@ public class Parameters implements isEasy {
     return databits;
   }
 
-  public int getParity(){
-    return parity;
-  }
-
   public int getStopbits(){
     return stopbits;
   }
@@ -90,7 +140,7 @@ public class Parameters implements isEasy {
   }
 
   public Parameters setBaudRate(String s){
-    return setBaudRate(Integer.parseInt(s));
+    return setBaudRate(StringX.parseInt(s));
   }
 
   public Parameters setDatabits(int i){
@@ -103,41 +153,22 @@ public class Parameters implements isEasy {
     return setDatabits( (index>=0)? (index+5):8);
   }
 
-  public Parameters setParity(int i){
-    parity = i;
-    return this;
-  }
-
   public Parameters setParity(String s){
-    if(s.equals("None")){
-      return setParity(SerialPort.PARITY_NONE);
-    }
-    if(s.equals("Even")){
-      return setParity(SerialPort.PARITY_EVEN);
-    }
-    if(s.equals("Odd")){
-      return setParity(SerialPort.PARITY_ODD);
-    }
-    if(s.equals("Mark")){
-      return setParity(SerialPort.PARITY_MARK);
-    }
-    return this;
+    return setParity( StringX.firstChar(s));
   }
 
-  public Parameters setStopbits(int i){
-    stopbits = i;
-    return this;
-  }
-
-  public Parameters setStopbits(String s){
-    if(s.equals("1")){
-      return setStopbits(1);
-    }
-    if(s.equals("1.5")){
-      return setStopbits(3);
-    }
-    if(s.equals("2")){
-      return setStopbits(2);
+  public Parameters setParity(char c){
+    switch(c){
+    case 'E':{
+      haveparity=true;
+      evenparity=true;
+    } break;
+    case 'O':{
+      haveparity=true;
+      evenparity=false;
+    } break;
+    default:
+      haveparity=false;
     }
     return this;
   }
@@ -146,9 +177,49 @@ public class Parameters implements isEasy {
     return portName;
   }
 
-  public String toSpam(){//4debug
-    return getPortName()+':'+this.baudRate+"NOE".charAt(parity)+databits+"012h".charAt(stopbits);
+  public char parityCode(){
+    return haveparity?( evenparity ? 'E' : 'O') : 'N';
   }
 
+  public Parameters setProtocol(String n81){
+    if(StringX.NonTrivial(n81)){
+      setParity(StringX.charAt(n81,0,'N'));
+      databits = StringX.charAt(n81,1,'8')-'0';
+      stopbits = StringX.charAt(n81,2,'1')-'0';
+//someday    setFlow( );
+    }
+    return this;
+  }
+
+  public String toSpam(){//4debug
+    return getPortName()+':'+this.baudRate+parityCode()+databits+stopbits;
+  }
+
+  public String fullSpam(){//4moreDebug
+    EasyCursor ezc = new EasyCursor();
+    this.save(ezc);
+    return ezc.toString();
+  }
+
+  public Parameters(){
+  //for traditional() and EasyCursor.getObject();
+  }
+
+  public static Parameters Traditional(String yada){
+    Parameters newone=new Parameters();
+    TextListIterator args=TextListIterator.New(TextList.CreateFrom(yada));
+    newone.portName=args.next();
+    newone.setBaudRate(args.next());
+    newone.setProtocol(args.next());
+    return newone;
+  }
+
+  public static Parameters CommandLine(TextListIterator arg,int defbaud,String defprotocol){
+    Parameters sp=new Parameters(StringX.OnTrivial(arg.next(),"/dev/ttyS0"));
+    sp.setBaudRate(StringX.OnTrivial(arg.next(),defbaud));
+    sp.setProtocol(StringX.OnTrivial(arg.next(),defprotocol));
+    return sp;
+ }
+
 }
-//$Id: Parameters.java,v 1.2 2001/09/28 02:10:43 andyh Exp $
+//$Id: Parameters.java,v 1.18 2003/07/27 05:35:13 mattm Exp $

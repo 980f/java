@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: ColorScheme.java,v 1.4 2001/07/19 01:06:56 mattm Exp $
+ * @version      $Id: ColorScheme.java,v 1.6 2002/10/30 23:25:16 mattm Exp $
  */
 
 package net.paymate.web.color;
@@ -13,6 +13,7 @@ public class ColorScheme {
   public ColorSet DARK;
   public ColorSet MEDIUM;
   public ColorSet LIGHT;
+
 
   public ColorScheme(ColorSet dark, ColorSet medium, ColorSet light) {
     this.DARK = dark;
@@ -136,10 +137,25 @@ Plain (no colors)  255,255,255 - FFFFFF 255,255,255 - FFFFFF        255,255,255 
       case ColorSchema.BRONZE:      return ColorScheme.BRONZE;
       case ColorSchema.MIDNIGHT:    return ColorScheme.MIDNIGHT;
       case ColorSchema.TRANQUILITY: return ColorScheme.TRANQUILITY;
-      default:
-      case ColorSchema.MONEY:       return ColorScheme.MONEY;
       case ColorSchema.HEAT:        return ColorScheme.HEAT;
+      case ColorSchema.MONEY:       return ColorScheme.MONEY;
+      default:                      return defaultscheme;
     }
+  }
+
+  // money is our programmatic default
+  private static ColorScheme defaultscheme = MONEY; // set on UserSession startup.
+  public static final void setDefaultScheme(ColorScheme newdefault) {
+    // only set it if it is not null, otherwise set it to the programmatic default
+    if(newdefault != null) {
+      defaultscheme =  newdefault;
+    }
+  }
+  public static final void setDefaultScheme(String newdefault) {
+    setDefaultScheme(ColorScheme.schemeForName(newdefault)); // this pulls the default if it has to, which just resets the default if you give it crap
+  }
+  public static final ColorScheme defaultscheme() {
+    return defaultscheme;
   }
 
 }

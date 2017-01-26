@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: DBTableGen.java,v 1.19 2001/10/24 04:14:19 mattm Exp $
+ * @version      $Id: DBTableGen.java,v 1.23 2003/10/30 21:05:15 mattm Exp $
  */
 
 package net.paymate.web.table;
@@ -16,16 +16,16 @@ import  org.apache.ecs.*;
 
 public abstract class DBTableGen extends TableGen implements TableGenRow, RowEnumeration {
   // logging facilities
-  private static final ErrorLogStream dbg=new ErrorLogStream(DBTableGen.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(DBTableGen.class);
 
   protected ResultSet rs        = null;
 
-  public DBTableGen(String title, ColorScheme colors, ResultSet rs, String absoluteURL, int howMany, String sessionid) {
-    this(title, colors, rs, /*headers*/ null, absoluteURL, howMany, sessionid);
-  }
+//  public DBTableGen(String title, ColorScheme colors, ResultSet rs, String absoluteURL, int howMany) {
+//    this(title, colors, rs, /*headers*/ null, absoluteURL, howMany);
+//  }
 
-  public DBTableGen(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    super(title, colors, headers, absoluteURL, howMany, sessionid);
+  public DBTableGen(String title, ColorScheme colors, ResultSet rs, HeaderDef headers[], String absoluteURL) {
+    super(title, colors, headers, absoluteURL);
     this.rs = rs;
   }
 
@@ -46,7 +46,9 @@ public abstract class DBTableGen extends TableGen implements TableGenRow, RowEnu
 
   public void close() {
     super.close();
-    DBMacros.closeStmt(DBMacros.getStatement(rs));
+    Statement stmt = DBMacros.getStatement(rs);
+    DBMacros.closeRS(rs);
+    DBMacros.closeStmt(stmt);
   }
 
   public TableGenRow nextRow() {

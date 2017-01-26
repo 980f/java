@@ -5,7 +5,7 @@
 * Copyright:    2000, PayMate.net<p>
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: Monitor.java,v 1.18 2001/10/05 19:08:36 andyh Exp $
+* @version      $Id: Monitor.java,v 1.30 2004/01/26 22:44:39 mattm Exp $
 */
 /*
 // a detailed usage statement:
@@ -23,11 +23,18 @@ void amethod() {
 also note that on construciton you can supply your own debugger which has
 nice messages within getMon and freeMon.
 
++++ @@@ %%% should we 'final'ize this entire class?  [MMM]yes
+
+  // +++ create a service whose job is to flip through the different Monitors
+  // +++ and then dump data to stdout about the status of them,
+  // +++ like which ones have been locked for more than 5 minutes (for example),
+  // +++ and which threads got locked (if possible).
 
 */
 
 package net.paymate.util;
 import  java.util.*;
+import net.paymate.lang.ReflectX;
 
 public class Monitor implements Comparable {
   protected Thread thread = null;
@@ -38,13 +45,18 @@ public class Monitor implements Comparable {
   public String name = "";
   private Vector threads = new Vector();
 
+  // to check to see if we even want to try to get it ...
+  public int monitorCount() {
+    return monitorCount;
+  }
+
   // this function fixes the loop / race condition which used to exist with this line:
-  //  private static final ErrorLogStream DBG = new ErrorLogStream(Monitor.class.getName());
+  //  private static final ErrorLogStream DBG = ErrorLogStream.getForClass(Monitor.class);
   // eg: Monitor creates ErrorLogStream, which creates LogFile, which creates Monitor, whose "class" is not yet loaded, so results in an exception and subsequent null pointers.
   private final ErrorLogStream dbg() {
     synchronized(Monitor.class) { // sync on the CLASS !
       if(d1b2g3 == null) {
-        d1b2g3 = ErrorLogStream.Null();
+        d1b2g3 = ErrorLogStream.Null(); // --- this line used to say: d1b2g3 = D1B2G3();, which i believe worked.  This new line is suspect of causing the same problem as it was trying to fix!  Why did we change it?  We should document ANY changes in here!
       }
     }
     return d1b2g3;
@@ -53,21 +65,21 @@ public class Monitor implements Comparable {
   private ErrorLogStream d1b2g3 = null; // don't use me directly; use dbg() instead !
   private static ErrorLogStream D1B2G3() { // don't use me directly; use dbg() instead !
     if(D1B2G3 == null) {
-      D1B2G3 = new ErrorLogStream(Monitor.class.getName());
+      D1B2G3 = ErrorLogStream.getForClass(Monitor.class);
     }
     return D1B2G3;
   }
 
   //each monitor is linkable to some other module's debugger, typically the owner's.
   public Monitor(String name,ErrorLogStream dbg) {
-    this.name = name;
+    this.name = ReflectX.stripNetPaymate(name);
     this.d1b2g3 = dbg; // see dbg(), but don't call in here or you will get a loop/construction race condition
     addMonitor(this);
   }
 
   public String ownerInfo(){
     synchronized(this){
-      String threadpart=thread!=null?thread.toString():"noOwner";
+      String threadpart=thread!=null?String.valueOf(thread):"noOwner";
       return name+"/"+threadpart+"*"+monitorCount;
     }
   }
@@ -96,7 +108,7 @@ public class Monitor implements Comparable {
         }
 //        dbg.VERBOSE("got lock");
       } catch (Exception e2) {
-        dbg().Caught(e2);
+        dbg().Caught(e2);  // +++++++++++++++++++ who uncommented this !?!?!?!?!?!
       } finally {
 //        dbg.Exit();
       }
@@ -180,7 +192,7 @@ public class Monitor implements Comparable {
       try {
         for(int i = threads.size(); i-->0;) {
           try {
-            tl.add(((Thread)(threads.elementAt(i))).toString());
+            tl.add(String.valueOf((Thread)(threads.elementAt(i))));
           } catch(ArrayIndexOutOfBoundsException arf){
             //we modified the list while scanning it, start scan over:
             i = threads.size();
@@ -327,4 +339,29 @@ public class Monitor implements Comparable {
   }
 
 }
-//$Id: Monitor.java,v 1.18 2001/10/05 19:08:36 andyh Exp $
+/*
+An example of mutexing via file locking:
+import java.io.*;
+public class exclude {
+  public static void main(String a[]) throws Exception {
+    File locker = new File("/tmp/mailfile.lock");
+    boolean IgotIt = false;
+    AcquireLockLoop: for ( ; ; ) { // repeat forever
+      IgotIt = locker.createNewFile();
+      if (IgotIt) { // we created the file (got the lock)
+        break AcquireLockLoop;
+      } else { // otherwise, sleep for a bit and try again
+        System.out.println(a[0] + " didn't get file, trying again");
+        Thread.sleep(3000);
+      }
+    }
+    if (IgotIt) { // do regular work here,
+      // assured that we have sole access to the resource.
+      System.out.println(a[0]+ " got the file!");
+      locker.deleteOnExit();
+      Thread.sleep(2000);
+    }
+  }
+}
+*/
+//$Id: Monitor.java,v 1.30 2004/01/26 22:44:39 mattm Exp $

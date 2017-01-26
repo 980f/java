@@ -11,12 +11,12 @@ import  net.paymate.util.*;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: ProfileTableGen.java,v 1.12 2001/11/16 01:34:33 mattm Exp $
+ * @version $Id: ProfileTableGen.java,v 1.17 2003/10/30 23:06:12 mattm Exp $
  */
 
 public class ProfileTableGen extends TableGen implements RowEnumeration, TableGenRow {
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(ProfileTableGen.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(ProfileTableGen.class, ErrorLogStream.WARNING);
 
   private DatabaseProfile dbp = null;
   private int currentTable = -1;
@@ -26,14 +26,14 @@ public class ProfileTableGen extends TableGen implements RowEnumeration, TableGe
   /**
    * @param tableName - if null means to profile ALL tables
    */
-  public ProfileTableGen(PayMateDB con, ColorScheme colors, String tablename, String sessionid) {
-    super("", colors, myheaders, null, -1, sessionid);
+  public ProfileTableGen(PayMateDB con, ColorScheme colors, String tablename) {
+    super("", colors, myheaders, null);
     dbp = con.profileDatabase("mainsail", tablename, true);
     this.title = "Profile: MAINSAIL" + (dbp.size() > 1 ? "" : ("."+dbp.itemAt(0).name()));
   }
 
-  public static final Element output(PayMateDB con, ColorScheme colors, String tablename, String sessionid) {
-    return new ProfileTableGen(con, colors, tablename, sessionid);
+  public static final Element output(PayMateDB con, ColorScheme colors, String tablename) {
+    return new ProfileTableGen(con, colors, tablename);
   }
 
   // @EN@ possibly trueenum
@@ -50,7 +50,7 @@ public class ProfileTableGen extends TableGen implements RowEnumeration, TableGe
   private static final int charOctetLengthCol = 9;
   private static final int ordinalPositionCol = 10;
   private static final int tableCatCol        = 11;
-  private static final int tableSchemCol      = 12; // must be the last one, or else change theHeaders constructor.
+  private static final int tableSchemCol      = 12; // must be the last one, or else change theHeaders constructor, or else +++ use an Enumeration!
 
   protected static final HeaderDef[] myheaders = new HeaderDef[tableSchemCol+1]; // cause of this, VoidCol must be last!
   static {
@@ -147,7 +147,7 @@ public class ProfileTableGen extends TableGen implements RowEnumeration, TableGe
         tp = dbp.itemAt(currentTable);
         cp = tp.column(currentField);
         tableSizeCount += cp.size();
-        dataType = new StringElement(DBMacros.javaSqlType(cp.dataType));
+        dataType = new StringElement(cp.type());
         columnSize = new StringElement(""+cp.size());
         decimalDigits = new StringElement(cp.decimalDigits);
         numPrecRadix = new StringElement(cp.numPrecRadix);
@@ -228,7 +228,7 @@ public class ProfileTableGen extends TableGen implements RowEnumeration, TableGe
     Element footerCell = emptyElement;
     switch(col) {
       case columnNameCol: {
-        footerCell = new StringElement((((maxRows < 0) || !hasMore())? "Count:" : "SubCount:") + " " + rowsYet());
+        footerCell = new StringElement("Count: " + rowsYet());
       } break;
       case columnSizeCol: {
         footerCell = (dbp.size() > 1) ? emptyElement : new StringElement("Width: "+tableSizeCount);
@@ -236,10 +236,5 @@ public class ProfileTableGen extends TableGen implements RowEnumeration, TableGe
     }
     return footerCell;
   }
-
-  public void close() {
-    super.close();
-  }
-
 }
 

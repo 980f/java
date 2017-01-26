@@ -4,9 +4,12 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: TextValue.java,v 1.1 2000/11/21 03:03:06 andyh Exp $
+* @version      $Id: TextValue.java,v 1.4 2003/07/27 05:34:58 mattm Exp $
 */
 package net.paymate.data;
+import net.paymate.util.*;
+import net.paymate.lang.Value;
+import net.paymate.lang.ContentType;
 
 public class TextValue extends Value {
   protected String content;
@@ -16,7 +19,7 @@ public class TextValue extends Value {
   }
 
   public String Image(){
-    return content.toString();
+    return String.valueOf(content);
   }
 
   public boolean setto(String image){
@@ -37,4 +40,4 @@ public class TextValue extends Value {
   }
 
 }
-//$Id: TextValue.java,v 1.1 2000/11/21 03:03:06 andyh Exp $
+//$Id: TextValue.java,v 1.4 2003/07/27 05:34:58 mattm Exp $

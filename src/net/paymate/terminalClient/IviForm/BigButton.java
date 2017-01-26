@@ -4,12 +4,11 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: BigButton.java,v 1.4 2001/06/17 00:14:28 andyh Exp $
+* @version      $Id: BigButton.java,v 1.5 2003/12/08 22:45:42 mattm Exp $
 */
 package net.paymate.terminalClient.IviForm;
 
-import java.awt.Point;
-import java.awt.Rectangle;
+import net.paymate.awtx.*;
 
 public class BigButton extends FormItem {
  protected final static String topline="Touch";
@@ -23,7 +22,7 @@ public class BigButton extends FormItem {
  protected Legend legend;
 
  public BigButton(Legend lege, int guid,boolean leftAlign){
-    shape=new Rectangle(lege.x(),lege.y()-1,buttwidth + lege.Width(),butthigh);
+    shape=new XRectangle(lege.x(),lege.y()-1,buttwidth + lege.Width(),butthigh);
     butt=new Button ( //{
       lege.x() - (leftAlign ? 0 : buttwidth -1 ),
       lege.y()-1,
@@ -43,7 +42,7 @@ public class BigButton extends FormItem {
     this(new Legend(x,y,legend),guid);
   }
 
-  public BigButton(Point p, String legend, int guid){
+  public BigButton(XPoint p, String legend, int guid){
     this(p.x,p.y,legend,guid);
   }
 
@@ -52,4 +51,4 @@ public class BigButton extends FormItem {
   }
 
 }
-//$Id: BigButton.java,v 1.4 2001/06/17 00:14:28 andyh Exp $
+//$Id: BigButton.java,v 1.5 2003/12/08 22:45:42 mattm Exp $

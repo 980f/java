@@ -1,48 +1,56 @@
 package net.paymate.ivicm.comm;
-/* $Id: SerialConnection.java,v 1.17 2001/10/30 18:54:42 andyh Exp $ */
+/* $Source: /cvs/src/net/paymate/ivicm/comm/SerialConnection.java,v $ */
 
 import net.paymate.util.*;
-import net.paymate.ivicm.*;
+//import net.paymate.ivicm.*;
+import net.paymate.jpos.data.*;
+import net.paymate.lang.StringX;
 import net.paymate.*;
-
+import net.paymate.lang.ReflectX;
 import java.io.*;
 import java.util.*;
-import javax.comm.*;
-import jpos.*;
 
-public class SerialConnection implements JposConst {
-  static final ErrorLogStream dbg=new ErrorLogStream(SerialConnection.class.getName());
+import net.paymate.serial.*;
 
-  final static String VersionInfo= "$Revision: 1.17 $";
+public class SerialConnection {
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(SerialConnection.class);
+
+  final static String VersionInfo= "$Revision: 1.37 $";
 //this has to be tested with every driver we try to use.
-//when we find an OS based difference we will push this into OS.java
+//when we find an OS based difference we will push this into OS.java:
   final static int WAITFOREVER=0;
 
-  public SerialParameters parms;
-
+  public Parameters parms;
+  public Port port;
   public OutputStream os;
   public InputStream is;
 
-  protected CommPortIdentifier portId;
-  protected SerialPort spPort;
-
-  public SerialPort Port(){
-    return spPort;
-  }
-
   protected String myName;
+  private boolean amOpen;
 
-  boolean amOpen;
-
-  protected JposException Failure(String comment) {
-    return new JposException(JPOS_E_FAILURE, comment);
+  protected SerialConnection setStreams(OutputStream os, InputStream is){
+    this.os= os;
+    this.is= is;
+    return this;
   }
 
-  protected JposException Failure(Exception ex) {
-    return new JposException(JPOS_E_FAILURE,"Serial Connection Fault" ,ex);
+  public void forceTimeout(int milliwait){
+    //overload
   }
 
-  public SerialConnection( String s, SerialParameters serialparameters) {
+  protected Problem Failure(String comment) {
+    return Problem.Noted("In SerialConnection:"+comment);
+  }
+
+  protected Problem Failure(Exception ex) {
+    return new StifledException("Serial Connection Fault",ex);
+  }
+
+  protected Problem Failure(String comment,Exception ex) {
+    return new StifledException(comment ,ex);
+  }
+
+  protected void configure( String s, Parameters serialparameters) {
     myName = s;
     parms = serialparameters;
     amOpen = false;
@@ -53,70 +61,34 @@ public class SerialConnection implements JposConst {
     return parms.CharTime()*(double)numchars;
   }
 
-  public JposException setConnectionParameters() throws JposException {
-    try {
-      spPort.setSerialPortParams(parms.getBaudRate(), parms.getDatabits(), parms.getStopbits(), parms.getParity());
-      spPort.setFlowControlMode(parms.flowControl);//was using unknown default
-      spPort.setOutputBufferSize(parms.obufsize);
-    }
-    catch(UnsupportedCommOperationException uce) {
-      dbg.ERROR("Bad serial params:"+parms.toSpam());
-      return Failure(uce);
-    }
-    return null;
+/**
+ * actually set the hardware to the stored parameter values
+ */
+  public Problem setConnectionParameters()  {
+    dbg.ERROR("SetConnection:"+parms.toSpam());
+    return Failure("abstract comm class");
   }
 
-  final static String  rxtxlistkey="gnu.io.rxtx.SerialPorts";
-
-  public synchronized JposException openConnection(SerialPortEventListener receiver) {
+//  public boolean assertRts(boolean on){
+//    return false; //overload!
+//  }
+  /**
+   * @return null if successful, else object with notes in it.
+   */
+  public synchronized boolean openConnection() {
     try {
-      if(!amOpen){
-        portId = CommPortIdentifier.getPortIdentifier(parms.getPortName());
-        spPort = (SerialPort)portId.open("Paymate/" +parms.getPortName(), 0);//better be available!
-
-        setConnectionParameters();
-
-        os = spPort.getOutputStream();
-        is = spPort.getInputStream();
-
-        spPort.addEventListener(receiver);
-        spPort.notifyOnDataAvailable(true);
-        spPort.enableReceiveTimeout(WAITFOREVER);
-
-        spPort.setRTS(true);//energize just in case it is needed
-        spPort.setDTR(true);//ditto, although we will leave it set.
-
-        amOpen = true;
-      }
-      return null;
+      return !amOpen;
     }
-    catch(NoSuchPortException nosuchportexception){
-      dbg.ERROR("No such port:"+parms.toSpam());
-      dbg.ERROR(rxtxlistkey+":"+Main.props().getString(rxtxlistkey));
-      return Failure(nosuchportexception);
-    }
-    catch(PortInUseException piu)  {
-      dbg.ERROR("port in use:"+piu.currentOwner +" our settings"+parms.toSpam());
-      return Failure(piu);
-    }
-    catch(JposException jposexception){
-      spPort.close();
-      return jposexception;
-    }
-    catch(IOException _ex){
-      spPort.close();
-      return Failure("Error opening i/o streams");
-    }
-    catch(TooManyListenersException _ex){
-      spPort.close();
-      return Failure("Too many listners for port");
-    }
-    catch(UnsupportedCommOperationException _ex){
-      return Failure("Can not set port timeout");//presumably because of value
+    finally {
+      amOpen = true;
     }
   }
-//////////////////////
-// thread priority management
+
+  public synchronized Problem openConnection(Receiver baseless) {
+    return baseless!=null? Failure("Type not supported:"+ReflectX.shortClassName(baseless)): Failure("Null receiver");
+  }
+  //////////////////////
+  // thread priority management
   protected boolean boosted=false; //have boosted my serial thread's priority
   public void boostCheck(){
     if(!boosted) {
@@ -126,12 +98,14 @@ public class SerialConnection implements JposConst {
     }
   }
 
-  public synchronized void closeConnection() {
-    if(amOpen){
-      if(spPort != null){
-        spPort.close();
-        amOpen = false;
-      }
+/**
+ * @return true if transitioning to closed
+ */
+  public synchronized boolean closeConnection() {
+    try {
+      return amOpen;
+    } finally {
+      amOpen=false;
     }
   }
 
@@ -148,7 +122,7 @@ public class SerialConnection implements JposConst {
   }
 
   public static final boolean canWrite(SerialConnection sc){
-    return sc!=null && sc.isOpen() && sc.os!=null;
+    return Connected(sc) && sc.os!=null;
   }
 
   /**
@@ -163,31 +137,111 @@ public class SerialConnection implements JposConst {
     }
   }
 
+  public Exception lazyWrite(byte [] buffer){
+    return lazyWrite(buffer,0,buffer.length);
+  }
+
+/**
+ * use for diagnostic reads
+ */
   public int ezRead(){
     try {
       return is.read();
     }
     catch (Exception ex) {
-      return -1; //will add error codes later. Serial ports just don't do this.
+      return Receiver.EndOfInput;//. Serial ports just don't do this.
     }
   }
 
+/**
+ * @return bytes available on input stream
+ */
   public int available(){
     try {
       return is.available();
     }
     catch (Exception ex) {
-      return 0; //will add error codes later. Serial ports just don't do this.
+      return 0; //may add error codes later. Serial ports just don't do this.
     }
   }
 
+  /**
+   * for when the underlying stream's flush() doesn't please you.
+   */
   public int reallyFlushInput(int limit){
     int flushed=0;
-    while(available()>0&&++flushed<limit){
+    while(available()>0&&++flushed<limit){//recheck available() in case input is still coming in.
       ezRead();
     }
     return flushed;
   }
 
+  /**
+   * records parameters for subsequent open() commands.
+   * allows for reopen() to be called by someone who doesn't know the settings.
+   */
+  public static SerialConnection makeConnection(Parameters given){
+    SerialConnection sc= new StreamConnection();
+    if(sc!=null){
+      sc.configure("paymate_"+given.getPortName(),given);
+    }
+    return sc;
+  }
+
+/**
+ * construct one from transport and critical default
+ */
+  public static final SerialConnection makeConnection(EasyCursor ezp,int defbaud){
+    dbg.Enter("MakeConnection");
+    try {
+      SerialConnection sc= new StreamConnection();
+      if(sc!=null){
+        String portname=ezp.getString(Parameters.nameKey);
+        if(StringX.NonTrivial(portname)){
+          ezp.Assert(Parameters.baudRateKey,defbaud);
+          sc.configure("paymate_"+portname,new Parameters(portname,ezp));
+          dbg.VERBOSE("Made:"+sc.toSpam());
+          return sc;
+        } else {
+          dbg.VERBOSE("hopelessly bad portName:"+portname);
+          return null;
+        }
+      } else {
+        dbg.ERROR("Couldn't make connection:"+ezp.asParagraph(OS.EOL));
+        return null;
+      }
+    }
+    catch(Exception ignored){
+      dbg.Caught("Caught while makingConnection:",ignored);
+      return null;
+    } finally {
+      dbg.Exit();
+    }
+  }
+
+  public String toSpam(){
+    return ReflectX.shortClassName(this)+":"+toString()+":"+parms.toSpam();
+  }
+
+  //////////////////////////
+  //
+  private static void testsetup(ErrorLogStream dbg){
+    dbg=ErrorLogStream.NonNull(dbg);//protect ourselves
+    dbg.setLevel(LogSwitch.VERBOSE);
+    PortProvider.Config(Main.props());
+  }
+
+  public static SerialConnection fortesters(TextListIterator args,int defbaud,ErrorLogStream dbg){
+    testsetup(dbg);
+    dbg.VERBOSE("mfaking easy properties");
+    EasyCursor ezc=new EasyCursor();
+    ezc.setBoolean("present",true);
+    ezc.setString(Parameters.nameKey,StringX.OnTrivial(args.next(),"/dev/ttyS1"));//serial 2
+    ezc.setInt(Parameters.baudRateKey,StringX.OnTrivial(args.next(),defbaud));
+    ezc.setString(Parameters.protocolKey, StringX.OnTrivial(args.next(),"N81"));
+    dbg.VERBOSE("cfg:"+ezc.asParagraph());
+    return SerialConnection.makeConnection(ezc,defbaud);
+  }
+
 }
-//$Id: SerialConnection.java,v 1.17 2001/10/30 18:54:42 andyh Exp $
+//$Id: SerialConnection.java,v 1.37 2003/07/27 05:35:03 mattm Exp $

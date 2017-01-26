@@ -4,12 +4,21 @@
 * Copyright:    2000, PayMate.net<p>
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: Action.java,v 1.21 2001/11/17 00:38:33 andyh Exp $
+* @version      $Id: Action.java,v 1.36 2003/12/10 02:16:49 mattm Exp $
 */
 package net.paymate.connection;
-import net.paymate.ISO8583.data.TransactionID;
 import net.paymate.util.timer.StopWatch;
 import net.paymate.util.*;
+import net.paymate.data.*; // id's
+import net.paymate.lang.StringX;
+import net.paymate.lang.Fstring;
+
+/*
+Action mutexing:
+add a boolean on Action that marks it as "done".
+In all methods that can modify the action check and return immediately if already 'done'.
+This requires removing all public members.
+*/
 
 public class Action {
   static int counter=0;
@@ -57,7 +66,7 @@ public class Action {
     return action!=null&& action.request!=null&& !action.request.Type().is(ActionType.unknown);
   }
 
-  public ConnectionCallback callback(){
+  private ConnectionCallback callback(){
     return request.callback;
   }
 
@@ -66,22 +75,24 @@ public class Action {
   }
 
   public void doCallback(){
-    ErrorLogStream.Debug.ERROR("do a callback");
+    doCallback(ErrorLogStream.Null());
+  }
+
+  public void doCallback(ErrorLogStream dbg){
+    dbg.WARNING("Action.doCallback: type="+TypeInfo()); // +++ @@@ %%% bug leak
     if(request!=null){
       if(request.callback!=null){
         request.callback.ActionReplyReceipt(this);
+      } else {
+        dbg.ERROR("null callback on "+request.toEasyCursorString());
       }
-      else {
-        ErrorLogStream.Debug.ERROR("null callback on "+request.toEasyCursorString());
-      }
-    }
-    else {
-      ErrorLogStream.Debug.ERROR("no callback, null request");
+    } else {
+      dbg.ERROR("no callback, null request");
     }
   }
 
   public String TypeInfo(){
-    return request!=null?request.TypeInfo():"NotDefined";
+    return request!=null?request.TypeInfo():"NoRequest!";
   }
 
   public ActionType Type(){
@@ -92,6 +103,14 @@ public class Action {
     return NonTrivial(act)&&act.request.isFinancial();
   }
 
+  protected final boolean isConcordant(){
+    return request.Type().equals(reply.Type());
+  }
+
+  public static final boolean isConcordant(Action act){
+    return isComplete(act) && act.isConcordant();
+  }
+
   public static final boolean NonTrivial(Action act){
     return act!=null&&act.request!=null;
   }
@@ -100,11 +119,14 @@ public class Action {
     return NonTrivial(act)&&act.reply!=null;
   }
 
-  public static final TransactionID tidOf(Action act){
-    if(act!=null && act.reply!=null && act.reply instanceof FinancialReply){
-      return ((FinancialReply)act.reply).tid;
+  /**
+   * @return a financial action's reference.
+   */
+  public static final TxnReference trefOf(Action act){
+    if(act!=null && act.reply!=null && act.reply instanceof PaymentReply){
+      return ((PaymentReply)act.reply).tref();
     } else {
-      return TransactionID.Zero();
+      return TxnReference.New();
     }
   }
 
@@ -130,24 +152,19 @@ public class Action {
     ;
   }
 
-  public String historyRec() {
+  public String historyRec() {//+_+ ancient, purge?
     String stan = ActionReply.Stan(reply);
-    //((reply != null) && (reply instanceof FinancialReply)) ? ((FinancialReply)reply).tid.stan : "";
     String type = ActionRequest.OperationTypeFlag(request);
-    //((reply != null) && (request instanceof FinancialRequest)) ? ((FinancialRequest)request).sale.type.shortOp() : "";
     return
     Fstring.righted(""+sequence,5,' ')+ ' ' +
-    Fstring.righted(stan,5,Safe.NonTrivial(stan)?'0':' ') + ' ' +
+    Fstring.righted(stan,5,' ') + ' ' +
     Fstring.fill((request == null) ? "" : type ,2,' ') +
     Fstring.fill((request == null) ? "" : request.Type().Image() ,14,' ') +
-    Fstring.fill((request == null) ? "" : Safe.restOfString(Safe.timeStamp(response.startedAt()), 4),16,' ') +
+    Fstring.fill((request == null) ? "" : StringX.restOfString(DateX.timeStamp(response.startedAt()), 4),16,' ') +
     Fstring.fill((reply == null) ? "" : reply.Type().Image(),14,' ') +
-    //    Fstring.fill((reply == null) ? "" : Safe.restOfString(Safe.timeStamp(response.receivedStamp), 4),16,' ') +
-    Fstring.righted((reply == null) ? "" : Safe.millisToSecsPlus(response.millis()),7 ,' ') + ' ' +
-    Fstring.fill((reply == null) ? "" : reply.status.Image(),19,' ') +
-    Fstring.fill(((reply == null) || (reply.Response == null)) ? "" : reply.Response.completeDescription("-"),18,' ')
-    ;
+    Fstring.righted((reply == null) ? "" : DateX.millisToSecsPlus(response.millis()),7 ,' ') + ' ' +
+    Fstring.fill((reply == null) ? "" : reply.status.Image(),19,' ') ;
   }
 
 }
-//$Id: Action.java,v 1.21 2001/11/17 00:38:33 andyh Exp $
+//$Id: Action.java,v 1.36 2003/12/10 02:16:49 mattm Exp $

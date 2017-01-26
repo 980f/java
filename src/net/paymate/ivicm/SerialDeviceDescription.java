@@ -8,14 +8,14 @@ import net.paymate.jpos.DeviceDescription;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 
-import net.paymate.ivicm.comm.*;
+import net.paymate.serial.*;
 import net.paymate.util.*;
 
 public class SerialDeviceDescription extends DeviceDescription implements isEasy {
-  SerialParameters serialParams;
+  Parameters serialParams;
 
   public SerialDeviceDescription(){}//req'd by base class
 
@@ -33,7 +33,7 @@ public class SerialDeviceDescription extends DeviceDescription implements isEasy
   public void load(EasyCursor ezp){
     super.load(ezp);
     try {
-      serialParams=new SerialParameters(name, ezp.push("portInfo"));
+      serialParams=new Parameters(name, ezp.push("portInfo"));
     }
     finally {
       ezp.pop();
@@ -41,4 +41,4 @@ public class SerialDeviceDescription extends DeviceDescription implements isEasy
   }
 
 }
-//$Id: SerialDeviceDescription.java,v 1.1 2001/07/12 17:05:31 andyh Exp $
+//$Id: SerialDeviceDescription.java,v 1.2 2002/02/11 04:45:23 andyh Exp $

@@ -1,14 +1,16 @@
+package net.paymate.util.timer;
+
 /**
-* Title:        TimeBomb
+* Title:        $Source: /cvs/src/net/paymate/util/timer/TimeBomb.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: TimeBomb.java,v 1.1 2000/08/06 03:54:17 andyh Exp $
+* @version      $Id: TimeBomb.java,v 1.2 2002/07/26 23:39:51 andyh Exp $
 */
-package net.paymate.util.timer;
+
 //import  net.paymate. ;
 public interface TimeBomb {
   public void onTimeout();
 }
-//$Id: TimeBomb.java,v 1.1 2000/08/06 03:54:17 andyh Exp $
+//$Id: TimeBomb.java,v 1.2 2002/07/26 23:39:51 andyh Exp $

@@ -6,7 +6,7 @@ package net.paymate.web.table.query;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.10 $
  */
 
 import  net.paymate.web.table.*;
@@ -20,7 +20,7 @@ import  java.util.*;
 import  net.paymate.servlet.*;
 
 public class TimesFormat extends TableGen implements TableGenRow, RowEnumeration {
-  private static final ErrorLogStream dbg = new ErrorLogStream(TimesFormat.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(TimesFormat.class, ErrorLogStream.WARNING);
   // not really enough for an enumeration
   private static final int ZONECOL = 0;
   private static final int TIMECOL = 1;
@@ -33,9 +33,9 @@ public class TimesFormat extends TableGen implements TableGenRow, RowEnumeration
   Date date = null;
 
   public TimesFormat(ColorScheme colors, String title, TimeZone tz) {
-    super(title, colors, headers, "", -1, "");
+    super(title, colors, headers, "");
     this.times = tz;
-    date = Safe.Now();
+    date = DateX.Now();
   }
 
   protected RowEnumeration rows() {
@@ -77,7 +77,7 @@ public class TimesFormat extends TableGen implements TableGenRow, RowEnumeration
             str = "Your terminal [" + times.getDisplayName() + "]";
           } break;
           case UPTIMEROW: {
-            str = "In use Since";
+            str = "Up Since";
           } break;
           case TTLTIMEROW: {
             str = "Total uptime";
@@ -99,10 +99,10 @@ public class TimesFormat extends TableGen implements TableGenRow, RowEnumeration
             str = LocalTimeFormat.New(times, format).format(date);
           } break;
           case UPTIMEROW: {
-            str = LocalTimeFormat.New(times, format).format(new Date(UserSession.uptime.startedAt()));
+            str = LocalTimeFormat.New(times, format).format(new Date(Service.system.upsince()));
           } break;
           case TTLTIMEROW: {
-            str = Safe.millisToTime(UserSession.uptime.millis());
+            str = Service.system.svcAvgTime();
           } break;
         }
       } break;
@@ -121,4 +121,4 @@ public class TimesFormat extends TableGen implements TableGenRow, RowEnumeration
   }
 
 }
-//$Id: TimesFormat.java,v 1.4 2001/10/02 17:06:42 mattm Exp $
+//$Id: TimesFormat.java,v 1.10 2003/10/30 21:05:19 mattm Exp $

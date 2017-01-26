@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: ArrayTableGen.java,v 1.8 2001/10/15 22:41:38 andyh Exp $
+ * @version      $Id: ArrayTableGen.java,v 1.13 2004/03/13 01:29:32 mattm Exp $
  */
 
 package net.paymate.web.table;
@@ -14,21 +14,21 @@ import  org.apache.ecs.*;
 
 public class ArrayTableGen extends TableGen {
   // logging facilities
-  private static final ErrorLogStream dbg=new ErrorLogStream(ArrayTableGen.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(ArrayTableGen.class);
 
-  protected String      data [][] = null; // data[row][col]
+  protected String      data [/*row*/][/*col*/] = null;
 
-  public ArrayTableGen(String title, ColorScheme colors, String data[][], HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    super(title, colors, headers, absoluteURL, howMany, sessionid);
+  public ArrayTableGen(String title, ColorScheme colors, String data[][], HeaderDef headers[], String absoluteURL) {
+    super(title, colors, headers, absoluteURL);
     this.data    = data;
   }
 
-  public static final Element output(String title, ColorScheme colors, String data[][], HeaderDef headers[], String sessionid) {
-    return output(title, colors, data, headers, null, -1, sessionid);
+  public static final Element output(String title, ColorScheme colors, String data[][], HeaderDef headers[]) {
+    return output(title, colors, data, headers, null);
   }
 
-  public static final Element output(String title, ColorScheme colors, String data[][], HeaderDef headers[], String absoluteURL, int howMany, String sessionid) {
-    return new ArrayTableGen(title, colors, data, headers, absoluteURL, howMany, sessionid);
+  public static final Element output(String title, ColorScheme colors, String data[][], HeaderDef headers[], String absoluteURL) {
+    return new ArrayTableGen(title, colors, data, headers, absoluteURL);
   }
 
   public RowEnumeration rows() {
@@ -46,9 +46,6 @@ public class ArrayTableGen extends TableGen {
     return headers;
   }
 
-  public void close() {
-    super.close();
-  }
 }
 
 class ArrayRowEnumeration implements RowEnumeration {

@@ -6,13 +6,13 @@ package net.paymate.connection;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: StoodinReply.java,v 1.5 2001/07/06 18:56:38 andyh Exp $
+ * @version $Id: StoodinReply.java,v 1.7 2002/07/09 17:51:22 mattm Exp $
  */
 
 import  net.paymate.util.*;
 
 public class StoodinReply extends AdminReply implements isEasy {
-  private static final ErrorLogStream dbg = new ErrorLogStream(StoodinReply.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(StoodinReply.class);
 
   public ActionType Type(){
     return new ActionType(ActionType.stoodin);
@@ -44,4 +44,4 @@ public class StoodinReply extends AdminReply implements isEasy {
     recordID = ezp.getString(StoodinRequest.recordIDKey);
   }
 }
-//$Id: StoodinReply.java,v 1.5 2001/07/06 18:56:38 andyh Exp $
+//$Id: StoodinReply.java,v 1.7 2002/07/09 17:51:22 mattm Exp $

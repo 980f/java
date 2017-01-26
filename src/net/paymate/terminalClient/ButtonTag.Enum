@@ -1,4 +1,4 @@
-/* $Id: ButtonTag.Enum,v 1.7 2000/11/17 06:50:53 andyh Exp $ */
+/* $Id: ButtonTag.Enum,v 1.9 2002/01/31 02:09:44 andyh Exp $ */
 /*
 by making ButtonTags enumerate all of the buttons across all of the forms
 the button event responder does NOT need to know form context, it is implied
@@ -14,8 +14,9 @@ CustomerCancels   //what it says
 DoCheck           //show store info for check writers.
 DoCredit  //to cancel check screen
 DoDebit   //to cancel check screen
-DoCash    //to cancel check or credit tranny
+DoCash    //to cancel check or credit tranny 
+GetBalance	//to get balance on GiftCardCard, intended for 'wait???cashier' screen
 DriversLicense //for ID
 OtherCard      //for ID
 CouponDesired     //print coupon associated with advert
-//$Id: ButtonTag.Enum,v 1.7 2000/11/17 06:50:53 andyh Exp $
+//$Id: ButtonTag.Enum,v 1.9 2002/01/31 02:09:44 andyh Exp $

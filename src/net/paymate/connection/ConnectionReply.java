@@ -6,23 +6,22 @@ package net.paymate.connection;
 * Copyright:    Copyright (c) 2001
 * Company:      PayMate.net
 * @author $Author: mattm $
-* @version $Id: ConnectionReply.java,v 1.21 2001/11/16 01:34:28 mattm Exp $
+* @version $Id: ConnectionReply.java,v 1.31 2003/10/25 20:34:18 mattm Exp $
 * @see ConnectionRequest
 */
 
 import net.paymate.util.*;
 import java.util.*;
-import net.paymate.ISO8583.data.*;
-import net.paymate.terminalClient.ReceiptFormat;
-//import net.paymate.ivicm.Configure;
+import net.paymate.data.*; // Terminalid
+import net.paymate.lang.StringX;
 
 public class ConnectionReply extends AdminReply implements isEasy {
-  private static final ErrorLogStream dbg = new ErrorLogStream(ConnectionReply.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(ConnectionReply.class);
 
   public ActionType Type(){
     return new ActionType(ActionType.connection);
   }
-  final static String appidKey="appleid";
+  final static String appidKey=ActionRequest.applianceKey;
   public String applianceID;//very convenient redundancy
   /**
   * storewide information
@@ -38,9 +37,6 @@ public class ConnectionReply extends AdminReply implements isEasy {
 
   public ConnectionReply add(TerminalInfo ti){
     dbg.VERBOSE("adding terminalinfo:"+ti.toSpam());
-//    if(ti.id() == 0){ // --- legacy
-//      ti.setId(applianceID);
-//    }
     terminalArray.add(ti);
     return this;
   }
@@ -66,9 +62,10 @@ public class ConnectionReply extends AdminReply implements isEasy {
     try{
       super.save(ezc);
       ezc.setString(appidKey,applianceID);
-      cfg.saveas(cfgKey,ezc);
+      ezc.setBlock(cfg,cfgKey);
       StringBuffer namelist=new StringBuffer(numTerminals()*18);//WAG
       dbg.ERROR("num terminals:"+numTerminals());
+//use hashtable and then saveMap
       for(int i=numTerminals();i-->0;){
         TerminalInfo ti= terminal(i);
         if(ti!=null){
@@ -78,11 +75,11 @@ public class ConnectionReply extends AdminReply implements isEasy {
             namelist.append(" ");
           }
           namelist.append(name);
-          ti.saveas(name,ezc);
+          ezc.setBlock(ti,name);
         }
       }
-      dbg.VERBOSE("namelist:"+namelist.toString());
-      ezc.setString(termlistKey,namelist.toString());
+      dbg.VERBOSE("namelist:"+namelist);
+      ezc.setString(termlistKey,String.valueOf(namelist));
     }
     finally {
       dbg.Exit();
@@ -94,25 +91,20 @@ public class ConnectionReply extends AdminReply implements isEasy {
     try {
       super.load(ezc);
       applianceID=ezc.getString(appidKey);
-      cfg.loadfrom(cfgKey,ezc);
-
+      ezc.getBlock(cfg,cfgKey);
       TextList namelist=new TextList();
       namelist.wordsOfSentence(ezc.getString(termlistKey));
       dbg.VERBOSE("namelist:"+namelist.asParagraph(" "));
       for(int i=namelist.size();i-->0;){
         String name=namelist.itemAt(i);
         dbg.VERBOSE("name["+i+"] :"+name);
-
-        TerminalInfo ti=new TerminalInfo(Safe.parseInt(name));
+        TerminalInfo ti=new TerminalInfo(new Terminalid(name));
         ti.si=cfg.si;//legacy data path
-        ezc.push(name);// {
-          ti.load(ezc);
-          dbg.VERBOSE("loaded:"+ti.toSpam());
-        ezc.pop();  //}
+        ezc.getBlock(ti,name);
+        dbg.VERBOSE("loaded:"+ti.toSpam());
         add(ti);
       }
-    }
-    finally {
+    } finally {
       dbg.Exit();
     }
   }
@@ -143,8 +135,8 @@ public class ConnectionReply extends AdminReply implements isEasy {
     }
     //these seem like they should be checked first, but efficiency is irrelevant here.
     //dropped checking cfg when change to always update it was made.
-    return Safe.equalStrings(applianceID,newone.applianceID);//&& cfg.equals(newone.cfg);
+    return StringX.equalStrings(applianceID,newone.applianceID);//&& cfg.equals(newone.cfg);
   }
 
 }
-//$Id: ConnectionReply.java,v 1.21 2001/11/16 01:34:28 mattm Exp $
+//$Id: ConnectionReply.java,v 1.31 2003/10/25 20:34:18 mattm Exp $

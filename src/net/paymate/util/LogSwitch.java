@@ -1,24 +1,28 @@
 package net.paymate.util;
 
 /**
-* Title:        null<p>
-* Description:  null<p>
-* Copyright:    null<p>
+* Title:        $Source: /cvs/src/net/paymate/util/LogSwitch.java,v $<p>
+* Description:  control component for debug message flow<p>
+* Copyright:    2000..2003<p>
 * Company:      PayMate.net<p>
 * @author PayMate.net
-* @version $Id: LogSwitch.java,v 1.25 2001/10/27 07:17:28 mattm Exp $
+* @version $Id: LogSwitch.java,v 1.46 2003/07/27 05:35:22 mattm Exp $
+* @todo: create logswitches from logcontrol.properties and drop checkOverride().
 */
 
 import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Collections;
-import net.paymate.util.*;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ReflectX;
+import net.paymate.lang.TrueEnum;
+
 /**
 * comparable is just for sorting for user displays.
 */
 public class LogSwitch extends LogLevelEnum implements Comparable {
+
   protected String guiName;
-  // +++ protect :: -->
   protected static int DEFAULT_LEVEL = LogLevelEnum.VERBOSE;//set for server, which has a harder time configuring than the client
 
   public final static LogLevelEnum VERBOSE= new LogLevelEnum(LogLevelEnum.VERBOSE);
@@ -26,45 +30,43 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
   public final static LogLevelEnum ERROR= new LogLevelEnum(LogLevelEnum.ERROR);
   public final static LogLevelEnum OFF= new LogLevelEnum(LogLevelEnum.OFF);
 
-  public static EasyCursor preloads=null;//+_+ PROTECT
-
-  ///////////////////////////////////
-  // registry
-  protected static Vector registry ;//separate declaration and the following
-  //static initializer were needed to make the bootup not loop in circles.
-  // +++ try a static final with no static block:
-  // protected static final Vector registry = new Vector(100, 10);
-  static {
-    registry= new Vector(100, 10);//100 debug objects, add in groups of 10
-  }
-
   private static final char [] lvlLtr = {'-','/','!'};
   public static final char letter(int msgLevel) {
     return (((msgLevel > -1) && (msgLevel < lvlLtr.length)) ? lvlLtr[msgLevel] : ' ');
   }
 
-  /**
-   *   NOTE: there is a problem with this!
-   *   Finalize will only get called when the program exits,
-   *   as keeping the reference in the list causes the object to never get finalized otherwise!
-   *  Who Cares? this function is a formality that could be deleted.
-   */
-  protected void finalize() {//of an individual switch
-    remove();
-  }
-
-  public void remove() {
-    registry.remove(this);
-  }
-
-  void register(){
-    if(registry != null){//omits class preload instance
-      registry.add(this); // sort +++ !!!
+  private static boolean debugme=false;//have to recompile to debug
+  private static void debug(String msg){
+    if(debugme){
+      System.out.println(msg);
     }
   }
 
-  protected static final Vector All() {
-    return registry;
+  void register(){
+    if(LogSwitchRegistry.registry == null) {
+      debug("LOGSWITCH REGISTRY IS NULL!!!");
+    }
+    synchronized (LogSwitchRegistry.registry) {//just to get size() to relate to us adding one.
+      debug("registering " + Name());
+      LogSwitchRegistry.registry.add(this); // sort +++ !!!
+      debug("Registry size: " + LogSwitchRegistry.registry.size());
+    }
+  }
+
+  private static final Vector All() {
+    return LogSwitchRegistry.registry;
+  }
+
+  public static String shortName(Class claz,String suffix){
+    if(StringX.NonTrivial(suffix)){
+      return ReflectX.shortClassName(claz)+"."+suffix;
+    } else {
+      return ReflectX.shortClassName(claz);
+    }
+  }
+
+  public static String shortName(Class claz){
+    return shortName(claz, null);
   }
 
   /**
@@ -75,29 +77,67 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
    *
    * +++ Create a separate LogSwitchList class that has an itemAt() function
    * that this class and other classes can use! +++
-   *
    */
   public static final Vector Sorted() {
-    Vector debuggers=new Vector(LogSwitch.All().size(),10);
-    debuggers.addAll(LogSwitch.All());
-    Collections.sort(debuggers);  // sort them by name
-    return debuggers;
+    Vector copy;
+    synchronized (LogSwitchRegistry.registry) {
+      copy=new Vector(LogSwitchRegistry.registry.size());
+      copy.addAll(LogSwitchRegistry.registry);
+    }
+    Collections.sort(copy);  // sort them by name
+    return copy;
   }
 
-//  public static final LogSwitch item(int num) {
-//    return (LogSwitch) All().elementAt(num);
-//  }
-
-  public static final LogSwitch find(String name) {
-    Vector debuggers = Sorted(); // get a second list copy to prevent exceptions
-    for(int i=0;i<debuggers.size();i++){
-      LogSwitch test = (LogSwitch)debuggers.elementAt(i);
-      if(test.Name().equals(name)) {
-        return test;
+  private static final LogSwitch find(String name) {
+    synchronized (LogSwitchRegistry.registry){
+      for(int i=LogSwitchRegistry.registry.size();i-->0;){
+        LogSwitch test = (LogSwitch)LogSwitchRegistry.registry.elementAt(i);
+        if(test.Name().equals(name)) {
+          return test;
+        }
       }
     }
-    return null;
+    return null;//doesn't exist, don't make one here!
   }
+
+  private static final LogSwitch find(Class claz,String suffix) {
+    return find(shortName(claz,suffix));
+  }
+
+  private static final LogSwitch find(Class claz) {
+    return find(shortName(claz));
+  }
+
+  public static boolean exists(String clasname){
+    return find(clasname)!=null;
+  }
+
+  /**
+   * find or create a new LogSwitch
+   */
+  public static final LogSwitch getFor(String guiname,int oncreate) {
+    synchronized (LogSwitchRegistry.registry) {
+      LogSwitch forclass=find(guiname);
+      if(forclass==null){
+        forclass=new LogSwitch(guiname);
+        forclass.setto(oncreate);
+      }
+      return forclass;
+    }
+  }
+
+  public static final LogSwitch getFor(String guiname) {
+    return getFor(guiname,DEFAULT_LEVEL);
+  }
+
+  public static final LogSwitch getFor(Class claz,String suffix) {
+    return getFor(shortName(claz,suffix));
+  }
+
+  public static final LogSwitch getFor(Class claz) {
+    return getFor(claz,null);
+  }
+
 
   // for sorting for display purposes
   public int compareTo(Object o) {
@@ -107,6 +147,7 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
     LogSwitch that = (LogSwitch)o;
     return Name().compareTo(that.Name());
   }
+
 
   public static final EasyCursor asProperties(){
     EasyCursor blob=new EasyCursor(/* presize to di*/);
@@ -119,61 +160,32 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
   }
 
   public String toSpam(){
-    return Name() + ": " + Level().Image();
+    return Name() + ": " + Image();
   }
 
-  public static final void dump(int level) {
-    try {
-      Vector debuggers = Sorted(); // get a second list copy to prevent exceptions
-      for(int i=0;i<debuggers.size();i++){
-        LogSwitch lt = (LogSwitch)debuggers.elementAt(i);
-        PrintFork.Println(lt.toSpam(),level);
-      }
-    } catch (Exception e) {
-      // +++ whatever
-    }
-  }
-
-
-  ////////////////////////////////
-  protected void checkOverride(){
-    if(preloads!=null && preloads.containsKey(Name())){
-      setto(preloads.getString(Name()));
-    }
-  }
-
-  /**intended for use just after preloads is initialized
-  * and only that one time
-  * MAJOR SIDE EFFECT: prelaods classes that appear in the logcontrol.properties
-  */
-  public static final void apply(EasyCursor ezp){
-    preloads=ezp;
-    apply();
-    // now that we got the ones that already exist, try to get the others loaded and set:
-    // the (truncated) classname should be the name of the property
-    try {
-      for(Enumeration enump = ezp.sorted(); enump.hasMoreElements(); ) {
-        String name = "net.paymate." + (String)enump.nextElement();
-        Safe.preloadClass(name); // ignore errors; we are just trying.  if we don't succeed, then oh, well.
+  public static final void apply(EasyCursor preloads){
+    debug("LogSwitch.apply(EasyCursor) begins!");
+    debug("Levels:"+listLevels());
+    if(preloads!=null){
+      debug("preloads:"+preloads.asParagraph(OS.EOL));
+      String name;
+      LogLevelEnum value=new LogLevelEnum();
+      LogSwitch ls;
+      TextList names=preloads.branchKeys();
+      for(int i=names.size();i-->0;){
+        name=names.itemAt(i);
+        value.setto(preloads.getString(name));//#all constructors make copy of value.
+        ls=find(name);
+        if(ls!=null){//if it exists change its setting
+          ls.setto(value.Value());
+        } else {//create a new one
+          ls=new LogSwitch(name,value);
+        }
       }
     }
-    catch(NoClassDefFoundError ignore){
-      //global catch didn't work! above is a throwable!
-    }
-    catch (Exception e) {
-      // +++ ???
-    }
-    // again to set values for the newly loaded classes
-    apply();
+    debug("Levels:"+listLevels());
+    debug("LogSwitch.apply(EasyCursor) ends!");
   }
-
-  private static final void apply() {
-    Vector debuggers = All();// get a second list copy to prevent exceptions//---what possible exceptions???
-    for(int i=debuggers.size();i-->0;){
-      ((LogSwitch)debuggers.elementAt(i)).checkOverride();
-    }
-  }
-
 
   public static final boolean setOne(String name, LogLevelEnum lle) {
     LogSwitch ls = find(name);
@@ -185,22 +197,24 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
     }
   }
 
-  public static final void SetAll(String lvl){
-    Vector debuggers = All(); // get a second list copy to prevent exceptions
-    //---what possible exceptions??? add/remove while using can cause ArrayOutofBounds Exceptions
-    for(int i=debuggers.size();i-->0;){
-      ((LogSwitch)debuggers.elementAt(i)).setto(lvl);
+  // move into registry +++
+  private static void SetAll(int lle){
+    DEFAULT_LEVEL=lle;  //all existing, and all created hereafter!
+    synchronized (LogSwitchRegistry.registry) {
+      for(int i=LogSwitchRegistry.registry.size();i-->0;){
+        ((LogSwitch)LogSwitchRegistry.registry.elementAt(i)).setto(lle);
+      }
     }
   }
 
   public static final void SetAll(LogLevelEnum lle){
-    DEFAULT_LEVEL=lle.Value();
-    Vector debuggers = All(); // get a second list copy to prevent exceptions
-    //---what possible exceptions??? add/remove while using can cause ArrayOutofBounds Exceptions
-    for(int i=debuggers.size();i-->0;){
-      ((LogSwitch)debuggers.elementAt(i)).setto(DEFAULT_LEVEL);
-    }
+    SetAll(lle.Value());
   }
+
+  public static final void SetAll(String lvl){
+    SetAll(new LogLevelEnum(lvl));
+  }
+
 
   public static final TextList listLevels() {
     Vector debuggers = Sorted();
@@ -214,26 +228,22 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
   }
 
   //////////////////////////////////////////////////////
-  public LogSwitch(String lookup,int spam) {
+  private LogSwitch(String lookup,LogLevelEnum lle) {
+    this(lookup,lle.Value());
+  }
+
+  private LogSwitch(String lookup,int spam) {
     super(spam);
     if(!isLegal()){
       setto(DEFAULT_LEVEL);//truenum's leaves it more than verbose.
     }
-    //since most of our classes have this prefix we remove it for readability sake.
-    //classes NOT in this package usually don't have our debug stuff in them
-    guiName=Safe.replace(lookup, "net.paymate.", "");
+    guiName=lookup;//net.paymate stripping now done in errorLogStream.
     register();
-    checkOverride();
   }
 
-  public LogSwitch(String lookup) {
+  private  LogSwitch(String lookup) {
     this(lookup,DEFAULT_LEVEL);
   }
-
-  public LogSwitch(){
-    //for class bootstrapper only
-  }
-
   /////////////////////////////////////
 
   public LogLevelEnum Level(){
@@ -251,6 +261,11 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
     return this;
   }
 
+  public LogSwitch setLevel(LogLevelEnum lle){
+    setto(lle.Value());
+    return this;
+  }
+
   public String Name(){
     return guiName;
   }
@@ -263,5 +278,9 @@ public class LogSwitch extends LogLevelEnum implements Comparable {
     return (llev>=value) && (value!=LogLevelEnum.OFF) && (value!=LogLevelEnum.invalid);
   }
 
+  public boolean is(LogLevelEnum llev){
+    return llev.Value()==Value();
+  }
+
 }
-//$Id: LogSwitch.java,v 1.25 2001/10/27 07:17:28 mattm Exp $
+//$Id: LogSwitch.java,v 1.46 2003/07/27 05:35:22 mattm Exp $

@@ -1,16 +1,22 @@
-//clerk functions, enumerated for cm3000 interface
+//$Source: /cvs/src/net/paymate/terminalClient/Functions.Enum,v $
+//$Revision: 1.20 $
+//used as top level menu
 Sale
 
 Return
 Void
-ReEntry
+OtherTransactn
 
 LastReceipt
-PrintDrawer
-CloseDrawer
+Drawer
+StoreAdmin
 
 ChangeUser
-PrintCoupon
-reserved
+GiftCard
 
-//$Id: Functions.Enum,v 1.11 2001/03/30 09:05:32 andyh Exp $
+Maintenance
+
+//from here down not acessible from cashier interface
+//PrintCoupon //legacy for demos
+
+//$Id: Functions.Enum,v 1.20 2003/11/17 21:58:09 andyh Exp $

@@ -6,11 +6,11 @@ package net.paymate.util;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 
 public interface QActor {
-  public void runone(Object fromq);
-  public void Stop();
+  public void runone(Object fromq);//called each time an object is pulled from a q for processing.
+  public void Stop();//called when QAgent has stopped.
 }
-//$Id: QActor.java,v 1.2 2001/11/03 00:19:56 andyh Exp $
+//$Id: QActor.java,v 1.3 2003/10/01 04:23:45 andyh Exp $

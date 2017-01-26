@@ -7,12 +7,12 @@ package net.paymate.util;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author $Author: mattm $
- * @version $Id: isEasy.java,v 1.8 2001/07/19 01:06:55 mattm Exp $
+ * @version $Id: isEasy.java,v 1.12 2002/03/29 16:49:17 mattm Exp $
  */
 
 public interface isEasy {//for eventual reflective invocation of load and save
-  public void save(EasyCursor ezp);
-  public void load(EasyCursor ezp);
+  public void save(EasyCursor ezc);
+  public void load(EasyCursor ezc);
 }
 /*when we get class<->properties via reflection then this interface will be emptied,
 remaining as permission to do the translations.
@@ -21,6 +21,15 @@ and interpreting the fields ...but this ain't C++ so we won't bother ourselves w
 
 any isEasy class that needs to combine info from its fields must either alwasy do that
 dynamically, or have another class that uses an easy class to do such work.
+
+TODO:
++++ Since defining a set of attributes indicating fields that can be saved and loaded by reflection is difficult,
+have a field which is a private static array of strings each of which is a field name.
+private final static String EasyPropertyList[]={//this name is reserved for this functionality in any class which implements the "IsEasy" interface:
+  "firstFieldName",
+  "anotherFieldName",
+};
+
 
 */
 
@@ -65,7 +74,7 @@ dynamically, or have another class that uses an easy class to do such work.
 //actually it is offensive to go up the hierarchy. it would make more sense
 to check all members and process members that are "isEasy".
       // Go up the class hierarchy using the same name (class.superclass())
-      dbg.Message(c.getName() + "--->" + s.getName());
+      dbg.Message(c.getName() + "==>" + s.getName());
       propsTxObj(o, oName, s, ezp, setProps);
     }
     doFields(o, oName, c, ezp, setProps);
@@ -157,4 +166,4 @@ to check all members and process members that are "isEasy".
 */
 
 
-//$Id: isEasy.java,v 1.8 2001/07/19 01:06:55 mattm Exp $>>>>>>> 1.2
+//$Id: isEasy.java,v 1.12 2002/03/29 16:49:17 mattm Exp $

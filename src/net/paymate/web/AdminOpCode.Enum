@@ -1,27 +1,40 @@
 // AdminOpCode
-t // unsettled transactions
-h // transaction history
-s // stores
-e // associates
-m // terminals
-a // advertising
-o // profile
-p // preferences
-d // transaction details
-g // database gateway FOR US ONLY !!!!!!
-b // debug settings (status?)
-f // find (search)
-//r // trace of all transactions, ever, given search parameters
-bl // logs
-bp // params
-shUtdOwn // EEK!  Shutdown!
-c // get all drawer closings
-c1 // get a single drawer closing
-ss // store statistics
-ap // appliances
-bu // unloads the database to file
-cArdsYstEms // disconnect (and cuse mainsail to reconnect) the SPP->CS socket
-n // news
-bt // threads
-duptemp // temporary query for Nick to use to find possible dups to send in batch to CardSystems -- REMOVE!
-gc // GARBAGE COLLECT, DAMNIT
+appliance
+applianceDeath
+appliances
+associate
+associates
+authAttempts
+authBill
+batch
+batches
+changeEnterprise
+defaultOp // handled in code
+deposit
+deposits
+drawer
+drawers
+duptemp
+editRecord
+enterprise
+enterprises
+newAppliance
+newAssociate
+newEnterprise
+newStore
+newTerminal
+newStoreauth
+newTermauth
+news
+service
+services
+store
+storeaccess
+storeauth
+stores
+termauth
+terminal
+terminals
+TESTAPPLIANCE
+transaction
+txnSearch

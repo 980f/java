@@ -1,5 +1,5 @@
 /*
- * $Id: URLEncoderFilterInputStream.java,v 1.5 2001/05/22 19:13:35 mattm Exp $
+ * $Id: URLEncoderFilterInputStream.java,v 1.7 2003/07/27 05:35:13 mattm Exp $
  *
  * Copyright 2000 PayMate.Net, Inc. All Rights Reserved.
  *
@@ -12,6 +12,7 @@ package net.paymate.net;
 import  java.io.*;
 import  java.util.BitSet;
 import  net.paymate.util.*;
+import net.paymate.lang.ReflectX;
 
 /**
  * The class implements a URL encoder FilterInputStream. By setting up such
@@ -64,7 +65,7 @@ public class URLEncoderFilterInputStream extends FilterInputStream {
   }
 
   public void reset() throws IOException /* literally */{
-    throw(new IOException("Can't reset a " + URLEncoderFilterInputStream.class.getName()));
+    throw(new IOException("Can't reset a " + ReflectX.shortClassName(this)));
   }
 
   public void mark(int readlimit) {
@@ -158,4 +159,4 @@ public class URLEncoderFilterInputStream extends FilterInputStream {
   }
 }
 
-//$Id: URLEncoderFilterInputStream.java,v 1.5 2001/05/22 19:13:35 mattm Exp $
+//$Id: URLEncoderFilterInputStream.java,v 1.7 2003/07/27 05:35:13 mattm Exp $

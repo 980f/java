@@ -1,6 +1,6 @@
 package net.paymate.authorizer.cardSystems;
 
-import net.paymate.connection.EchoServer;
+import net.paymate.net.EchoServer;
 
 /**
 * Title:        $Source: /cvs/src/net/paymate/authorizer/cardSystems/Simulator.java,v $
@@ -8,7 +8,7 @@ import net.paymate.connection.EchoServer;
 * Copyright:    Copyright (c) 2001
 * Company:      PayMate.net
 * @author PayMate.net
-* @version $Revision: 1.5 $
+* @version $Revision: 1.19 $
 */
 
 
@@ -19,24 +19,27 @@ import net.paymate.util.*;
 import net.paymate.net.*;
 
 
-public class Simulator extends EchoServer {
-  static Tracer dbg=new Tracer(Simulator.class.getName(),ErrorLogStream.VERBOSE);
+public class Simulator /*extends SocketLineServer*/ {
+  static Tracer dbg=new Tracer(Simulator.class,ErrorLogStream.ERROR);
 
 //  byte [] trackingTag="W0.SIGN0001".getBytes();
-  static final String signOnReply="L0. 99999999 0000MN      000000000000INVALID NUMERIC 0";
+//  static final String signOnReply="L0. 99999999 0000MN      000000000000INVALID NUMERIC 0";
 
+/// NOTE: Commented this out cause I don't have time to fix MAverickResponse.format() right now.
 
-  protected void core(InputStream incoming,OutputStream replyTo) throws IOException {
+//have to override LineServer's concept of a packet. WIll have a packetServer someday...
+/*
+  protected void core(InputStream incoming,OutputStream replyTo) {
     dbg.Enter("core");
     try {
     VisaBuffer request=VisaBuffer.NewSender(256);
-    VisaBuffer reply=VisaBuffer.NewReceiver(256);
-    while(true){
+    MaverickResponse reply = new MaverickResponse();
 
+    while(true){
       try {
         //read until we get a whole buffer
         int ch=incoming.read();
-              //dbg.VERBOSE("ch:"+Safe.ox2(ch));
+              //dbg.VERBOSE("ch:"+Formatter.ox2(ch));
 
         switch(ch){
           case -1: {
@@ -56,25 +59,19 @@ public class Simulator extends EchoServer {
               dbg.VERBOSE("List:"+parsed.asParagraph("/"));
               String tag=parsed.itemAt(0);
               dbg.VERBOSE("tag:"+tag+" indexof:"+tag.indexOf("W0.SIGN"));
-
-              if(tag.indexOf("W0.SIGN")>=0){
-                dbg.VERBOSE("found signon tag");
-                reply.start(256);
-                reply.appendFrame(tag);
-//                reply.endFrame();
-                dbg.VERBOSE("signon:"+ signOnReply);
-                reply.appendFrame(signOnReply);
-//                reply.endFrame();
-                reply.endFrame();
-                reply.end();
-                dbg.VERBOSE("reply["+reply.toSpam(reply.Size())+"]");
-                replyTo.write(reply.packet());
-                replyTo.flush();
-              } else {
-                dbg.ERROR("not implemented");
+          //we no longer do Wrapper stuff so proceed with regular message:
+              if(!false){
+                dbg.ERROR("request not supported:");
+                for(int i=0;i<parsed.size();i++){
+                  dbg.WARNING("Field["+i+"]="+parsed.itemAt(i));
+                }
               }
+              VisaBuffer rawReply=reply.format();
+              dbg.VERBOSE("reply["+rawReply.toSpam()+"]");
+              replyTo.write(rawReply.packet());
+              replyTo.flush();
             } else {
-              // dbg.VERBOSE("LRC so far:"+Safe.ox2(request.showLRC()));
+              // dbg.VERBOSE("LRC so far:"+Formatter.ox2(request.showLRC()));
             }
           }
         }
@@ -86,14 +83,16 @@ public class Simulator extends EchoServer {
       dbg.Exit();
     }
   }
+*/
 
-  public Simulator(int port) {
-    super(port);
-  }
-
-  public static void main(String[] args) {
-    Simulator simulator = new Simulator(Integer.parseInt(args[0]));
-  }
+//  private Simulator(int port) {
+//    super();
+//    bind(port,null);
+//  }
+//
+//  public static void main(String[] args) {
+//    Simulator simulator = new Simulator(Integer.parseInt(args[0]));
+//  }
 
 }
-//$Id: Simulator.java,v 1.5 2001/10/05 17:28:52 andyh Exp $
+//$Id: Simulator.java,v 1.19 2003/08/21 18:24:50 andyh Exp $

@@ -11,11 +11,13 @@ import  java.util.*;
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: MonitorTableGen.java,v 1.5 2001/10/11 04:34:03 mattm Exp $
+ * @version $Id: MonitorTableGen.java,v 1.11 2003/10/30 23:06:12 mattm Exp $
+ *
+ * TODO: +++ put the number of reentries in the monitor for the owner of each monitor.
  */
 
 public class MonitorTableGen extends TableGen implements RowEnumeration, TableGenRow {
-  private static final ErrorLogStream dbg = new ErrorLogStream(MonitorTableGen.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(MonitorTableGen.class, ErrorLogStream.WARNING);
 
   private static final HeaderDef headers [] = {
     new HeaderDef(AlignType.LEFT, "Name"),
@@ -26,13 +28,13 @@ public class MonitorTableGen extends TableGen implements RowEnumeration, TableGe
   private Vector monitors = null;
   private int currentMonitor = -1;
 
-  public MonitorTableGen(String title, ColorScheme color, Vector monitors, String sessionid) {
-    super(title, color, headers, null, -1, sessionid);
+  public MonitorTableGen(String title, ColorScheme color, Vector monitors) {
+    super(title, color, headers, null);
     this.monitors = monitors;
   }
 
-  public static final Element output(String title, ColorScheme color, Vector monitors, String sessionid) {
-    return new MonitorTableGen(title, color, monitors, sessionid);
+  public static final Element output(String title, ColorScheme color, Vector monitors) {
+    return new MonitorTableGen(title, color, monitors);
   }
 
   public RowEnumeration rows() {
@@ -60,7 +62,7 @@ public class MonitorTableGen extends TableGen implements RowEnumeration, TableGe
         nameField = new StringElement(m.name);
         Thread owner = m.getMonitorOwner();
         ownerField = new StringElement((owner == null) ? "" : owner.getName());
-        waitingField = new StringElement(m.dump().asParagraph("<BR>"+Entities.NBSP));
+        waitingField = new StringElement(m.dump().asParagraph(BRLF+Entities.NBSP));
         tgr = this;
       }
     } catch (Exception e2) {
@@ -89,9 +91,5 @@ public class MonitorTableGen extends TableGen implements RowEnumeration, TableGe
       } break;
     }
     return el;
-  }
-
-  public void close() {
-    super.close();
   }
 }

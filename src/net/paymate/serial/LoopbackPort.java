@@ -6,21 +6,22 @@ package net.paymate.serial;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: LoopbackPort.java,v 1.1 2001/06/16 03:19:27 andyh Exp $
+ * @version $Id: LoopbackPort.java,v 1.4 2004/01/19 17:03:26 mattm Exp $
  */
 
 import net.paymate.util.*;
+import net.paymate.io.ByteFifo;
 
 public class LoopbackPort extends Port {
 
-  ByteArrayFIFO baf;
+  ByteFifo baf;
 
   /**
    * @param size determines how much output will be saved for use as input.
    */
   public LoopbackPort(String name, int size) {
     super(name+"Loopback");
-    baf=new ByteArrayFIFO(size);
+    baf=new ByteFifo(size, true /*blocking*/); // blocknig or not ??? +++
     super.is=baf.getInputStream();
     super.os=baf.getOutputStream();
   }

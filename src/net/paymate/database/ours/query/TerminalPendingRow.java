@@ -2,7 +2,9 @@ package net.paymate.database.ours.query;
 
 import  java.sql.*;
 import  net.paymate.database.*;
+import  net.paymate.data.*; // id's
 import  java.util.*; // vector
+import  net.paymate.util.*; // Safe
 
 /**
  * Title:        $Source: /cvs/src/net/paymate/database/ours/query/TerminalPendingRow.java,v $
@@ -10,7 +12,7 @@ import  java.util.*; // vector
  * Copyright:    Copyright (c) 2000
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Id: TerminalPendingRow.java,v 1.4 2001/11/17 06:16:59 mattm Exp $
+ * @version $Id: TerminalPendingRow.java,v 1.12 2003/08/01 02:50:46 mattm Exp $
  */
 
 public class TerminalPendingRow extends Query {
@@ -34,7 +36,7 @@ public class TerminalPendingRow extends Query {
   }
 
   /**
-   * Makes a tranjour that CAN scroll.
+   * Makes a terminal that CAN scroll.
    */
   public static final TerminalPendingRow NewSet(Statement stmt) {
     return new TerminalPendingRow(stmt);
@@ -43,20 +45,25 @@ public class TerminalPendingRow extends Query {
   // the rest is cause I'm lazy, I guess
   private static final int DEFAULTNUM = -1;
 
-  public String enterpriseid = "";
-  public String storeid = "";
+  public String applianceid = "";
   public String terminalid = "";
   public String terminalName = "";
-  public String storeName = "";
-  public String enterpriseName = "";
   public String modelCode = "";
   String lastCloseTime = "";
+  private String lastTxnTime = "";
 
   int apprCount = DEFAULTNUM;
   long apprAmount = DEFAULTNUM;
 
+  public Terminalid terminalid() {
+    return new Terminalid(terminalid);
+  }
+
   public void lastCloseTime(String val) {
     lastCloseTime = val;
+  }
+  public void lastTxnTime(String val) {
+    lastTxnTime = val;
   }
   public void apprCount(int  val) {
     apprCount = val;
@@ -67,6 +74,9 @@ public class TerminalPendingRow extends Query {
   public String lastCloseTime() {
     return lastCloseTime;
   }
+  public String lastTxnTime() {
+    return lastTxnTime;
+  }
   public int apprCount() {
     return apprCount;
   }
@@ -74,4 +84,4 @@ public class TerminalPendingRow extends Query {
     return apprAmount;
   }
 }
-//$Id: TerminalPendingRow.java,v 1.4 2001/11/17 06:16:59 mattm Exp $
+//$Id: TerminalPendingRow.java,v 1.12 2003/08/01 02:50:46 mattm Exp $

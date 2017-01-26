@@ -5,80 +5,63 @@ package net.paymate.connection;
 * Copyright:    2000 PayMate.net<p>
 * Company:      PayMate.net<p>
 * @author       PayMate.net
-* @version      $Id: ConnectionClient.java,v 1.118 2001/11/17 00:38:34 andyh Exp $
+* @version      $Id: ConnectionClient.java,v 1.135 2004/02/11 00:23:15 andyh Exp $
 */
 
 import net.paymate.Main;
 import net.paymate.net.*;
-import net.paymate.ISO8583.data.*;
+import net.paymate.data.*;
 import net.paymate.util.*;
 import net.paymate.util.timer.*;
+import net.paymate.lang.StringX;
 
 public class ConnectionClient implements CnxnUser {
   protected Tracer dbg;
   String objectID;
-
   TerminalInfo termInfo;
-
-  public ActionList actionHistory = new ActionList();
-
-  public TextList ActionStatsReport(TextList responses){//4ipterm
-    // displays statistics about this running terminal (how many txns, avg time, etc)
-    responses.add("");
-    responses.add("STATISTICS for " + name() + ":");
-    return actionHistory.ActionStatsReport(responses);
-  }
-
-  public TextList ActionHistoryReport(TextList responses){
-    return actionHistory.ActionHistoryReport(responses);
-  }
-
-
-  /**
-  * background components
-  */
+  TxnAgent connman;//connection manager /agent /whatever
   public Standin standin;
+
+  public TextList stateDump(){
+    TextList dump=new TextList(10);
+    dump.add("connection status for ",termInfo.getNickName());
+    return TheSinetSocketFactory.Dump(dump);
+  }
+
   public boolean online(){
-    return standin.online();
+    return standin.online();//@ptgwsi2@
   }
 
   public void setStoreInfo(StoreInfo si){
     standin.setStandinRules(si);
   }
-  ////////////////
-  //
-  TxnAgent connman;//connection manager /agent /whatever
+
+  public boolean listWhenOffline(){
+    return ! termInfo.isGateway(); //+_+ cheap quick fix for jumpware batch reconciliation, need to add a specific flag for this purpose.
+  }
 
   /** @return true for successful initiation */
   public boolean StartAction(ActionRequest theRequest) {
-    if (online()) {
+    Action prepared=connman.Prepare(theRequest);
+    if (online()) {//@ptgwsi2@
       dbg.VERBOSE("Posting request:"+theRequest.TypeInfo());
-      Action posted=connman.Post(theRequest);
-      if(posted!=null){
-        actionHistory.register(posted);
+      if(connman.Post(prepared)!=null){
         return true;
       } else {
         return false;
       }
     }
-    else {
+    else { // foreground initaites a new txn while we are in standin
       dbg.VERBOSE("standing in");
-      Action prepared=TxnAgent.Prepare(theRequest);
       prepared.setReply(standin.whileStandin(prepared.request));
-      return connman.Post(prepared)!=null;
+      return connman.Post(prepared)!=null;//will feed the reply back to host on another thread.
     }
   }
 
   public void processReply(Action action,boolean inBackground){//CnxnUser interface
-//  ErrorLogStream.Debug.ERROR("ccprocrep:"+dbg.myLevel.Image());
-//  dbg=ErrorLogStream.Debug; //dammit, regular dbg's level was trashed.
     dbg.Enter("processReply");
     try {
-//ErrorLogStream.Debug.ERROR("actions stats");
-      actionStats(action);
-//ErrorLogStream.Debug.ERROR("test comfailed");
       if(action.reply.ComFailed()){//may start standing in
-//ErrorLogStream.Debug.ERROR("com did fail");
         dbg.ERROR("ComFailed:"+action.reply.status.Image());
         //stoodinreplies that fail must be put back into in-memory list.
         if (inBackground) {//then action was an attempt to reduce the backlog of stoodin stuff
@@ -92,17 +75,13 @@ public class ConnectionClient implements CnxnUser {
           }
           dbg.WARNING("standin reply is "+action.reply.status.Image());
         }
-      } else {//exit standin!
-        //only exactly Success, definitely not on SuccessfullyFaked!
-//  ErrorLogStream.Debug.ERROR("com was ok");
+      } else {//exit standin! but only exactly Success, definitely not on SuccessfullyFaked!
         if(action.reply.status.is(ActionReplyStatus.Success)){
           standin.setStandin(false);
         }
       }
       dbg.mark("callback");
-//  ErrorLogStream.Debug.ERROR("before callback");
-      action.doCallback();
-//  ErrorLogStream.Debug.ERROR("after callback");
+      action.doCallback(dbg);
       dbg.mark(null);
     } catch (Exception e) { /* catch any callback problems */
       dbg.Caught(e);
@@ -119,39 +98,17 @@ public class ConnectionClient implements CnxnUser {
     connman.shutdown();
   }
 
-
-  /**
-  * action timing statistics
-  * part of run()
-  */
-  public void actionStats(Action action){
-    try {
-      // next line is possible overflow error
-      actionHistory.avgTimeTotal += (action.response.Stop());//might already be stopped, not a prolbme if so.
-      if(action.reply.status.is(ActionReplyStatus.Success)) {//+_+ include fakers?
-        actionHistory.successes++;
-      } else {
-        actionHistory.others++;
-      }
-    }
-    catch(Exception t){
-      //unimportant function
-    }
-  }
-
   public String name(){
-    return Safe.OnTrivial(""+termInfo.id() ,"txnClient");
+    return StringX.OnTrivial(""+termInfo.id() ,"txnClient");
   }
 
   public ConnectionClient(TerminalInfo termInfo){
     this.termInfo = termInfo;
-    dbg=new Tracer("Connection."+termInfo.id());
-    objectID=dbg.myLevel.Name();
-    ErrorLogStream.Debug.ERROR("ConnectionClient.init:["+objectID+"]"+dbg.myLevel.Image());
-    connman=TxnAgent.New(this,this.name());
-
+    dbg=new Tracer(this.getClass(),termInfo.id().toString());
+    objectID=dbg.myName();
+    connman=TxnAgent.New(this,name()+".FORE",termInfo.id());
     standin=new Standin(this);
   }
 
 }
-//$Id: ConnectionClient.java,v 1.118 2001/11/17 00:38:34 andyh Exp $
+//$Id: ConnectionClient.java,v 1.135 2004/02/11 00:23:15 andyh Exp $

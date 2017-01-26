@@ -1,24 +1,22 @@
 /**
-* Title:        Stroke
+* Title:        $Source: /cvs/src/net/paymate/jpos/awt/Stroke.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Stroke.java,v 1.11 2001/07/19 01:06:51 mattm Exp $
+* @version      $Id: Stroke.java,v 1.18 2003/12/08 22:45:42 mattm Exp $
 */
 package net.paymate.jpos.awt;
-import  net.paymate.util.ErrorLogStream;
-
+import  net.paymate.util.*;
 import java.util.Vector;
-import java.awt.Point;
-import java.awt.geom.Point2D;
+import net.paymate.awtx.XPoint;
 
 
 import net.paymate.ivicm.et1K.ncrOstream;
 
-public class Stroke {//awt.Polygon was too complex to mate to our input
+public class Stroke implements isEasy,EasyHelper{ //awt.Polygon was too complex to mate to our input
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(Stroke.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(Stroke.class);
 
   Vector vertices;
 
@@ -34,7 +32,7 @@ public class Stroke {//awt.Polygon was too complex to mate to our input
     return i>=0 && i<vertices.size();
   }
 
-  public void addVertex(Point vertex){
+  public void addVertex(XPoint vertex){
     if(vertex!=null){
       vertices.add(vertex);
     }
@@ -44,11 +42,11 @@ public class Stroke {//awt.Polygon was too complex to mate to our input
     return vertices.size();
   }
 
-  public Point vertex(int i){
-    return legalIndex(i)? (Point)vertices.elementAt(i): new Point();
+  public XPoint vertex(int i){
+    return legalIndex(i)? (XPoint)vertices.elementAt(i): new XPoint();
   }
 
-  Stroke(){
+  public Stroke(){
     vertices=new Vector();
   }
 
@@ -63,16 +61,23 @@ public class Stroke {//awt.Polygon was too complex to mate to our input
     int size=rhs.vertices.size();
     vertices.ensureCapacity(size);
     for(int vi=size;vi-->0;){
-      vertices.add(new Point(rhs.vertex(vi)));
+      vertices.add(new XPoint(rhs.vertex(vi)));
     }
   }
 
   public void drawinto(Raster raster){
-    if(NonTrivial(this)){//at least one point in vector
+    boolean nottriv = NonTrivial(this); //at least one point in vector
+    dbg.VERBOSE("stroke is " + (nottriv ? "not " : "") + "trivial");
+    if(nottriv){
       LineDrawer Ld=new LineDrawer();
       int vi=vertices.size();
+      dbg.VERBOSE("stroke has " + vi + " vertices");
+      if(true /* +++ */){
+        for(int i = vi; i-->0;) {
+          dbg.VERBOSE("point is "+vertex(i));
+        }
+      }
       raster.set(Ld.moveTo(vertex(--vi)),true);
-
       while(vi-->0){
         Ld.drawTo(vertex(vi));
         while(Ld.moreSteps()){
@@ -80,6 +85,33 @@ public class Stroke {//awt.Polygon was too complex to mate to our input
         }
       }
     }
+  }
+
+  public void helpsave(EasyCursor ezc,Object point){
+    if(point instanceof XPoint){
+      ezc.setInt ("X",((XPoint)point).x);
+      ezc.setInt ("Y",((XPoint)point).y);
+    } else {
+      dbg.WARNING("helpsave(): NOT a Point object!");
+    }
+  }
+
+  public Object helpload(EasyCursor ezc,Object point){
+    if(point instanceof XPoint){
+      ((XPoint)point).setLocation(ezc.getInt("X"),ezc.getInt("Y"));
+      dbg.VERBOSE("got point " + (XPoint)point);
+    } else {
+      dbg.WARNING("helpload(): NOT a Point object!");
+    }
+    return point;
+  }
+
+  public void save(EasyCursor ezc){
+    ezc.setVector(this.vertices,this);
+  }
+
+  public void load(EasyCursor ezc){
+    vertices=ezc.getVector(XPoint.class,this);
   }
 
   /**
@@ -92,13 +124,13 @@ public class Stroke {//awt.Polygon was too complex to mate to our input
       int vi=numVertices();//vi==ncr.strokeLength
       packer.writeHilo(vi|0x8000);//set msbit to indicate format of next two fields
 
-      Point prev=vertex(--vi);
+      XPoint prev=vertex(--vi);
       //coordinates in low high order
       packer.writeLohi(prev.y);
       packer.writeLohi(prev.x);
 
       while(vi-->0){
-        Point current=vertex(vi);
+        XPoint current=vertex(vi);
         packer.writeDiff(current.y,prev.y);
         packer.writeDiff(current.x,prev.x);
         prev=current;
@@ -107,4 +139,4 @@ public class Stroke {//awt.Polygon was too complex to mate to our input
   }
 
 }
-//$Id: Stroke.java,v 1.11 2001/07/19 01:06:51 mattm Exp $
+//$Id: Stroke.java,v 1.18 2003/12/08 22:45:42 mattm Exp $

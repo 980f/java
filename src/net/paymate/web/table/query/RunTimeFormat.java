@@ -6,7 +6,7 @@ package net.paymate.web.table.query;
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.12 $
  */
 
 import  net.paymate.web.table.*;
@@ -15,9 +15,11 @@ import  net.paymate.util.*; // ErrorlogStream
 import  org.apache.ecs.*; // element
 import  net.paymate.web.color.*;
 import  java.util.*;
+import net.paymate.lang.ThreadX;
+import net.paymate.lang.ThreadReporter;
 
 public class RunTimeFormat extends TableGen implements TableGenRow, RowEnumeration {
-  private static final ErrorLogStream dbg = new ErrorLogStream(RunTimeFormat.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(RunTimeFormat.class, ErrorLogStream.WARNING);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef [(new RunTimeFormatEnum()).numValues()];
   static {
@@ -28,7 +30,7 @@ public class RunTimeFormat extends TableGen implements TableGenRow, RowEnumerati
   private Vector list = new Vector();
 
   public RunTimeFormat(ColorScheme colors, String title) {
-    super(title, colors, theHeaders, "", -1, "");
+    super(title, colors, theHeaders, "");
     printThreads();
     rowCount = (new RunTimeFormatRowEnum()).numValues()+list.size();
   }
@@ -72,8 +74,8 @@ public class RunTimeFormat extends TableGen implements TableGenRow, RowEnumerati
       case RunTimeFormatRowEnum.DFDataRow: {
         name = "Disk";
         TextList msgs = new TextList();
-        int c = Safe.diskfree("", msgs);
-        status = "<PRE>"+msgs.asParagraph("<BR>")+"</PRE>";
+        int c = OS.diskfree("", msgs);
+        status = "<PRE>"+msgs.asParagraph(BRLF.toString())+"</PRE>";
       } break;
       default: {
         // these are temporary until we find them another home
@@ -101,4 +103,4 @@ public class RunTimeFormat extends TableGen implements TableGenRow, RowEnumerati
 
 }
 
-//$Id: RunTimeFormat.java,v 1.7 2001/11/03 13:16:44 mattm Exp $
+//$Id: RunTimeFormat.java,v 1.12 2003/10/30 21:05:18 mattm Exp $

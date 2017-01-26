@@ -4,12 +4,11 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: TextButton.java,v 1.7 2001/06/17 00:14:28 andyh Exp $
+* @version      $Id: TextButton.java,v 1.9 2003/12/08 22:45:43 mattm Exp $
 */
 package net.paymate.terminalClient.IviForm;
 import  net.paymate.util.Xml;
-import java.awt.Point;
-import java.awt.Rectangle;
+import net.paymate.awtx.*;
 
 public class TextButton extends Button {
 
@@ -34,9 +33,9 @@ public class TextButton extends Button {
   }
 
   public TextButton(Legend lege, int guid){
-  //this(lege,guid,true);
-    super(lege.x()-1,lege.y()-1,lege.Width()+2,lege.Height()+2,guid);
-    this.legend= lege;
+    this(lege,guid,true);
+//    super(lege.x()-1,lege.y()-1,lege.Width()+2,lege.Height()+2,guid);
+//    this.legend= lege;
   }
 
 
@@ -44,7 +43,7 @@ public class TextButton extends Button {
     this(new Legend(x+1,y+1,legend),guid);
   }
 
-  public TextButton(Point p, String legend, int guid){
+  public TextButton(XPoint p, String legend, int guid){
     this(p.x,p.y,legend,guid);
   }
 
@@ -54,4 +53,4 @@ public class TextButton extends Button {
 
 }
 
-//$Id: TextButton.java,v 1.7 2001/06/17 00:14:28 andyh Exp $
+//$Id: TextButton.java,v 1.9 2003/12/08 22:45:43 mattm Exp $

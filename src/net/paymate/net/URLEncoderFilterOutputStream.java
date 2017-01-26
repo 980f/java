@@ -1,5 +1,5 @@
 /*
- * $Id: URLEncoderFilterOutputStream.java,v 1.7 2001/05/22 19:13:35 mattm Exp $
+ * $Id: URLEncoderFilterOutputStream.java,v 1.9 2004/01/21 03:21:18 mattm Exp $
  *
  * Copyright 2000 PayMate.Net, Inc. All Rights Reserved.
  *
@@ -73,6 +73,7 @@ public class URLEncoderFilterOutputStream extends FilterOutputStream {
         thisMonitor.getMonitor();
         // check to see if it needs converting.  If so, conert it
         // otherwise, pass it through
+        b = b & 255; // prevents dumbass negatives
         if (dontNeedEncoding.get(b)) {
           if (b == ' ') {
             b = '+';
@@ -97,4 +98,4 @@ public class URLEncoderFilterOutputStream extends FilterOutputStream {
     }
 }
 
-//$Id: URLEncoderFilterOutputStream.java,v 1.7 2001/05/22 19:13:35 mattm Exp $
+//$Id: URLEncoderFilterOutputStream.java,v 1.9 2004/01/21 03:21:18 mattm Exp $

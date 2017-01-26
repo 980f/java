@@ -1,11 +1,11 @@
 package net.paymate.ivicm.et1K;
 /**
 * Title:        $Source: /cvs/src/net/paymate/ivicm/et1K/Command.java,v $
-* Description:
+* Description:  state and formatters for commands for an ncr5992/ivicm entouch
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Command.java,v 1.27 2001/11/14 01:47:49 andyh Exp $
+* @version      $Id: Command.java,v 1.36 2004/02/26 18:40:50 andyh Exp $
 */
 
 import net.paymate.util.ErrorLogStream;
@@ -13,77 +13,93 @@ import net.paymate.util.*;
 import net.paymate.util.timer.*;
 
 //package specific
-class Command {
-  static final ErrorLogStream dbg=new ErrorLogStream(Command.class.getName());
-//  boolean lockedByDsr=false; //+_+ protect, belongs to driver
+class Command implements Comparable {
+  static final ErrorLogStream dbg=ErrorLogStream.getForClass(Command.class);
+  //  boolean lockedByDsr=false; //+_+ protect, belongs to driver
   final static int biggerThanNeeded=256;
   //formatted command
   boolean processed=false;
+  int retried=0;
 
   protected LrcBuffer outgoing=LrcBuffer.NewSender(biggerThanNeeded);//constrcutors depend upon this.
-  public LrcBuffer outgoing(){
+  LrcBuffer outgoing(){
     return outgoing;
   }
 
-  public String errorNote;
-  public boolean isaPoller=false;//used to omit messages from debug stream
-  public boolean highPriority=false; //where in queue this goes.
+  int latencyTicks=0; //how long command is expected to take, 0 = default/minimum
+  String errorNote;
+  boolean isaPoller=false;//used to omit messages from debug stream
 
-/**
- * useful when reissuing a command due to a glitch.
- */
-  public Command boost(){
-    highPriority=true;
+  final static int priorityFront=10;  //such as application config
+  final static int priorityExpress=1; //"greatest among equals"
+  final static int priorityInit=100;  //such as powerup config
+
+  int priority=0; //lowest
+  public int compareTo(Object o){
+    return this.priority-((Command)o).priority;
+  }
+
+  public Command boostTo(int newpriority){
+    priority=newpriority;
     return this;
   }
 
-  public Command next(){//@see BlockCommand for why this exists.
+  protected Command next(){//@see BlockCommand for why this exists.
     return null;
   }
 
-  public Command restart(){//called to restart
-// is there anythign we should erase?
-    incoming=null;//+_+ check for NPE dangers
-    return this;
+  protected Command restart(){//called to restart
+    // is there anythign we should erase?
+    if(++retried<3){
+      incoming=null;//+_+ check for NPE dangers
+      return this;
+    } else {
+      service.PostFailure("gave up on retries");
+      return null;
+    }
   }
 
   //loaded by service before handing to hardware:
-  public Callback onReception;
-  public StopWatch responseTime=new StopWatch(false);//false keeps it from running
-  public Service  service;  //for posting Error events
+  Callback onReception;
+  StopWatch responseTime=new StopWatch(false);//false keeps it from running
+  Service  service;  //for posting Error events
 
   //loaded by hardware before posting back to caller:
-  public Reply incoming;
-  public boolean failed;
+  Reply incoming;
+  boolean failed;
 
-  public int rcvLength(){
+  int rcvLength(){
     return incoming!=null?incoming.sizeCode():0;
   }
 
-  public int opCode(){
+  int opCode(){
     return outgoing!=null?outgoing.opCode():-1;
   }
 
-  public int response(){
+  int response(){
     return incoming!=null?incoming.response():-1;
   }
 
-  public static final boolean nothingThere(int response){
-    return (response == Codes.NO_DATA_READY || response == Codes.CONTROL_NOT_DISPLAYED);//no data || invalid mode
+  boolean forceResponse(int respcode){
+    return incoming!=null && incoming.forceResponse(respcode);
   }
 
-  public boolean nothingThere(){
+  static final boolean nothingThere(int response){
+    return (response == ResponseCode.NO_DATA_READY || response == ResponseCode.CONTROL_NOT_DISPLAYED);//no data || invalid mode
+  }
+
+  boolean nothingThere(){
     return nothingThere(response());
   }
 
-/**
- * @param offset bytes to ignore from front of payload.
+  /**
+  * @param offset bytes to ignore from front of payload.
   */
-  public byte [] payload(int offset){
+  byte [] payload(int offset){
     return incoming!=null ? incoming.payload(offset) : new byte[0];
   }
 
-  public byte [] payload(){
+  byte [] payload(){
     return payload(0);
   }
 
@@ -100,14 +116,14 @@ class Command {
     outgoing.end();
   }
 
-  public static final LrcBuffer Max(){
+  static final LrcBuffer Max(){
     LrcBuffer newone=LrcBuffer.NewSender(biggerThanNeeded);
     newone.append(Codes.STX);
     newone.append(0);//end() now copmutes these, when 0
     return newone;
   }
 
-  public static final LrcBuffer Op(int opcode){
+  static final LrcBuffer Op(int opcode){
     LrcBuffer newone=LrcBuffer.NewSender(biggerThanNeeded);
     newone.append(Codes.STX);
     newone.append(0);//end() now copmutes these, when 0
@@ -115,14 +131,14 @@ class Command {
     return newone;
   }
 
-  public static final LrcBuffer Buffer(int payloadsize){
+  static final LrcBuffer Buffer(int payloadsize){
     LrcBuffer newone=LrcBuffer.NewSender(biggerThanNeeded);
     newone.append(Codes.STX);
     newone.append(payloadsize+3);//3==stx,length,lrc
     return newone;
   }
 
-  public static final LrcBuffer Buffer(int opcode,int payloadsize){
+  static final LrcBuffer Buffer(int opcode,int payloadsize){
     LrcBuffer newone=LrcBuffer.NewSender(payloadsize+4);
     newone.append(Codes.STX);
     newone.append(newone.Size());
@@ -142,11 +158,11 @@ class Command {
     fill(legacy,leglength);
   }
 
-  public Command(int opcode, int moreop, byte [] legacy, String forError){
+  Command(int opcode, int moreop, byte [] legacy, String forError){
     this(opcode, moreop, legacy, legacy.length , forError);
   }
 
-  public Command(int opcode, byte [] legacy, int leglength, String forError){
+  Command(int opcode, byte [] legacy, int leglength, String forError){
     prep(forError);
     int size=4+leglength;
     outgoing.start(size);
@@ -156,11 +172,11 @@ class Command {
     fill(legacy,leglength);
   }
 
-  public Command(int opcode, byte [] legacy,String forError){
+  Command(int opcode, byte [] legacy,String forError){
     this(opcode,legacy,legacy.length,forError);
   }
 
-  public Command(int opcode, int moreop, int thirdByte, String forError){
+  Command(int opcode, int moreop, int thirdByte, String forError){
     prep(forError);
     int size=6;
     outgoing.start(size);
@@ -172,20 +188,20 @@ class Command {
     outgoing.end();
   }
 
-  public static final LrcBuffer JustOpcode(int opcode){
+  static final LrcBuffer JustOpcode(int opcode){
     LrcBuffer newone=Buffer(opcode,0);
     newone.end();
     return newone;
   }
 
-  public static final LrcBuffer OpArg(int opcode, int moreop){
+  static final LrcBuffer OpArg(int opcode, int moreop){
     LrcBuffer newone=Buffer(opcode,1);
     newone.append(moreop);
     newone.end();
     return newone;
   }
 
-  public static final LrcBuffer OpTwoArg(int opcode, int moreop,int thirdeye){
+  static final LrcBuffer OpTwoArg(int opcode, int moreop,int thirdeye){
     LrcBuffer newone=Buffer(opcode,2);
     newone.append(moreop);
     newone.append(thirdeye);
@@ -193,24 +209,28 @@ class Command {
     return newone;
   }
 
-  public Command(int opcode, int moreop, String forError){
+  Command(int opcode, int moreop, String forError){
     this(opcode,moreop,(byte[])null,0,forError);
   }
 
-  public Command(int opcode, String forError){
+  Command(int opcode, String forError){
     this(opcode, (byte[])null, 0, forError);
   }
 
-  public Command(LrcBuffer preFormatted, String forError){
+  Command(LrcBuffer preFormatted, String forError){
     prep(forError);
     outgoing=preFormatted;
-    //--it was nice to make the soruce do this each time to make
-    // an obvious end to command creation:    outgoing.end();
   }
 
-  protected Command(){//used by BlockCommand
-  //
+  protected Command(String ernote){//used by BlockCommand
+    this.errorNote=ernote;
+  }
+
+  public void log(ErrorLogStream otherbugger,String note){
+    if(otherbugger.willOutput(isaPoller?dbg.VERBOSE:dbg.WARNING) ){
+      dbg.VERBOSE(note+errorNote);
+    }
   }
 
 }
-//$Id: Command.java,v 1.27 2001/11/14 01:47:49 andyh Exp $
+//$Id: Command.java,v 1.36 2004/02/26 18:40:50 andyh Exp $

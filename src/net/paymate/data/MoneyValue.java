@@ -4,12 +4,15 @@
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: MoneyValue.java,v 1.1 2000/11/21 03:03:06 andyh Exp $
+* @version      $Id: MoneyValue.java,v 1.4 2003/07/27 05:34:58 mattm Exp $
 */
 package net.paymate.data;
 
-import net.paymate.util.Safe;
+import net.paymate.util.*;
 import net.paymate.awtx.RealMoney;
+import net.paymate.lang.Value;
+import net.paymate.lang.StringX;
+import net.paymate.lang.ContentType;
 
 public class MoneyValue extends Value {
   RealMoney content;
@@ -24,7 +27,7 @@ public class MoneyValue extends Value {
 
   public boolean setto(String image){
     //should check for dp and truncate etc. +++
-    content.setto(Safe.parseLong(image));
+    content.setto(StringX.parseLong(image));
     return true; //+++ detect overflow
   }
 
@@ -33,7 +36,7 @@ public class MoneyValue extends Value {
   }
 
   public String toString(){
-    return content.toString();
+    return String.valueOf(content);
   }
 
   public long asLong(){
@@ -53,4 +56,4 @@ public class MoneyValue extends Value {
   }
 
 }
-//$Id: MoneyValue.java,v 1.1 2000/11/21 03:03:06 andyh Exp $
+//$Id: MoneyValue.java,v 1.4 2003/07/27 05:34:58 mattm Exp $

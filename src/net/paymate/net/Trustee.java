@@ -1,11 +1,12 @@
 package net.paymate.net;
 /**
-* Title:        Trustee
+* Title:        $Source: /cvs/src/net/paymate/net/Trustee.java,v $
 * Description:
-* Copyright:    2000 PayMate.net
+* Copyright:    2000-2002 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Trustee.java,v 1.23 2001/07/19 01:06:51 mattm Exp $
+* @version      $Id: Trustee.java,v 1.31 2003/07/27 05:35:12 mattm Exp $
+* @todo: use free memory or somesuch as part of seed.
 */
 
 import net.paymate.util.*;
@@ -18,23 +19,26 @@ import javax.net.*;
 import java.security.*;
 import javax.net.ssl.SSLSocketFactory;
 import java.security.cert.*;
-import com.sun.net.ssl.*;
 
 public class Trustee {
-  static final protected Tracer dbg=new Tracer(Trustee.class.getName());
+  static final protected Tracer dbg=new Tracer(Trustee.class);
 
-  static final public SSLContext makeContext(KeyStoreAccess keyStore){
-    SSLContext context=null;
+  static final public com.sun.net.ssl.SSLContext makeContext(){
+    return makeContext(new KeyStoreAxess());
+  }
 
-    X509TrustManager    the_trust ;
+  static final public com.sun.net.ssl.SSLContext makeContext(KeyStoreAxess keyStore){
+    com.sun.net.ssl.SSLContext context=null;
+
+    com.sun.net.ssl.X509TrustManager    the_trust ;
     X509Certificate[]   trusted   ;
-    TrustManager[]      trusts    ;
-    X509KeyManager      X509km    ;
+    com.sun.net.ssl.TrustManager[]      trusts    ;
+    com.sun.net.ssl.X509KeyManager      X509km    ;
     X509Certificate     cert[]    ;
-    KeyManager []       kma       ;
-    TrustManagerFactory trust_man ;
+    com.sun.net.ssl.KeyManager []       kma       ;
+    com.sun.net.ssl.TrustManagerFactory trust_man ;
     KeyStore            ks        ;
-    KeyManagerFactory   key_man   ;
+    com.sun.net.ssl.KeyManagerFactory   key_man   ;
 
     dbg.Enter("makeContext");
     try {
@@ -44,10 +48,10 @@ public class Trustee {
       dbg.logArray(dbg.VERBOSE, "Providers", java.security.Security.getProviders());
 
       dbg.mark("Get a context");
-      context=SSLContext.getInstance("SSL");//java.security.NoSuchAlgorithmException
+      context=com.sun.net.ssl.SSLContext.getInstance("SSL");//java.security.NoSuchAlgorithmException
 
       dbg.mark("Get TM Factory");
-      trust_man = TrustManagerFactory.getInstance("SunX509");//java.security.NoSuchAlgorithmException
+      trust_man = com.sun.net.ssl.TrustManagerFactory.getInstance("SunX509");//java.security.NoSuchAlgorithmException
 
       dbg.mark("Getting Keystore");
       ks = KeyStore.getInstance("JKS");//java.security.KeyStoreException
@@ -61,7 +65,7 @@ public class Trustee {
       trust_man.init(ks);//java.security.KeyStoreException
 
       dbg.mark("Get a SunX509 Key Manager factory");
-      key_man = KeyManagerFactory.getInstance("SunX509");//java.security.NoSuchAlgorithmException
+      key_man = com.sun.net.ssl.KeyManagerFactory.getInstance("SunX509");//java.security.NoSuchAlgorithmException
       dbg.VERBOSE("KeyManager algorithm is " + key_man.getAlgorithm());
 
       dbg.mark(" Initialize the Key Manager factory.");
@@ -71,20 +75,20 @@ public class Trustee {
       dbg.mark("Get all the trusts for this factory");
       trusts = trust_man.getTrustManagers();
       dbg.VERBOSE("Number of trusts is: " + trusts.length);
-      the_trust = (X509TrustManager)trusts[0];
+      the_trust = (com.sun.net.ssl.X509TrustManager)trusts[0];
       trusted = the_trust.getAcceptedIssuers();
 
       dbg.mark("Initialize the session context");
       for (int i=0; i<kma.length; i++){
-        X509km = (X509KeyManager) kma[i];
-        cert = X509km.getCertificateChain(keyStore.Alias);
+        X509km = (com.sun.net.ssl.X509KeyManager) kma[i];
+        cert = X509km.getCertificateChain(keyStore.Alias());//???always an emtpy string, what is it used for??
       }
       //net.paymate.util.timer.StopWatch sw = new net.paymate.util.timer.StopWatch(); // ---
       SecureRandom faster=SecureRandom.getInstance("SHA1PRNG");//java.security.NoSuchAlgorithmException
-      faster.setSeed(0xF018CB7EF28A391FL*Safe.utcNow());//
+      faster.setSeed(0xF018CB7EF28A391FL*DateX.utcNow());//
       context.init(kma, trusts, faster);//java.security.KeyManagementException
       //sw.Stop(); // ---
-      //dbg.Message("context.init(kma, trusts, ...); took " + net.paymate.util.Safe.millisToSecsPlus(sw.millis())  + " seconds."); // ---
+      //dbg.Message("context.init(kma, trusts, ...); took " + DateX.millisToSecsPlus(sw.millis())  + " seconds."); // ---
     }
     //+++ possible distinct catches are commented on in the code above.
     catch (Exception caught){
@@ -97,7 +101,5 @@ public class Trustee {
     }
   }
 
-
-
 }
-//$Id: Trustee.java,v 1.23 2001/07/19 01:06:51 mattm Exp $
+//$Id: Trustee.java,v 1.31 2003/07/27 05:35:12 mattm Exp $

@@ -4,7 +4,7 @@
  * Copyright:    2000, PayMate.net<p>
  * Company:      PayMate.net<p>
  * @author       PayMate.net
- * @version      $Id: URIQuery.java,v 1.4 2001/07/06 18:59:02 andyh Exp $
+ * @version      $Id: URIQuery.java,v 1.5 2002/01/30 05:24:26 andyh Exp $
  */
 
 package net.paymate.net;
@@ -21,9 +21,8 @@ public class URIQuery {
     this.props = props;
   }
 
-  public String toString() {
-    // this converts to a "URI-encoded" string (actually already partially URI)
-    return Safe.clipEOL(props.asRawParagraph(PARAMSEP, VALUESEP), PARAMSEP);
+  public String toString() {// this converts to a "URI-encoded" string (actually already partially URI)
+    return props.asRawParagraph(PARAMSEP, VALUESEP);//asRawPara fixed to not but a trailing EIL
   }
 
 }

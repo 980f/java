@@ -1,20 +1,16 @@
 /**
-* Title:        Pcx
+* Title:        $Source: /cvs/src/net/paymate/awtx/Pcx.java,v $
 * Description:
 * Copyright:    2000 PayMate.net
 * Company:      paymate
 * @author       paymate
-* @version      $Id: Pcx.java,v 1.9 2001/10/15 22:40:06 andyh Exp $
+* @version      $Id: Pcx.java,v 1.14 2003/12/08 22:45:40 mattm Exp $
 */
 package net.paymate.awtx;
 import net.paymate.util.ErrorLogStream;
 import net.paymate.jpos.awt.Raster;//wierd location
-
-import java.awt.Point;
-import java.awt.Dimension;
-
-import java.io.InputStream;
-import java.io.OutputStream;
+import net.paymate.awtx.*;
+import java.io.*;
 
 public class Pcx {
 
@@ -94,15 +90,15 @@ public class Pcx {
     return os;
   }
 
-  private static final ErrorLogStream dbg=new ErrorLogStream(Pcx.class.getName());
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(Pcx.class);
 
-  protected static final void assure(boolean assertion,String explanation,int actual){
+  protected static final void Assert(boolean assertion,String explanation,int actual){
     if(!assertion){
      dbg.WARNING(explanation+actual);
     }
   }
 
-  protected static final Raster decode(Dimension shape, InputStream is, int bytewidth) throws java.io.IOException {
+  protected static final Raster decode(XDimension shape, InputStream is, int bytewidth) throws java.io.IOException {
     Raster deck=new Raster(shape);
     int runner;
     int runLength;
@@ -139,20 +135,20 @@ public class Pcx {
     try {
       WordyInputStream wis=new WordyInputStream(is);
       int item;
-      assure((item=wis.unsigned8())==10,"header[0] !=10:",item);
-      assure((item=wis.unsigned8())>=5,"unknown version:",item);
-      assure((item=wis.unsigned8())==1,"should be 1:",item);
-      assure((item=wis.unsigned8())==1,"bits per pixel should be 1:",item);
-      Dimension outline=new XDimension(wis.point(),wis.point());
-      Dimension aspect=wis.dimension();
+      Assert((item=wis.unsigned8())==10,"header[0] !=10:",item);
+      Assert((item=wis.unsigned8())>=5,"unknown version:",item);
+      Assert((item=wis.unsigned8())==1,"should be 1:",item);
+      Assert((item=wis.unsigned8())==1,"bits per pixel should be 1:",item);
+      XDimension outline=new XDimension(wis.point(),wis.point());
+      XDimension aspect=wis.Xdimension();
       is.skip(3*16);//unused EGA/VGA palette
       is.skip(1);//ignore value of reserved items
-      assure((item=wis.unsigned8())==1,"#planes should be 1:",item);
+      Assert((item=wis.unsigned8())==1,"#planes should be 1:",item);
       int bytewidth=wis.u16();
       is.skip(1);// palette type code
-      Dimension shape=wis.dimension() ;
+      XDimension shape=wis.Xdimension() ;
       //compare shape to outline's dimensions
-      assure(outline.getSize().equals(shape),"inconsistent bounds and size",0);
+      Assert(outline.getSize().equals(shape),"inconsistent bounds and size",0);
       is.skip(54);//filler
       //header is complete
       ret = decode(shape,is,bytewidth);
@@ -164,4 +160,4 @@ public class Pcx {
   }
 
 }
-//$Id: Pcx.java,v 1.9 2001/10/15 22:40:06 andyh Exp $
+//$Id: Pcx.java,v 1.14 2003/12/08 22:45:40 mattm Exp $

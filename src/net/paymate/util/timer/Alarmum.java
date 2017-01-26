@@ -2,14 +2,15 @@ package net.paymate.util.timer;
 
 /**
  * Title:        $Source: /cvs/src/net/paymate/util/timer/Alarmum.java,v $
- * Description:  to replace timebomber concept with list based manager
+ * Description:  to share one thread for a bunch of wait-on-time instances.
  * Copyright:    Copyright (c) 2001
  * Company:      PayMate.net
  * @author PayMate.net
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.7 $
  */
 
 import net.paymate.util.*;
+import net.paymate.lang.ReflectX;
 
 public class Alarmum {
 /**
@@ -76,13 +77,13 @@ public class Alarmum {
    * for human display only, not totally reliable (may not be live)
    */
   int timeleft(){
-    return (int)(blowtime-Safe.utcNow());
+    return (int)(blowtime-DateX.utcNow());
   }
 
   Alarmum refuse(int fuse){
     ticks=fuse; //record f4debug
     defused= ticks<=0;
-    blowtime= defused? 0:ticks+Safe.utcNow();
+    blowtime= defused? 0:ticks+DateX.utcNow();
     return this;
   }
 
@@ -97,7 +98,7 @@ public class Alarmum {
   }
 
   public String toSpam(){
-    return "Ticking:"+isTicking()+" expires in:"+timeleft()+" type:"+dynamite.getClass().getName()+" "+dynamite.toString();
+    return "Ticking:"+isTicking()+" expires in:"+timeleft()+" type:"+ReflectX.shortClassName(dynamite)+" "+String.valueOf(dynamite);
   }
 
 }

@@ -1,9 +1,9 @@
-//$Id: FTstate.Enum,v 1.5 2001/10/15 22:40:27 andyh Exp $
-NoInfo
+//$Id: FTstate.Enum,v 1.7 2002/02/01 20:32:23 andyh Exp $
+NoInfo   
+WaitAdmin
 Incomplete
 WaitAuth
 WaitSig
-SigOnWire
 DoneGood
 DoneBad
- //$Id: FTstate.Enum,v 1.5 2001/10/15 22:40:27 andyh Exp $
+ //$Id: FTstate.Enum,v 1.7 2002/02/01 20:32:23 andyh Exp $
