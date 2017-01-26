@@ -13,7 +13,7 @@ import  net.paymate.util.*;
 import  net.paymate.util.timer.*;
 import  java.util.*;
 import  java.io.*;
-import  com.informix.jdbc.*; // IfmxStatement
+//kill retro support import  com.informix.jdbc.*; // IfmxStatement
 import  net.paymate.data.*; // UniqueId
 import  java.lang.reflect.Field; // for reflection of java.sql.Types class
 
@@ -257,15 +257,16 @@ public class DBMacros extends GenericDB {
         } catch (Exception e) {
           dbg.Caught(e);
         } finally {
-          if((stmt != null) && (id != null) && stmt instanceof IfmxStatement) {
-            IfmxStatement ifmxstmt = (IfmxStatement)stmt;
-            try {
-              id.setValue(ifmxstmt.getSerial()); // assumes it isn't supposed to be getSerial8(), so we need to deal with this +++
-            } catch (Exception eser) {
-              // swallow for now
-              dbg.Caught(eser);
-            }
-          }
+//kill informix
+//          if((stmt != null) && (id != null) && stmt instanceof IfmxStatement) {
+//            IfmxStatement ifmxstmt = (IfmxStatement)stmt;
+//            try {
+//              id.setValue(ifmxstmt.getSerial()); // assumes it isn't supposed to be getSerial8(), so we need to deal with this +++
+//            } catch (Exception eser) {
+//              // swallow for now
+//              dbg.Caught(eser);
+//            }
+//          }
           closeStmt(stmt);
         }
         dbg.Exit();
@@ -495,8 +496,7 @@ public class DBMacros extends GenericDB {
   * +++ extract the CSV stuff out of here and make a generic CSV report outputter
   *
   * @param tablename - the name of the table to backup
-  * @param path - The directory path (minus filename) of the location to place the backup.
-  */
+\  */
   public boolean backupTable(String tablename, PrintStream ps, long perRowSleepMs, Accumulator rows) {
     boolean okay = false;
     Statement st = null;
