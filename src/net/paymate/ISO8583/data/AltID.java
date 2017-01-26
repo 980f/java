@@ -8,6 +8,7 @@
 */
 package net.paymate.ISO8583.data;
 
+import net.paymate.data.AltIDType;
 import net.paymate.util.*;
 
 public class AltID implements isEasy {

@@ -36,6 +36,7 @@ public class ColumnProfile implements Comparable {
   public String ordinalPosition = "";
   private String isNullable = "";
   private boolean nullable = false;
+
   private String displayName = ""; // for what goes at the top of a column when displaying via webpages, etc
   private boolean autoIncrement = false;
 
@@ -91,6 +92,10 @@ public class ColumnProfile implements Comparable {
   public static final int     INT4LEN = 4; // duh!
   public static final int     CHARLEN = 1; // special PG datatype that is one char
   public static final int     BOOLLEN = 1; // assume one byte
+
+  public static final boolean ALLOWNULL=true;//strange that this was missing
+  public static final boolean NOAUTO=false;
+
   private static final int sizeForType(DBTypes type) {
     int ret = 0;
     switch(type.Value()) {

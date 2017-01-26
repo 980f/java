@@ -13,6 +13,7 @@ import net.paymate.data.UniqueId;
 import net.paymate.lang.StringX;
 import net.paymate.util.*;
 import net.paymate.util.codec.*;
+import net.paymate.util.codec.CipherP86B2;
 
 public class DataCrypt {
   public DataCrypt() {

@@ -20,7 +20,7 @@ import net.paymate.util.*;
 import net.paymate.data.*;
 import net.paymate.connection.*;
 import net.paymate.awtx.*; //user interaction classes
-import net.paymate.ISO8583.data.*;//saletype , transfertype and friends
+//import net.paymate.ISO8583.data.*;//saletype , transfertype and friends
 
 import net.paymate.*;
 import net.paymate.util.timer.*;
@@ -34,7 +34,7 @@ import javax.net.ssl.*;
 
 public class IPTerminal extends Thread implements ThreadReporter,AtExit {
 
-  static final protected ErrorLogStream dbg=new ErrorLogStream(IPTerminal.class.getName());
+  static final protected ErrorLogStream dbg=ErrorLogStream.getForClass(IPTerminal.class);
   ///////////////////
   // stop thread safely
   boolean safeStop=false;

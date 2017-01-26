@@ -11,6 +11,7 @@
  */
 
 package net.paymate.awtx.print;
+import net.paymate.awtx.XDimension;
 import  net.paymate.jpos.Terminal.LinePrinter;
 import  java.io.OutputStream;
 import  java.io.IOException;
@@ -18,7 +19,8 @@ import  java.awt.Color;
 import  java.awt.Graphics;
 import  java.awt.Font;
 import  java.awt.FontMetrics;
-import  java.awt.Dimension;
+//import  java.awt.Dimension;
+import net.paymate.awtx.XDimension2D;
 import  net.paymate.util.*;
 import  net.paymate.jpos.awt.Hancock;
 import  net.paymate.jpos.awt.Raster;
@@ -32,7 +34,7 @@ import  com.eteks.awt.*;
 
 abstract public class ImageModel extends PrinterModel {
 
-  protected static final ErrorLogStream dbg = new ErrorLogStream(ImageModel.class.getName(), ErrorLogStream.VERBOSE);
+  protected static final ErrorLogStream dbg = ErrorLogStream.getForClass(ImageModel.class, ErrorLogStream.VERBOSE);
 
   // need 10 pixels on top, bottom and sides as a buffer, at least
   protected static final int left = 10;
@@ -78,9 +80,9 @@ abstract public class ImageModel extends PrinterModel {
       double multiplicand = (1.0 * lp.Aspect.width / lp.Aspect.height) * (1.0 * lp.sigBox.height / lp.sigBox.width);
       // +++ might be better (show more detail): double multiplicand = .25;
       sigBoxHeight = signature ? (int)(multiplicand * rasterWidth) : 0;
-      sigBox= new Dimension(signature ? rasterWidth : 0,sigBoxHeight);//72nds of an inch
+      sigBox= new XDimension(signature ? rasterWidth : 0,sigBoxHeight);//72nds of an inch
       gWidth = rasterWidth + left + right;
-      Aspect = new Dimension(1, 1); // undo what referencing the Scribe612 did (sigh)
+      Aspect = new XDimension(1, 1); // undo what referencing the Scribe612 did (sigh)
   }
 
 /**

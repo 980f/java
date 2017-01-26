@@ -11,6 +11,8 @@ package net.paymate.authorizer.cardSystems;
 
 import java.io.*;
 import java.net.*;
+
+import net.paymate.data.VisaBuffer;
 import net.paymate.net.*;
 import net.paymate.util.*;
 import net.paymate.util.timer.*;
@@ -18,7 +20,7 @@ import net.paymate.authorizer.*;
 
 public class InBlockedSocket implements Runnable/*, TimeBomb */{
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(InBlockedSocket.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(InBlockedSocket.class);
 
   private boolean bCanSendRecords;
   private Authorizer handler = null;

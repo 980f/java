@@ -27,7 +27,7 @@ public class BackupJob {
  * even though the BackupAgent's thread is what runs through it.
  */
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(BackupJob.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(BackupJob.class);
   private Date reqTime = null;
   private String reqWho = null;
   private String backupPath = null;

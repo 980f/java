@@ -22,7 +22,7 @@ import net.paymate.jpos.data.*;
 import net.paymate.ISO8583.data.*;
 
 public class MAuthRec {
-  private static final ErrorLogStream dbg = new ErrorLogStream(MAuthRec.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.get(MAuthRec.class.getName());
 
 /*
 // according to SteveAdcock, they don't use this

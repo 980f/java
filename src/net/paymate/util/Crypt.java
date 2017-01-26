@@ -31,7 +31,7 @@ Allan
 
 public class Crypt {
 
-  private static final ErrorLogStream dbg = new ErrorLogStream(Crypt.class.getName());
+  private static final ErrorLogStream dbg = ErrorLogStream.getForClass(Crypt.class);
 
   static {
 ///    Security.addProvider(new com.sun.crypto.provider.SunJCE());

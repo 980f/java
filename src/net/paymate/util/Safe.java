@@ -8,11 +8,11 @@ package net.paymate.util;
 * @version      $Id: Safe.java,v 1.106 2001/11/17 06:16:59 mattm Exp $
 */
 
+import net.paymate.util.Ticks;
+
 import java.text.*;
 import java.util.*;
 import java.io.*;
-
-import net.paymate.util.timer.*;
 
 public class Safe {
   // not a good idea to have a dbg in here --- see preLoadClass
@@ -89,7 +89,7 @@ public class Safe {
         fos.flush(); //to make this like C
         fos.close();
       } catch (Exception tfos) {
-        ErrorLogStream.Debug.Caught(tfos);
+        ErrorLogStream.Global().Caught(tfos);
         return false;
       }
     }
@@ -857,7 +857,7 @@ public class Safe {
 
   public static void setSystemClock(long millsfromepoch){ //exec something to set the system clock
     String forlinuxdateprogram=LinuxDateCommand.format(new Date(millsfromepoch));
-    ErrorLogStream.Debug.ERROR("setting time to:"+forlinuxdateprogram);
+    ErrorLogStream.Global().ERROR("setting time to:"+forlinuxdateprogram);
     String progname= OS.isUnish()?"setClock ":"setClock.bat ";
     // Executor.runProcess("date -s -u "+busybox.format(now),"fixing clock",0,0,null,false);
     Executor.ezExec(progname+forlinuxdateprogram,0);

@@ -8,12 +8,12 @@ package net.paymate.web;
  * @version      $Id: LoginInfo.java,v 1.52 2004/01/31 01:07:56 mattm Exp $
  */
 
-import  net.paymate.web.color.*;
+import net.paymate.web.color.*;
 import net.paymate.util.*;
 import net.paymate.data.*; // ID's
 import net.paymate.database.*; // until SS2
 import net.paymate.lang.StringX;
-import  net.paymate.connection.*;
+import net.paymate.connection.*;
 import net.paymate.data.sinet.business.*;
 
 public class LoginInfo {
