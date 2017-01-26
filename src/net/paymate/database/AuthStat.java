@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/database/AuthStat.Enum]
 package net.paymate.database;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class AuthStat extends TrueEnum {

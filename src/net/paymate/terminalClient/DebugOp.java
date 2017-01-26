@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/terminalClient/DebugOp.Enum]
 package net.paymate.terminalClient;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class DebugOp extends TrueEnum {

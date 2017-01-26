@@ -12,6 +12,9 @@ import  java.sql.*;
 import  java.util.*;
 import  java.io.*;
 import  java.lang.reflect.Field; // for reflection of java.sql.Types class
+
+import net.paymate.lang.Bool;
+import net.paymate.lang.Fstring;
 import  net.paymate.util.*;
 import  net.paymate.util.timer.*;
 import net.paymate.io.*;

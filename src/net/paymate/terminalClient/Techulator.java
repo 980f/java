@@ -19,7 +19,7 @@ import net.paymate.lang.StringX;
 
 class delayedAction {
  /**
-  * enum of things that are time delayed
+  * ennum of things that are time delayed
   */
   final static int sendEnq=0;
   final static int hangup=1;

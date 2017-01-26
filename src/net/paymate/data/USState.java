@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/data/USState.Enum]
 package net.paymate.data;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class USState extends TrueEnum {

@@ -28,7 +28,7 @@ import net.paymate.lang.ObjectX;
  * 3. For each file, check to see if .java and .class have same date/time (this is an assumption on my part). If not, mark the PACKAGE as stale.
  * 4. For each PACKAGE modified, scan all other PACKAGES that imported that package or have direct references into it and mark them as stale (recurse)
  * 5. Finally, make a list of all java files in all stale packages & call javac with that list
- * 6. The enum generator should stamp the time on a generated java file with the time of the enum file.
+ * 6. The ennum generator should stamp the time on a generated java file with the time of the ennum file.
  * create javadocs
  * maybe create manifest (although probably not needed)
  */

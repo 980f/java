@@ -76,10 +76,10 @@ public class Parameters implements isEasy, Key {
   }
 
 
-  public static int parseFlow(String enum){
-    if(StringX.NonTrivial(enum)){
-      if(enum.equalsIgnoreCase("hard")) return FLOWCONTROL_RTSCTS_OUT+FLOWCONTROL_RTSCTS_IN;
-      if(enum.equalsIgnoreCase("soft")) return FLOWCONTROL_XONXOFF_OUT+FLOWCONTROL_XONXOFF_IN;
+  public static int parseFlow(String ennum){
+    if(StringX.NonTrivial(ennum)){
+      if(ennum.equalsIgnoreCase("hard")) return FLOWCONTROL_RTSCTS_OUT+FLOWCONTROL_RTSCTS_IN;
+      if(ennum.equalsIgnoreCase("soft")) return FLOWCONTROL_XONXOFF_OUT+FLOWCONTROL_XONXOFF_IN;
     }
     return FLOWCONTROL_NONE;
   }

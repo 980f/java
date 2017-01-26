@@ -10,7 +10,7 @@ package net.paymate.terminalClient;
 
 import net.paymate.connection.*;
 import net.paymate.util.*;
-import net.paymate.data.*;
+import net.paymate.data.ClerkPrivileges;
 
 public class Clerk implements isEasy {
   ErrorLogStream dbg;

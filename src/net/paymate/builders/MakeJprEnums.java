@@ -39,7 +39,7 @@ public class MakeJprEnums {
         // +++ get a function to do this !!! (replace/replace/etc)
         enummaker.GenerateFromFile();
       } catch (Exception e) {
-        dbg.ERROR("Exception making enum " + enumfile + " - " + e);
+        dbg.ERROR("Exception making ennum " + enumfile + " - " + e);
         totallySuccessful = false;
       }
     }
@@ -71,7 +71,7 @@ public class MakeJprEnums {
           } break;
           case StreamTokenizer.TT_WORD:{
             if(state == 3) {
-              // is either a loose file or a package; just get our enum files
+              // is either a loose file or a package; just get our ennum files
               if(((String)st.sval).indexOf(dotenum) > -1) {
                 String str = (String)st.sval;
                 v.add(str.replace('\\',File.separatorChar).replace('/',File.separatorChar));

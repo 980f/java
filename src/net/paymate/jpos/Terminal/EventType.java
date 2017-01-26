@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/jpos/Terminal/EventType.Enum]
 package net.paymate.jpos.Terminal;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class EventType extends TrueEnum {

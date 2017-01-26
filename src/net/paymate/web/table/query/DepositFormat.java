@@ -25,7 +25,7 @@ public class DepositFormat extends RecordFormat {
   private static final ErrorLogStream dbg = ErrorLogStream.getForClass(DepositFormat.class);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef[(new DepositFormatEnum()).numValues()];
-  static { // keeping these separate makes it easier to keep their order straight // order is set in the enum, nowhere else
+  static { // keeping these separate makes it easier to keep their order straight // order is set in the ennum, nowhere else
     theHeaders[DepositFormatEnum.terminalNameCol]    = new HeaderDef(AlignType.LEFT , "Terminal");
     theHeaders[DepositFormatEnum.lastClosedTimeCol]  = new HeaderDef(AlignType.LEFT , "Time");
     theHeaders[DepositFormatEnum.authorizerNameCol]  = new HeaderDef(AlignType.LEFT , "Settler");

@@ -17,7 +17,7 @@ import  net.paymate.web.page.*; // Acct
 import  java.sql.*; // resultset
 import  org.apache.ecs.*; // element
 import  org.apache.ecs.html.*; // various html elements
-// for the enum:
+// for the ennum:
 import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 

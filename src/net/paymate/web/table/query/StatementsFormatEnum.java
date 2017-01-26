@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/web/table/query/StatementsFormatEnum.Enum]
 package net.paymate.web.table.query;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class StatementsFormatEnum extends TrueEnum {

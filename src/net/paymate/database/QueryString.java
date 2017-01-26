@@ -692,8 +692,8 @@ import net.paymate.lang.ObjectX;
       }
       // validate the property names with the fields to ensure insertion of at least SOME data?
       boolean first = true;
-      for(Enumeration enum = toInsert.propertyNames(); enum.hasMoreElements();) {
-        String name = (String)enum.nextElement();
+      for(Enumeration ennum = toInsert.propertyNames(); ennum.hasMoreElements();) {
+        String name = (String)ennum.nextElement();
         ColumnProfile column = table.column(name);
         if(column == null) {
           dbg.ERROR("Insert(): field " + name + " not found in table " + table.name() + "!");
@@ -728,8 +728,8 @@ import net.paymate.lang.ObjectX;
     // loop through the properties and set them
     // validate the property names with the fields to ensure insertion of at least SOME data?
     boolean first = true;
-    for (Enumeration enum = toUpdate.propertyNames(); enum.hasMoreElements(); ) {
-      String name = (String) enum.nextElement();
+    for (Enumeration ennum = toUpdate.propertyNames(); ennum.hasMoreElements(); ) {
+      String name = (String) ennum.nextElement();
       ColumnProfile column = table.column(name);
       if (column == null) {
         dbg.ERROR("Update(): field " + name + " not found in table " +

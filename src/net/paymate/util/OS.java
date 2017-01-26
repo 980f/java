@@ -39,7 +39,7 @@ public class OS  {
       os = new OsEnum();//class contains this one instance of itself
       String oser = System.getProperty("os.name", "");// let'd not do this so we don't have to refer OUT of util -> StringX.replace(Main.props("os").getString("name"), " ", "");
       //the above change hosed Andy's system's ability to use a keyspan. Thank you very much. If you can't stand the linkage then copy the code locally.
-      //what alh did was to uncouple the text of the enumeration from the recognition string. we can onw change the enum text to whatever we wish.
+      //what alh did was to uncouple the text of the enumeration from the recognition string. we can onw change the ennum text to whatever we wish.
       for(int osi=signature.length;osi-->0;){
         if (oser.indexOf(signature[osi]) >= 0){
           os.setto(osi);

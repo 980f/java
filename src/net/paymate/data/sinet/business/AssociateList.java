@@ -20,10 +20,10 @@ public class AssociateList extends EntityList {
 
   public Associate [ ] getAll() {
     Associate [ ] ret = new Associate[size()];
-    Enumeration enum = entities();
+    Enumeration ennum = entities();
     for(int i = ret.length; i-->0;) {
       try {
-        ret[i] = (Associate) enum.nextElement();
+        ret[i] = (Associate) ennum.nextElement();
       } catch (Exception ex) {
         // +++
       }

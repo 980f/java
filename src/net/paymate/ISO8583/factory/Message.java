@@ -8,7 +8,7 @@ import net.paymate.data.ContentValid;
 import net.paymate.awtx.RealMoney;
 import net.paymate.ISO8583.data.*;
 import net.paymate.util.ErrorLogStream;//debug
-import net.paymate.util.Bool;//bitmapmanip
+import net.paymate.lang.Bool;//bitmapmanip
 import net.paymate.util.Safe;//java's own throws exceptions on negative longs
 import net.paymate.util.TextList;
 
@@ -21,7 +21,7 @@ import java.util.*;
 
 public class Message
 {
-  private static final ErrorLogStream dbg=new ErrorLogStream(Message.class.getName(), ErrorLogStream.WARNING);
+  private static final ErrorLogStream dbg=ErrorLogStream.getForClass(Message.class, ErrorLogStream.WARNING);
   public Protocol protocol=new LegacyProtocol();//@@@ hack, need a new constructor.
 
   public int Type;//100,200,400,800

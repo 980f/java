@@ -22,10 +22,10 @@ public class StoreList extends EntityList {
 
   public Store [ ] getAll() {
     Store [ ] ret = new Store[size()];
-    Enumeration enum = entities();
+    Enumeration ennum = entities();
     for(int i = ret.length; i-->0;) {
       try {
-        ret[i] = (Store) enum.nextElement();
+        ret[i] = (Store) ennum.nextElement();
       } catch (Exception ex) {
         // +++
       }

@@ -173,8 +173,8 @@ public abstract class SessionedServlet extends HttpServlet {
 
   protected static EasyProperties httpServletRequest2EasyProperties(HttpServletRequest req) {
     EasyProperties ezc = new EasyProperties();
-    for(Enumeration enum = req.getParameterNames(); enum.hasMoreElements();) {
-      String name = (String)enum.nextElement();
+    for(Enumeration ennum = req.getParameterNames(); ennum.hasMoreElements();) {
+      String name = (String)ennum.nextElement();
       if(name != null) {
         String value = req.getParameter(name);
         ezc.setString(name, value);
@@ -235,8 +235,8 @@ class SystemStarter implements Runnable {
     try {
       cursor = new EasyCursor();
       if(config != null) {
-        for(Enumeration enum = config.getInitParameterNames(); enum.hasMoreElements();) {
-          String name = (String)enum.nextElement();
+        for(Enumeration ennum = config.getInitParameterNames(); ennum.hasMoreElements();) {
+          String name = (String)ennum.nextElement();
           String value = (String)config.getInitParameter(name);
           cursor.setString(name, value);
         }

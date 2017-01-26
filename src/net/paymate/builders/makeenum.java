@@ -149,7 +149,7 @@ public class makeenum {//read a file of strings, make an enumeration out of them
 
       // see if we NEED the onechar stuff
       boolean needOnechars = false;
-      // see if it is specified in the enum file well
+      // see if it is specified in the ennum file well
       boolean goodOnechars = true;
       for(i=0; i<oneChars.size(); i++) {
         String onechar = oneChars.itemAt(i);
@@ -165,7 +165,7 @@ public class makeenum {//read a file of strings, make an enumeration out of them
         if(!goodOnechars) {
           dbg.ERROR("Error: onechar array for " + enumName +
                     " is sparse, so can't build it.  Be sure to set all values = to some char! "+
-                    "Omitting onechar code from enum.");
+                    "Omitting onechar code from ennum.");
         } else {
           javacode.println(
               "  private static final char [ ] oneCharArray = new char[ ] {");
@@ -228,7 +228,7 @@ public class makeenum {//read a file of strings, make an enumeration out of them
       javacode.println("  public "+enumName+"("+enumName+" rhs){");
       javacode.println("    this(rhs.Value());"); // +++ this could BLOW! Do in super?
       javacode.println("  }");
-      //lost the value of setto(enum) of TrueENum to unreliable class detection.
+      //lost the value of setto(ennum) of TrueENum to unreliable class detection.
 
       javacode.println("  public "+enumName+" setto("+enumName+" rhs){");
       javacode.println("    setto(rhs.Value());"); // +++ this could BLOW! Do in super?
@@ -306,7 +306,7 @@ public class makeenum {//read a file of strings, make an enumeration out of them
       enummaker.GenerateFromFile();
       return true;
     } catch (Exception e) {
-      dbg.ERROR("Exception making enum " + enumFileName + " - " + e);
+      dbg.ERROR("Exception making ennum " + enumFileName + " - " + e);
       return false;
     }
   }

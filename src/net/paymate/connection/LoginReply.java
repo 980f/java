@@ -1,5 +1,6 @@
 /* $Id: LoginReply.java,v 1.24 2003/08/15 23:04:57 andyh Exp $ */
 package net.paymate.connection;
+import net.paymate.data.ClerkPrivileges;
 import net.paymate.util.*;
 import net.paymate.terminalClient.*;
 import net.paymate.data.*;
@@ -36,7 +37,7 @@ public class LoginReply extends ActionReply implements isEasy {
     setCaps(ezp);
   }
 
-//  // is this function necessary? FUE +_+ use enum
+//  // is this function necessary? FUE +_+ use ennum
 //  public LoginReply(/*ActionReplyStatus*/ int newStatus) {
 //    super(newStatus);
 //  }

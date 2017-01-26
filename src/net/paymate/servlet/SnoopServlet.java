@@ -53,16 +53,16 @@ public class SnoopServlet extends HttpServlet {
   	out.println (HttpUtils.getRequestURL (req).toString ());
   	out.println("</pre>");
 
-  	Enumeration enum = getServletConfig().getInitParameterNames();
-    if (enum != null) {
+  	Enumeration ennum = getServletConfig().getInitParameterNames();
+    if (ennum != null) {
       boolean first = true;
-  	  while (enum.hasMoreElements()) {
+  	  while (ennum.hasMoreElements()) {
   		  if (first) {
   	      out.println("<h1>Init Parameters</h1>");
   	      out.println("<pre>");
   		    first = false;
         }
-  		  String param = (String) enum.nextElement();
+  		  String param = (String) ennum.nextElement();
         out.println(" "+param+": "+getInitParameter(param));
       }
   	  out.println("</pre>");

@@ -26,7 +26,7 @@ public class Field54 {
     StringBuffer packed= new StringBuffer();
     packed.setLength(20);
 
-    first.setto(Type); //+_+ recode from some enum
+    first.setto(Type); //+_+ recode from some ennum
     second.setto(isCashBack?40:2);
     //third is set at construction and never modfied
     fourth.setto(cents.toString());

@@ -13,7 +13,7 @@ receiptGet
 receiptStore
 stoodin
 store
-unknown  //handy to have as an enum value, versus having to check if object is ok.
+unknown  //handy to have as an ennum value, versus having to check if object is ok.
 update
 //discovered this is an attribute of a sale. force
 /$Id: ActionType.Enum,v 1.26 2003/08/04 22:23:48 andyh Exp $

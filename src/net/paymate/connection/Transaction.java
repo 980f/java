@@ -43,6 +43,7 @@ package net.paymate.connection;
 //voidtransaction // whether a txn is voided
 */
 
+import net.paymate.data.TerminalInfo;
 import  net.paymate.database.*;
 import  net.paymate.database.ours.query.*; // Tranjour
 import  net.paymate.web.UserSession;

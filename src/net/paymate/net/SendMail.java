@@ -216,11 +216,11 @@ public class SendMail extends net.paymate.util.Service implements Runnable, Time
 
   public final Message[] list() {
     Message[] list = null;
-    Enumeration enum = mailings.elements();
+    Enumeration ennum = mailings.elements();
     Vector lister = new Vector();
-    while (enum.hasMoreElements()) {
+    while (ennum.hasMoreElements()) {
       try {
-        String key = (String) enum.nextElement();
+        String key = (String) ennum.nextElement();
         Message mailing = (Message) mailings.get(key);
         lister.add(mailing);
       } catch (Exception ex) {
@@ -427,8 +427,8 @@ public class SendMail extends net.paymate.util.Service implements Runnable, Time
 
   // +++ create a web interface to this !!!
   public synchronized void empty() {
-    for(Enumeration enum = mailings.keys(); enum.hasMoreElements();) {
-      mailings.remove(enum.nextElement());
+    for(Enumeration ennum = mailings.keys(); ennum.hasMoreElements();) {
+      mailings.remove(ennum.nextElement());
     }
   }
 
@@ -505,8 +505,8 @@ class SendMailBoxes {
   public String size() {
     int boxcount = 0;
     int mailcount = 0;
-    for(SendMailBoxesEnumeration enum = elements(); enum.hasMoreElements();) {
-      SendMailBox smb = enum.nextSMB();
+    for(SendMailBoxesEnumeration ennum = elements(); ennum.hasMoreElements();) {
+      SendMailBox smb = ennum.nextSMB();
       boxcount++;
       mailcount += smb.size();
     }
@@ -515,14 +515,14 @@ class SendMailBoxes {
 }
 class SendMailBoxesEnumeration implements java.util.Enumeration {
   public SendMailBoxesEnumeration(Enumeration objects) {
-    enum = objects;
+    ennum = objects;
   }
-  Enumeration enum = null;
+  Enumeration ennum = null;
   public boolean hasMoreElements() {
-    return enum.hasMoreElements();
+    return ennum.hasMoreElements();
   }
   public Object nextElement() {
-    return enum.nextElement();
+    return ennum.nextElement();
   }
   public SendMailBox nextSMB() {
     return (SendMailBox)nextElement();

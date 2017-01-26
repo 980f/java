@@ -24,7 +24,7 @@ public class ColumnProfile implements Comparable {
   private String columnName = "";
 //  public String dataType        = "";
 //  public String typeName       = "";
-  private DBTypesFiltered type; //ugly name, when wrapping an enum give the enum an ugly name!
+  private DBTypesFiltered type; //ugly name, when wrapping an ennum give the ennum an ugly name!
   private String columnSize = "";
   private int size = -1; // +++ enforce restrictions?
   public String decimalDigits = "";

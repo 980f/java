@@ -133,8 +133,8 @@ class SocketProxyAgentList implements Runnable {
 
   public void report() {
     dbg.WARNING(name + " LISTING agents ...");
-    for(Enumeration enum = pool.elements(); enum.hasMoreElements(); ) {
-      SocketProxyAgent agent = (SocketProxyAgent)enum.nextElement();
+    for(Enumeration ennum = pool.elements(); ennum.hasMoreElements(); ) {
+      SocketProxyAgent agent = (SocketProxyAgent)ennum.nextElement();
       report(agent, "LIST", agent.lifetime());
     }
     dbg.WARNING(name + " agents LISTED.");

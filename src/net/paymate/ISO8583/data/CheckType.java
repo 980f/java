@@ -1,8 +1,8 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/ISO8583/data/CheckType.Enum]
 package net.paymate.ISO8583.data;
 
-import net.paymate.util.TrueEnum;
-import net.paymate.util.TextList;
+import net.paymate.lang.TrueEnum;
+//import net.paymate.util.TextList;
 
 public class CheckType extends TrueEnum {
   public final static int Personal  =0;
@@ -12,8 +12,8 @@ public class CheckType extends TrueEnum {
   public final static int Business  =4;
 
   public int numValues(){ return 5; }
-  private static final TextList myText = TrueEnum.nameVector(CheckType.class);
-  protected final TextList getMyText() {
+  private static final String[] myText = TrueEnum.nameVector(CheckType.class);
+  protected final String[] getMyText() {
     return myText;
   }
   public static final CheckType Prop=new CheckType();

@@ -17,8 +17,8 @@ public class Xml {
     StringBuffer sb=new StringBuffer(10+20*attribs.size());
     sb.append(" <");
     sb.append(token);
-    for(Enumeration enum=attribs.keys();enum.hasMoreElements();){
-      String key=(String)enum.nextElement();
+    for(Enumeration ennum=attribs.keys();ennum.hasMoreElements();){
+      String key=(String)ennum.nextElement();
       String property=attribs.getString(key);
       sb.append(quoted(key,property));//+++ only if trivial or includes whitespace
     }

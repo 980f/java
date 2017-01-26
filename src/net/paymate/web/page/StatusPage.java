@@ -46,7 +46,7 @@ public class StatusPage extends Document implements Entities {
     String revdisp = rev + ((rev.indexOf(net.paymate.Revision.WIPSTR) == -1) ? (" - " + net.paymate.Revision.jarSize()) : "");
     ec.addElement(new Center(new H2(title).addElement(" ["+revdisp+"]")))
       .addElement(PayMatePage.BRLF)
-      .addElement(new AuthorizersFormat(colors, conn.authmgr, buagent, mailer, statter, conn.receiptFilePath, "Services", session.getSessionContext()))
+//oldcode-new ConnectionServer?I think receipts moved into the database instead of being kept outside and potentially deleted      .addElement(new AuthorizersFormat(colors, conn.authmgr, buagent, mailer, statter, conn.receiptFilePath, "Services", session.getSessionContext()))
       .addElement(PayMatePage.BRLF);
 
     ec.addElement(new RunTimeFormat(colors, "RunTime"))

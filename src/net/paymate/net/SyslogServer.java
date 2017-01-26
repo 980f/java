@@ -70,11 +70,11 @@ public class SyslogServer extends UDPServer {
   public String info() {
     String ips = "";
     int count = 0;
-    for(Enumeration enum = list.keys(); enum.hasMoreElements(); ) {
+    for(Enumeration ennum = list.keys(); ennum.hasMoreElements(); ) {
       if(count > 0) {
         ips += ", ";
       }
-      ips += (String)enum.nextElement();
+      ips += (String)ennum.nextElement();
       count++;
     }
     return "Heartbeat.  Has " + count + " ip's listed: "+ips;

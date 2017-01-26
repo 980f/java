@@ -9,6 +9,7 @@ package net.paymate.authorizer;
  * @version $Revision: 1.5 $
  */
 
+import net.paymate.data.VisaBuffer;
 import net.paymate.util.*;
 
 public class VisaL0Response {

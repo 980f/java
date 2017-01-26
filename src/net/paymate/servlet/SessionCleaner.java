@@ -63,8 +63,8 @@ public class SessionCleaner extends Service {
     int i = 0;
     HttpSessionContext [] contexts = getContexts();
     for(int ci = contexts.length; ci-->0;) {
-      for(Enumeration enum = contexts[ci].getIds(); enum.hasMoreElements();i++) {
-        enum.nextElement();
+      for(Enumeration ennum = contexts[ci].getIds(); ennum.hasMoreElements();i++) {
+        ennum.nextElement();
       }
     }
     return ""+i;

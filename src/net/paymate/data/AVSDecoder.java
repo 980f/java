@@ -83,9 +83,9 @@ public class AVSDecoder {
    */
 
   public static String AVSmessage(Institution issuer,int avscode) {
-    TrueEnum enum = enumForAvsCode(issuer,(char)avscode);
-    if(TrueEnum.IsLegal(enum)) {
-      return StringX.replace(StringX.replace(enum.Image(), "__", ", "), "_", " ");
+    TrueEnum ennum = enumForAvsCode(issuer,(char)avscode);
+    if(TrueEnum.IsLegal(ennum)) {
+      return StringX.replace(StringX.replace(ennum.Image(), "__", ", "), "_", " ");
     }
     return "Unknown code or issuer";
   }
@@ -97,9 +97,9 @@ public class AVSDecoder {
   public static String AVSDecode(String twochar,String response) {
     Institution issuer=CardIssuer.getFrom2(twochar);
     char avscode = StringX.firstChar(response);
-    TrueEnum enum = enumForAvsCode(issuer,avscode);
-    if(TrueEnum.IsLegal(enum)) {
-      return " " + StringX.replace(StringX.replace(enum.Image(), "__", ", "), "_", " ");
+    TrueEnum ennum = enumForAvsCode(issuer,avscode);
+    if(TrueEnum.IsLegal(ennum)) {
+      return " " + StringX.replace(StringX.replace(ennum.Image(), "__", ", "), "_", " ");
     } else {
       return twochar+StringX.bracketed(" AVS response is [",response);
     }

@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/ISO8583/data/EntrySource.Enum]
 package net.paymate.ISO8583.data;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class EntrySource extends TrueEnum {

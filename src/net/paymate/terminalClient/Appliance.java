@@ -16,6 +16,7 @@ import net.paymate.connection.*;
 import net.paymate.data.TerminalInfo;
 import net.paymate.io.IOX;
 import net.paymate.lang.*;
+import net.paymate.lang.TrueEnum;
 import net.paymate.net.*;
 import net.paymate.util.*;
 import net.paymate.util.timer.Alarmer;
@@ -496,14 +497,14 @@ public class Appliance implements LineServerUser, CnxnUser, ConnectionCallback, 
     return new ExitCode(exitCode).Image();
   }
 
-  static final void dumpEnumOptions(TrueEnum enum, String title, TextList tl) {
+  static final void dumpEnumOptions(TrueEnum ennum, String title, TextList tl) {
     tl.add(title + " options:");
-//    tl.appendMore(enum.dump("  "));
-    tl.add(enum.dump("  ", "")); // @andy@ +++ this will now have bugs !!!
+//    tl.appendMore(ennum.dump("  "));
+    tl.add(ennum.dump("  ", "")); // @andy@ +++ this will now have bugs !!!
   }
 
-  static final boolean validEnumOption(TrueEnum enum, String parameter, String cmd, TextList responses) {
-    boolean stat = enum.isLegal();
+  static final boolean validEnumOption(TrueEnum ennum, String parameter, String cmd, TextList responses) {
+    boolean stat = ennum.isLegal();
     if(!stat) {
       // check to see if it could be numeric instead
       int pint = StringX.parseInt(parameter);
@@ -512,14 +513,14 @@ public class Appliance implements LineServerUser, CnxnUser, ConnectionCallback, 
           pint = TrueEnum.Invalid();
         }
       }
-      enum.setto(pint);
-      stat = enum.isLegal();
+      ennum.setto(pint);
+      stat = ennum.isLegal();
     }
     if(!stat) {
       if(!parameter.equals("?") && !parameter.equals("")) {
         responses.add("Option '" + parameter + "' not valid for command '" + cmd + "'.");
       }
-      dumpEnumOptions(enum, cmd, responses);
+      dumpEnumOptions(ennum, cmd, responses);
     }
     return stat;
   }

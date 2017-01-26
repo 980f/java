@@ -7,6 +7,17 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="ecs-1.4.2" level="project" />
+    <orderEntry type="library" name="ecs-1.3.2" level="project" />
+    <orderEntry type="library" name="comm" level="project" />
+    <orderEntry type="library" name="jcert" level="project" />
+    <orderEntry type="library" name="jnet" level="project" />
+    <orderEntry type="library" name="jpos14ic" level="project" />
+    <orderEntry type="library" name="javax.mail" level="project" />
+    <orderEntry type="library" name="servlet-api" level="project" />
+    <orderEntry type="library" name="pg73jdbc1" level="project" />
+    <orderEntry type="library" name="eteks" level="project" />
+    <orderEntry type="library" name="xercesImpl" level="project" />
+    <orderEntry type="library" name="hypercom" level="project" />
+    <orderEntry type="library" name="pg73jdbc3" level="project" />
   </component>
 </module>

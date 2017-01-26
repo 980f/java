@@ -33,9 +33,9 @@ public class DnsServer {
   public List lookup(String name, String type) throws NamingException {
     List rtn = new LinkedList();
     Attributes attrs = ctx.getAttributes(name, new String[]{type});
-    Enumeration enum = attrs.getAll();
-    while (enum.hasMoreElements()) {
-      Attribute at = (Attribute)enum.nextElement();
+    Enumeration ennum = attrs.getAll();
+    while (ennum.hasMoreElements()) {
+      Attribute at = (Attribute)ennum.nextElement();
       Enumeration enum2 = at.getAll();
       while (enum2.hasMoreElements()) {
         String s = (String)enum2.nextElement();

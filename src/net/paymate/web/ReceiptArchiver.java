@@ -28,6 +28,7 @@ package net.paymate.web;
  *                   /234567.html ... link goes to ../txns/*.html instead of a webpost
  */
 
+import net.paymate.io.LogFile;
 import net.paymate.web.page.*;
 import net.paymate.web.color.*;
 import net.paymate.web.*;
@@ -60,7 +61,7 @@ public class ReceiptArchiver implements PerTxnListener {
   // extensions
   private static final String htmlExtension = ".html";
   private static final String pngExtension  = ".png";
-  // paths - absolute really means relative from the store directory !!!
+  // paths - absolute really means relative from the store directoryï¿½!!!
   private static final String absoluteTxnPath    = "txn/";
   private static final String absoluteBatchPath  = "batch/";
   private static final String absoluteDrawerPath = "drawer/";

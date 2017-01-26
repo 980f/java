@@ -1,5 +1,7 @@
 package net.paymate.authorizer;
 
+import net.paymate.data.VisaBuffer;
+
 /**
  * Title:        $Source: /cvs/src/net/paymate/authorizer/E71Buffer.java,v $
  * Description:

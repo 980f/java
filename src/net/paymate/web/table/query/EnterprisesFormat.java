@@ -43,11 +43,11 @@ public class EnterprisesFormat extends UniqueIdArrayFormat implements TableGenRo
     eid = (Enterpriseid)ids[currentRow];
     currentE = EnterpriseHome.Get(eid);
     ismine = eid.equals(myenterprise);
-    Enumeration enum = currentE.stores.entities();
+    Enumeration ennum = currentE.stores.entities();
     store = null;
-    if(enum.hasMoreElements()) {
+    if(ennum.hasMoreElements()) {
       try {
-        store = (Store) enum.nextElement();
+        store = (Store) ennum.nextElement();
       } catch (Exception ex) {
         dbg.Caught(ex); // this means there was no store for this enterprise!  Bad!
       }

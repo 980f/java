@@ -27,7 +27,7 @@ public class BatchesFormat extends RecordFormat {
   private static final ErrorLogStream dbg = ErrorLogStream.getForClass(BatchesFormat.class);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef[(new BatchesFormatEnum()).numValues()];
-  static { // keeping these separate makes it easier to keep their order straight // order is set in the enum, nowhere else
+  static { // keeping these separate makes it easier to keep their order straight // order is set in the ennum, nowhere else
     theHeaders[BatchesFormatEnum.TimeCol]        = new HeaderDef(AlignType.LEFT , "Time"); // put a link on the contents, using the ID column
     theHeaders[BatchesFormatEnum.TermCol]        = new HeaderDef(AlignType.LEFT , "Terminal");
     theHeaders[BatchesFormatEnum.AuthCol]        = new HeaderDef(AlignType.LEFT , "Authorizer");

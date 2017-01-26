@@ -12,6 +12,7 @@ package net.paymate.authorizer.cardSystems;
 import net.paymate.awtx.*;
 import net.paymate.connection.*;
 import net.paymate.authorizer.*;
+import net.paymate.data.VisaBuffer;
 import net.paymate.util.*;
 import net.paymate.database.ours.query.TxnRow;
 import net.paymate.web.LoginInfo;

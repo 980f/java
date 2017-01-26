@@ -33,9 +33,9 @@ public class EmailAddressList extends EntityList {
   }
 
   public EmailAddressList addEmailAddressList(EmailAddressList toadd) {
-    Enumeration enum = toadd.entities();
-    while(enum.hasMoreElements()) {
-      addEmailAddress((EmailAddress)enum.nextElement());
+    Enumeration ennum = toadd.entities();
+    while(ennum.hasMoreElements()) {
+      addEmailAddress((EmailAddress)ennum.nextElement());
     }
     return this;
   }

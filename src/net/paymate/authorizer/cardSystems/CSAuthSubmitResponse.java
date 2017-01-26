@@ -1,8 +1,12 @@
 package net.paymate.authorizer.cardSystems;
 
-import net.paymate.authorizer.*; // AuthSubmitResponse
-import net.paymate.util.*; // ErrorLogStream
+//if duplicates data is newer than authorizer
 import net.paymate.data.*; // ActionCode
+import net.paymate.authorizer.*; // AuthSubmitResponse
+import net.paymate.data.Packet;
+import net.paymate.data.VisaBuffer;
+import net.paymate.util.*; // ErrorLogStream
+
 import net.paymate.lang.StringX;
 
 /**
@@ -73,11 +77,11 @@ Batch Response Data
 Field                         Data
 ### Name                 Format Len Section Example
 R1  Approval Display Message  A  16 6.48    "APP 10.00"
-    “APP ZZZZZZZZZZ9.99” for net amount if approved.
-    “OUT OF BALANCE” if the batch is out of balance.
-    “FORMAT ERROR” if one of the transactions fails to pass the edits.
+    ï¿½APP ZZZZZZZZZZ9.99ï¿½ for net amount if approved.
+    ï¿½OUT OF BALANCEï¿½ if the batch is out of balance.
+    ï¿½FORMAT ERRORï¿½ if one of the transactions fails to pass the edits.
 R2  Field Separator           A   1  6.6    <FS> or HEX 1C
-R3  Reference Display Message A  16 6.49    “REF 123456789012” if batch was approved return a batch reference nbr message, otherwise return a second error message or spaces.
+R3  Reference Display Message A  16 6.49    ï¿½REF 123456789012ï¿½ if batch was approved return a batch reference nbr message, otherwise return a second error message or spaces.
 R4  Field Separator           A   1  6.6    <FS> or HEX 1C
 R5  Response Type             A   1 6.50    "A"
     A = Host Approval

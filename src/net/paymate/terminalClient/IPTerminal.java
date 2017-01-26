@@ -13,6 +13,8 @@
 // +++ eventually route all debug logs to server
 
 package net.paymate.terminalClient;
+import net.paymate.lang.ThreadReporter;
+import net.paymate.lang.TrueEnum;
 import net.paymate.net.IPSpec;
 import net.paymate.util.*;
 import net.paymate.data.*;
@@ -508,7 +510,7 @@ class MTSktServer extends Thread implements ThreadReporter,AtExit {
           terminal.Post(new DebugCommand(op.Value()));
         }
       } break;
-      case TerminalCommand.form: {//+_+ redo with POSForm enum. that's what it is for.
+      case TerminalCommand.form: {//+_+ redo with POSForm ennum. that's what it is for.
         int formNum = Safe.parseInt(Safe.TrivialDefault(param0, "-1"));
         OurForm form = OurForms.Find(formNum);
         if(form == null) {

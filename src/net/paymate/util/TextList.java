@@ -662,14 +662,14 @@ public class TextList {
   }
 
   // anything you pass to this you sacrifice!
-  public static final TextList enumAsMenu(TrueEnum enum) {
+  public static final TextList enumAsMenu(TrueEnum ennum) {
     TextList newone = TextList.Empty();
-    int value = enum.Value();
-    for (int i = 0; i < enum.numValues(); i++) { //# natural order
-      enum.setto(i);
-      newone.add(enum.menuImage());
+    int value = ennum.Value();
+    for (int i = 0; i < ennum.numValues(); i++) { //# natural order
+      ennum.setto(i);
+      newone.add(ennum.menuImage());
     }
-    enum.setto(value);
+    ennum.setto(value);
     return newone;
   }
 

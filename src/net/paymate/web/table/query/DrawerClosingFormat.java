@@ -27,7 +27,7 @@ public class DrawerClosingFormat extends RecordFormat {
   private static final ErrorLogStream dbg = ErrorLogStream.getForClass(DrawerClosingFormat.class);
 
   protected static final HeaderDef[] theHeaders = new HeaderDef[(new DrawerClosingFormatEnum()).numValues()];
-  static { // keeping these separate makes it easier to keep their order straight // order is set in the enum, nowhere else
+  static { // keeping these separate makes it easier to keep their order straight // order is set in the ennum, nowhere else
     theHeaders[DrawerClosingFormatEnum.TimeCol]      = new HeaderDef(AlignType.LEFT ,"Time");
     theHeaders[DrawerClosingFormatEnum.StoreCol]     = new HeaderDef(AlignType.LEFT ,"Store");
     theHeaders[DrawerClosingFormatEnum.TermCol]      = new HeaderDef(AlignType.LEFT ,"Terminal");

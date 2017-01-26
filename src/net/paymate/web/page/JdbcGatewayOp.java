@@ -1,7 +1,7 @@
 // DO NOT EDIT!  MACHINE GENERATED FILE! [net/paymate/web/page/JdbcGatewayOp.Enum]
 package net.paymate.web.page;
 
-import net.paymate.util.TrueEnum;
+import net.paymate.lang.TrueEnum;
 import net.paymate.util.TextList;
 
 public class JdbcGatewayOp extends TrueEnum {

@@ -53,8 +53,8 @@ public class EntityList {
 
   public TextList spam() {
     TextList tl = new TextList();
-    for(Enumeration enum = myList.keys(); enum.hasMoreElements();) {
-      Object key = enum.nextElement();
+    for(Enumeration ennum = myList.keys(); ennum.hasMoreElements();) {
+      Object key = ennum.nextElement();
       if(key != null) {
         Object value = myList.get(key);
         tl.add("" + key + "=" + value);

@@ -7,6 +7,7 @@
  * @version      $Id: DBPage.java,v 1.22 2001/11/16 01:34:32 mattm Exp $
  */
 package net.paymate.web.page;
+import net.paymate.lang.TrueEnum;
 import  org.apache.ecs.*;
 import  org.apache.ecs.html.*;
 import  javax.servlet.http.*;

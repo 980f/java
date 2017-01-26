@@ -80,15 +80,15 @@ public class ClerkUI implements AnswerListener {
   /**
   * "menu" defaults
   */
-  int onInvalidEnum(TrueEnum enum){
-    if(enum==null)                    return 0;
-    if(enum instanceof Functions)     return Functions.Sale;
-    if(enum instanceof PaySelect)     return PaySelect.ManualCard;
-    if(enum instanceof Remedies)      return Remedies.Done;
-    if(enum instanceof SigningOption) return SigningOption.DoneSigning;//lubys "getsignature" problem was here.
-    if(enum instanceof GiftCard_Op)   return GiftCard_Op.GetBalance;
-    if(enum instanceof YesnoEnum)     return YesnoEnum.Yes;
-    if(enum instanceof TerminalCommand) return TerminalCommand.Normal;
+  int onInvalidEnum(TrueEnum ennum){
+    if(ennum==null)                    return 0;
+    if(ennum instanceof Functions)     return Functions.Sale;
+    if(ennum instanceof PaySelect)     return PaySelect.ManualCard;
+    if(ennum instanceof Remedies)      return Remedies.Done;
+    if(ennum instanceof SigningOption) return SigningOption.DoneSigning;//lubys "getsignature" problem was here.
+    if(ennum instanceof GiftCard_Op)   return GiftCard_Op.GetBalance;
+    if(ennum instanceof YesnoEnum)     return YesnoEnum.Yes;
+    if(ennum instanceof TerminalCommand) return TerminalCommand.Normal;
     return 0;
   }
 

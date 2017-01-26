@@ -7,7 +7,7 @@
 
   */
 package net.paymate.ISO8583.factory;
-import  net.paymate.util.TrueEnum;
+import  net.paymate.lang.TrueEnum;
 import  net.paymate.util.TextList;
 
 public class Field extends TrueEnum {
