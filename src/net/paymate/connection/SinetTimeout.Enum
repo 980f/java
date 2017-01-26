@@ -1,0 +1,9 @@
+//$Source: /cvs/src/net/paymate/connection/SinetTimeout.Enum,v $
+//$Name:  $ $Revision: 1.1 $
+//\timing values used by a SinetHost
+connection
+configuration
+single
+multiple
+holdoff
+//$Id: SinetTimeout.Enum,v 1.1 2003/04/17 02:30:17 andyh Exp $

@@ -1,0 +1,10 @@
+// StoreAuthsFormatEnum.Enum
+StoreAuthidCol
+StoreidCol
+PaytypeCol
+InstCol
+MaxTxnLimitCol
+AuthidCol
+AuthMerchidCol
+SettleidCol
+SettleMerchidCol

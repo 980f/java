@@ -1,0 +1,8 @@
+//$Source: /cvs/src/net/paymate/terminalClient/GiftCard_Op.Enum,v $
+//$Revision: 1.3 $
+GetBalance
+CashOut
+Instructions
+
+
+//$Id: GiftCard_Op.Enum,v 1.3 2002/03/21 00:47:32 andyh Exp $

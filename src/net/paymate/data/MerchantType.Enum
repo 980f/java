@@ -1,0 +1,8 @@
+/* $Id: MerchantType.Enum,v 1.1 2003/08/08 16:10:07 mattm Exp $ */
+Restaurant=F
+Lodging=L
+AutoRental=A
+Moto=M
+ElectronicCommerce=E
+Retail=R
+// $Id: MerchantType.Enum,v 1.1 2003/08/08 16:10:07 mattm Exp $

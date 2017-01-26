@@ -1,0 +1,8 @@
+//$Source: /cvs/src/net/paymate/terminalClient/SignatureState.Enum,v $
+//signature states for PosTerminal.java
+  dontcare
+  desired
+  onwire
+  acquired
+  receipted
+//$Id: SignatureState.Enum,v 1.1 2002/03/14 02:29:08 andyh Exp $  

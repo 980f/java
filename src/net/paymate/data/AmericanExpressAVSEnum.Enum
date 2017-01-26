@@ -1,0 +1,8 @@
+// (extended) enumeration of Amex AVS codes
+Only_Address_matches=A
+Neither_the_ZIP_nor_the_address_matches=N
+Issuers_system_is_unavailable__try_again_later=R
+AVS_not_supported_at_this_time=S
+Information_is_not_available__account_neither_US_nor_Canadian=U
+Both_Address_and_ZIP_match=Y
+Only_ZIP_matches=Z

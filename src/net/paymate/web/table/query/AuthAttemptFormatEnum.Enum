@@ -1,0 +1,11 @@
+// AuthAttemptFormatEnum.Enum
+// put these in the order that you want the columns
+StartTimeCol
+//DurationCol // endtime - starttime, in truncated seconds
+AuthCol // the authorizer
+RequestCol
+ResponseCol
+TraceCol // this is the authattemptid
+TxnCol
+// terminal will be in the header
+// eventually we will put a link to the txn in here!

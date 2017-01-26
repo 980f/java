@@ -1,0 +1,7 @@
+//$Sourcec$
+//$Name:  $ $Revision: 1.1 $
+//!!!carefully ordered !!! if you change the order code will fail
+not
+atClient
+atServer
+//$Id: sistate.Enum,v 1.1 2003/04/25 00:24:02 andyh Exp $

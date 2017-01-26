@@ -1,0 +1,11 @@
+// BatchesFormatEnum.Enum
+// put these in the order that you want the columns
+TimeCol
+TermCol
+AuthCol
+AuthrespmsgCol
+BatchseqCol
+TermbatchnumCol
+CountCol
+AmountCol
+CSVCol

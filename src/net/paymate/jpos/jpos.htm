@@ -1,0 +1,1758 @@
+<pre>Compiled from BaseControl.java
+public interface jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract java.lang.String getCheckHealthText() throws jpos.JposException;
+    public abstract boolean getClaimed() throws jpos.JposException;
+    public abstract java.lang.String getDeviceControlDescription();
+    public abstract int getDeviceControlVersion();
+    public abstract boolean getDeviceEnabled() throws jpos.JposException;
+    public abstract void setDeviceEnabled(boolean) throws jpos.JposException;
+    public abstract java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public abstract int getDeviceServiceVersion() throws jpos.JposException;
+    public abstract boolean getFreezeEvents() throws jpos.JposException;
+    public abstract void setFreezeEvents(boolean) throws jpos.JposException;
+    public abstract java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public abstract java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public abstract int getState();
+    public abstract void claim(int) throws jpos.JposException;
+    public abstract void close() throws jpos.JposException;
+    public abstract void checkHealth(int) throws jpos.JposException;
+    public abstract void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public abstract void open(java.lang.String) throws jpos.JposException;
+    public abstract void release() throws jpos.JposException;
+}
+Compiled from Form.java
+protected class jpos.Form. FormCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.Form.FormCallbacks(jpos.Form);
+}
+Compiled from Form.java
+public class jpos.Form extends java.lang.Object implements jpos.FormControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.FormService14 service14;
+    protected java.util.Vector dataListeners;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector errorListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.Form();
+    public boolean getCapDisplay() throws jpos.JposException;
+    public boolean getCapRealTimeData() throws jpos.JposException;
+    public boolean getCapUserTerminated() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void startForm(java.lang.String, boolean) throws jpos.JposException;
+    public void storeForm(java.lang.String) throws jpos.JposException;
+    public void clearFormInput() throws jpos.JposException;
+    public void endForm() throws jpos.JposException;
+    public byte getSurveyData()[] throws jpos.JposException;
+    public byte getButtonData()[] throws jpos.JposException;
+    public void displayTextAt(int, int, java.lang.String) throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public boolean getAutoDisable() throws jpos.JposException;
+    public void setAutoDisable(boolean) throws jpos.JposException;
+    public int getDataCount() throws jpos.JposException;
+    public boolean getDataEventEnabled() throws jpos.JposException;
+    public void setDataEventEnabled(boolean) throws jpos.JposException;
+    public int getMaximumX() throws jpos.JposException;
+    public int getMaximumY() throws jpos.JposException;
+    public java.awt.Point getPointArray()[] throws jpos.JposException;
+    public byte getRawData()[] throws jpos.JposException;
+    public boolean getRealTimeDataEnabled() throws jpos.JposException;
+    public void setRealTimeDataEnabled(boolean) throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public int getRows() throws jpos.JposException;
+    public int getCols() throws jpos.JposException;
+    public void setKeypadPrompts(java.lang.String, java.lang.String) throws jpos.JposException;
+    public void setKeyboardPrompt(java.lang.String) throws jpos.JposException;
+    public void displayKeyboard() throws jpos.JposException;
+    public void displayKeypad() throws jpos.JposException;
+    public java.lang.String getKeyedData() throws jpos.JposException;
+    public void setFont(int, int) throws jpos.JposException;
+    public void addDataListener(jpos.events.DataListener);
+    public void removeDataListener(jpos.events.DataListener);
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addErrorListener(jpos.events.ErrorListener);
+    public void removeErrorListener(jpos.events.ErrorListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.Form. FormCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.Form.FormCallbacks(jpos.Form);
+    }
+}
+Compiled from FormControl14.java
+public interface jpos.FormControl14 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapDisplay() throws jpos.JposException;
+    public abstract boolean getCapRealTimeData() throws jpos.JposException;
+    public abstract boolean getCapUserTerminated() throws jpos.JposException;
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract int getMaximumX() throws jpos.JposException;
+    public abstract int getMaximumY() throws jpos.JposException;
+    public abstract java.awt.Point getPointArray()[] throws jpos.JposException;
+    public abstract byte getRawData()[] throws jpos.JposException;
+    public abstract boolean getRealTimeDataEnabled() throws jpos.JposException;
+    public abstract void setRealTimeDataEnabled(boolean) throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract int getRows() throws jpos.JposException;
+    public abstract int getCols() throws jpos.JposException;
+    public abstract void setKeypadPrompts(java.lang.String, java.lang.String) throws jpos.JposException;
+    public abstract void setKeyboardPrompt(java.lang.String) throws jpos.JposException;
+    public abstract void displayKeyboard() throws jpos.JposException;
+    public abstract void displayKeypad() throws jpos.JposException;
+    public abstract java.lang.String getKeyedData() throws jpos.JposException;
+    public abstract void startForm(java.lang.String, boolean) throws jpos.JposException;
+    public abstract void storeForm(java.lang.String) throws jpos.JposException;
+    public abstract void clearFormInput() throws jpos.JposException;
+    public abstract void endForm() throws jpos.JposException;
+    public abstract byte getSurveyData()[] throws jpos.JposException;
+    public abstract byte getButtonData()[] throws jpos.JposException;
+    public abstract void displayTextAt(int, int, java.lang.String) throws jpos.JposException;
+    public abstract void setFont(int, int) throws jpos.JposException;
+    public abstract void addDataListener(jpos.events.DataListener);
+    public abstract void removeDataListener(jpos.events.DataListener);
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void addErrorListener(jpos.events.ErrorListener);
+    public abstract void removeErrorListener(jpos.events.ErrorListener);
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from FormControlConstant.java
+public interface jpos.FormControlConstant 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int FORM_FONT_DEFAULT;
+    public static final int FORM_FONT_WIDE_TALL;
+    public static final int FORM_FONT_TALL;
+    public static final int FORM_FONT_WIDE;
+    public static final int FORM_ATTR_DEFAULT;
+    public static final int FORM_ATTR_ITALICS;
+    public static final int FORM_ATTR_UNDERLINE;
+    public static final int FORM_ATTR_REVERSE;
+}
+Compiled from JposConst.java
+public interface jpos.JposConst 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int JPOS_S_CLOSED;
+    public static final int JPOS_S_IDLE;
+    public static final int JPOS_S_BUSY;
+    public static final int JPOS_S_ERROR;
+    public static final int JPOSERR;
+    public static final int JPOSERREXT;
+    public static final int JPOS_SUCCESS;
+    public static final int JPOS_E_CLOSED;
+    public static final int JPOS_E_CLAIMED;
+    public static final int JPOS_E_NOTCLAIMED;
+    public static final int JPOS_E_NOSERVICE;
+    public static final int JPOS_E_DISABLED;
+    public static final int JPOS_E_ILLEGAL;
+    public static final int JPOS_E_NOHARDWARE;
+    public static final int JPOS_E_OFFLINE;
+    public static final int JPOS_E_NOEXIST;
+    public static final int JPOS_E_EXISTS;
+    public static final int JPOS_E_FAILURE;
+    public static final int JPOS_E_TIMEOUT;
+    public static final int JPOS_E_BUSY;
+    public static final int JPOS_E_EXTENDED;
+    public static final int JPOS_BC_NONE;
+    public static final int JPOS_BC_NIBBLE;
+    public static final int JPOS_BC_DECIMAL;
+    public static final int JPOS_CH_INTERNAL;
+    public static final int JPOS_CH_EXTERNAL;
+    public static final int JPOS_CH_INTERACTIVE;
+    public static final int JPOS_PR_NONE;
+    public static final int JPOS_PR_STANDARD;
+    public static final int JPOS_PR_ADVANCED;
+    public static final int JPOS_PN_DISABLED;
+    public static final int JPOS_PN_ENABLED;
+    public static final int JPOS_PS_UNKNOWN;
+    public static final int JPOS_PS_ONLINE;
+    public static final int JPOS_PS_OFF;
+    public static final int JPOS_PS_OFFLINE;
+    public static final int JPOS_PS_OFF_OFFLINE;
+    public static final int JPOS_EL_OUTPUT;
+    public static final int JPOS_EL_INPUT;
+    public static final int JPOS_EL_INPUT_DATA;
+    public static final int JPOS_ER_RETRY;
+    public static final int JPOS_ER_CLEAR;
+    public static final int JPOS_ER_CONTINUEINPUT;
+    public static final int JPOS_SUE_POWER_ONLINE;
+    public static final int JPOS_SUE_POWER_OFF;
+    public static final int JPOS_SUE_POWER_OFFLINE;
+    public static final int JPOS_SUE_POWER_OFF_OFFLINE;
+    public static final int JPOS_FOREVER;
+}
+Compiled from JposException.java
+public class jpos.JposException extends java.lang.Exception {
+    protected int errorCode;
+    protected int errorCodeExtended;
+    public jpos.JposException(int);
+    public jpos.JposException(int,int);
+    public jpos.JposException(int,java.lang.String);
+    public jpos.JposException(int,int,java.lang.String);
+    public jpos.JposException(int,java.lang.String,java.lang.Exception);
+    public jpos.JposException(int,int,java.lang.String,java.lang.Exception);
+    public int getErrorCode();
+    public int getErrorCodeExtended();
+    public java.lang.Exception getOrigException();
+}
+Compiled from MSR.java
+protected class jpos.MSR. MSRCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.MSR.MSRCallbacks(jpos.MSR);
+}
+Compiled from MSR.java
+public class jpos.MSR extends java.lang.Object implements jpos.MSRControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion12;
+    protected static final int deviceVersion13;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.MSRService12 service12;
+    protected jpos.services.MSRService13 service13;
+    protected jpos.services.MSRService14 service14;
+    protected java.util.Vector dataListeners;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector errorListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.MSR();
+    public boolean getCapISO() throws jpos.JposException;
+    public boolean getCapJISOne() throws jpos.JposException;
+    public boolean getCapJISTwo() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public java.lang.String getAccountNumber() throws jpos.JposException;
+    public boolean getAutoDisable() throws jpos.JposException;
+    public void setAutoDisable(boolean) throws jpos.JposException;
+    public int getDataCount() throws jpos.JposException;
+    public boolean getDataEventEnabled() throws jpos.JposException;
+    public void setDataEventEnabled(boolean) throws jpos.JposException;
+    public boolean getDecodeData() throws jpos.JposException;
+    public void setDecodeData(boolean) throws jpos.JposException;
+    public int getErrorReportingType() throws jpos.JposException;
+    public void setErrorReportingType(int) throws jpos.JposException;
+    public java.lang.String getExpirationDate() throws jpos.JposException;
+    public java.lang.String getFirstName() throws jpos.JposException;
+    public java.lang.String getMiddleInitial() throws jpos.JposException;
+    public boolean getParseDecodeData() throws jpos.JposException;
+    public void setParseDecodeData(boolean) throws jpos.JposException;
+    public java.lang.String getServiceCode() throws jpos.JposException;
+    public java.lang.String getSuffix() throws jpos.JposException;
+    public java.lang.String getSurname() throws jpos.JposException;
+    public java.lang.String getTitle() throws jpos.JposException;
+    public byte getTrack1Data()[] throws jpos.JposException;
+    public byte getTrack1DiscretionaryData()[] throws jpos.JposException;
+    public byte getTrack2Data()[] throws jpos.JposException;
+    public byte getTrack2DiscretionaryData()[] throws jpos.JposException;
+    public byte getTrack3Data()[] throws jpos.JposException;
+    public int getTracksToRead() throws jpos.JposException;
+    public void setTracksToRead(int) throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void clearInput() throws jpos.JposException;
+    public void addDataListener(jpos.events.DataListener);
+    public void removeDataListener(jpos.events.DataListener);
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addErrorListener(jpos.events.ErrorListener);
+    public void removeErrorListener(jpos.events.ErrorListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.MSR. MSRCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.MSR.MSRCallbacks(jpos.MSR);
+    }
+}
+Compiled from MSRConst.java
+public interface jpos.MSRConst 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int MSR_TR_1;
+    public static final int MSR_TR_2;
+    public static final int MSR_TR_3;
+    public static final int MSR_TR_1_2;
+    public static final int MSR_TR_1_3;
+    public static final int MSR_TR_2_3;
+    public static final int MSR_TR_1_2_3;
+    public static final int MSR_ERT_CARD;
+    public static final int MSR_ERT_TRACK;
+    public static final int JPOS_EMSR_START;
+    public static final int JPOS_EMSR_END;
+    public static final int JPOS_EMSR_PARITY;
+    public static final int JPOS_EMSR_LRC;
+}
+Compiled from MSRControl12.java
+public interface jpos.MSRControl12 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapISO() throws jpos.JposException;
+    public abstract boolean getCapJISOne() throws jpos.JposException;
+    public abstract boolean getCapJISTwo() throws jpos.JposException;
+    public abstract java.lang.String getAccountNumber() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract boolean getDecodeData() throws jpos.JposException;
+    public abstract void setDecodeData(boolean) throws jpos.JposException;
+    public abstract int getErrorReportingType() throws jpos.JposException;
+    public abstract void setErrorReportingType(int) throws jpos.JposException;
+    public abstract java.lang.String getExpirationDate() throws jpos.JposException;
+    public abstract java.lang.String getFirstName() throws jpos.JposException;
+    public abstract java.lang.String getMiddleInitial() throws jpos.JposException;
+    public abstract boolean getParseDecodeData() throws jpos.JposException;
+    public abstract void setParseDecodeData(boolean) throws jpos.JposException;
+    public abstract java.lang.String getServiceCode() throws jpos.JposException;
+    public abstract java.lang.String getSuffix() throws jpos.JposException;
+    public abstract java.lang.String getSurname() throws jpos.JposException;
+    public abstract java.lang.String getTitle() throws jpos.JposException;
+    public abstract byte getTrack1Data()[] throws jpos.JposException;
+    public abstract byte getTrack1DiscretionaryData()[] throws jpos.JposException;
+    public abstract byte getTrack2Data()[] throws jpos.JposException;
+    public abstract byte getTrack2DiscretionaryData()[] throws jpos.JposException;
+    public abstract byte getTrack3Data()[] throws jpos.JposException;
+    public abstract int getTracksToRead() throws jpos.JposException;
+    public abstract void setTracksToRead(int) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void addDataListener(jpos.events.DataListener);
+    public abstract void removeDataListener(jpos.events.DataListener);
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void addErrorListener(jpos.events.ErrorListener);
+    public abstract void removeErrorListener(jpos.events.ErrorListener);
+}
+Compiled from MSRControl13.java
+public interface jpos.MSRControl13 extends jpos.MSRControl12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from MSRControl14.java
+public interface jpos.MSRControl14 extends jpos.MSRControl13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from PINPad.java
+protected class jpos.PINPad. PINPadCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.PINPad.PINPadCallbacks(jpos.PINPad);
+}
+Compiled from PINPad.java
+public class jpos.PINPad extends java.lang.Object implements jpos.PINPadControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion13;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.PINPadService13 service13;
+    protected jpos.services.PINPadService14 service14;
+    protected java.util.Vector dataListeners;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector errorListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.PINPad();
+    public int getCapDisplay() throws jpos.JposException;
+    public int getCapLanguage() throws jpos.JposException;
+    public boolean getCapKeyboard() throws jpos.JposException;
+    public boolean getCapMACCalculation() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public boolean getCapTone() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public java.lang.String getAccountNumber() throws jpos.JposException;
+    public void setAccountNumber(java.lang.String) throws jpos.JposException;
+    public java.lang.String getAdditionalSecurityInformation() throws jpos.JposException;
+    public long getAmount() throws jpos.JposException;
+    public void setAmount(long) throws jpos.JposException;
+    public java.lang.String getAvailableLanguagesList() throws jpos.JposException;
+    public java.lang.String getAvailablePromptsList() throws jpos.JposException;
+    public int getDataCount() throws jpos.JposException;
+    public boolean getDataEventEnabled() throws jpos.JposException;
+    public void setDataEventEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getEncryptedPIN() throws jpos.JposException;
+    public int getMaximumPINLength() throws jpos.JposException;
+    public void setMaximumPINLength(int) throws jpos.JposException;
+    public java.lang.String getMerchantID() throws jpos.JposException;
+    public void setMerchantID(java.lang.String) throws jpos.JposException;
+    public int getMinimumPINLength() throws jpos.JposException;
+    public void setMinimumPINLength(int) throws jpos.JposException;
+    public boolean getPINEntryEnabled() throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public int getPrompt() throws jpos.JposException;
+    public void setPrompt(int) throws jpos.JposException;
+    public java.lang.String getPromptLanguage() throws jpos.JposException;
+    public void setPromptLanguage(java.lang.String) throws jpos.JposException;
+    public java.lang.String getTerminalID() throws jpos.JposException;
+    public void setTerminalID(java.lang.String) throws jpos.JposException;
+    public byte getTrack1Data()[] throws jpos.JposException;
+    public void setTrack1Data(byte[]) throws jpos.JposException;
+    public byte getTrack2Data()[] throws jpos.JposException;
+    public void setTrack2Data(byte[]) throws jpos.JposException;
+    public byte getTrack3Data()[] throws jpos.JposException;
+    public void setTrack3Data(byte[]) throws jpos.JposException;
+    public int getTransactionType() throws jpos.JposException;
+    public void setTransactionType(int) throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void beginEFTTransaction(java.lang.String, int) throws jpos.JposException;
+    public void clearInput() throws jpos.JposException;
+    public void computeMAC(java.lang.String, java.lang.String[]) throws jpos.JposException;
+    public void enablePINEntry() throws jpos.JposException;
+    public void endEFTTransaction(int) throws jpos.JposException;
+    public void updateKey(int, java.lang.String) throws jpos.JposException;
+    public void verifyMAC(java.lang.String) throws jpos.JposException;
+    public void addDataListener(jpos.events.DataListener);
+    public void removeDataListener(jpos.events.DataListener);
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addErrorListener(jpos.events.ErrorListener);
+    public void removeErrorListener(jpos.events.ErrorListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.PINPad. PINPadCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.PINPad.PINPadCallbacks(jpos.PINPad);
+    }
+}
+Compiled from PINPadBeanInfo.java
+public class jpos.PINPadBeanInfo extends java.beans.SimpleBeanInfo {
+    static java.lang.Class class$jpos$PINPad;
+    public java.beans.BeanDescriptor getBeanDescriptor();
+    public java.beans.PropertyDescriptor makeProperty(java.lang.String) throws java.beans.IntrospectionException;
+    public java.beans.PropertyDescriptor getPropertyDescriptors()[];
+    public java.beans.EventSetDescriptor makeEvent(java.lang.String) throws java.beans.IntrospectionException, java.lang.ClassNotFoundException;
+    public java.beans.EventSetDescriptor getEventSetDescriptors()[];
+    public jpos.PINPadBeanInfo();
+    static java.lang.Class class$(java.lang.String);
+}
+Compiled from PINPadConst.java
+public interface jpos.PINPadConst 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int PPAD_DISP_UNRESTRICTED;
+    public static final int PPAD_DISP_PINRESTRICTED;
+    public static final int PPAD_DISP_RESTRICTED_LIST;
+    public static final int PPAD_DISP_RESTRICTED_ORDER;
+    public static final int PPAD_MSG_ENTERPIN;
+    public static final int PPAD_MSG_PLEASEWAIT;
+    public static final int PPAD_MSG_ENTERVALIDPIN;
+    public static final int PPAD_MSG_RETRIESEXCEEDED;
+    public static final int PPAD_MSG_APPROVED;
+    public static final int PPAD_MSG_DECLINED;
+    public static final int PPAD_MSG_CANCELED;
+    public static final int PPAD_MSG_AMOUNTOK;
+    public static final int PPAD_MSG_NOTREADY;
+    public static final int PPAD_MSG_IDLE;
+    public static final int PPAD_MSG_SLIDE_CARD;
+    public static final int PPAD_MSG_INSERTCARD;
+    public static final int PPAD_MSG_SELECTCARDTYPE;
+    public static final int PPAD_LANG_NONE;
+    public static final int PPAD_LANG_ONE;
+    public static final int PPAD_LANG_PINRESTRICTED;
+    public static final int PPAD_LANG_UNRESTRICTED;
+    public static final int PPAD_TRANS_DEBIT;
+    public static final int PPAD_TRANS_CREDIT;
+    public static final int PPAD_TRANS_INQ;
+    public static final int PPAD_TRANS_RECONCILE;
+    public static final int PPAD_TRANS_ADMIN;
+    public static final int PPAD_EFT_NORMAL;
+    public static final int PPAD_EFT_ABNORMAL;
+    public static final int PPAD_SUCCESS;
+    public static final int PPAD_CANCEL;
+}
+Compiled from PINPadControl13.java
+public interface jpos.PINPadControl13 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapDisplay() throws jpos.JposException;
+    public abstract int getCapLanguage() throws jpos.JposException;
+    public abstract boolean getCapKeyboard() throws jpos.JposException;
+    public abstract boolean getCapMACCalculation() throws jpos.JposException;
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract boolean getCapTone() throws jpos.JposException;
+    public abstract java.lang.String getAccountNumber() throws jpos.JposException;
+    public abstract void setAccountNumber(java.lang.String) throws jpos.JposException;
+    public abstract java.lang.String getAdditionalSecurityInformation() throws jpos.JposException;
+    public abstract long getAmount() throws jpos.JposException;
+    public abstract void setAmount(long) throws jpos.JposException;
+    public abstract java.lang.String getAvailableLanguagesList() throws jpos.JposException;
+    public abstract java.lang.String getAvailablePromptsList() throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract java.lang.String getEncryptedPIN() throws jpos.JposException;
+    public abstract int getMaximumPINLength() throws jpos.JposException;
+    public abstract void setMaximumPINLength(int) throws jpos.JposException;
+    public abstract java.lang.String getMerchantID() throws jpos.JposException;
+    public abstract void setMerchantID(java.lang.String) throws jpos.JposException;
+    public abstract int getMinimumPINLength() throws jpos.JposException;
+    public abstract void setMinimumPINLength(int) throws jpos.JposException;
+    public abstract boolean getPINEntryEnabled() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract int getPrompt() throws jpos.JposException;
+    public abstract void setPrompt(int) throws jpos.JposException;
+    public abstract java.lang.String getPromptLanguage() throws jpos.JposException;
+    public abstract void setPromptLanguage(java.lang.String) throws jpos.JposException;
+    public abstract java.lang.String getTerminalID() throws jpos.JposException;
+    public abstract void setTerminalID(java.lang.String) throws jpos.JposException;
+    public abstract byte getTrack1Data()[] throws jpos.JposException;
+    public abstract void setTrack1Data(byte[]) throws jpos.JposException;
+    public abstract byte getTrack2Data()[] throws jpos.JposException;
+    public abstract void setTrack2Data(byte[]) throws jpos.JposException;
+    public abstract byte getTrack3Data()[] throws jpos.JposException;
+    public abstract void setTrack3Data(byte[]) throws jpos.JposException;
+    public abstract int getTransactionType() throws jpos.JposException;
+    public abstract void setTransactionType(int) throws jpos.JposException;
+    public abstract void beginEFTTransaction(java.lang.String, int) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void computeMAC(java.lang.String, java.lang.String[]) throws jpos.JposException;
+    public abstract void enablePINEntry() throws jpos.JposException;
+    public abstract void endEFTTransaction(int) throws jpos.JposException;
+    public abstract void updateKey(int, java.lang.String) throws jpos.JposException;
+    public abstract void verifyMAC(java.lang.String) throws jpos.JposException;
+    public abstract void addDataListener(jpos.events.DataListener);
+    public abstract void removeDataListener(jpos.events.DataListener);
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void addErrorListener(jpos.events.ErrorListener);
+    public abstract void removeErrorListener(jpos.events.ErrorListener);
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from PINPadControl14.java
+public interface jpos.PINPadControl14 extends jpos.PINPadControl13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from SignatureCapture.java
+protected class jpos.SignatureCapture. SignatureCaptureCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.SignatureCapture.SignatureCaptureCallbacks(jpos.SignatureCapture);
+}
+Compiled from SignatureCapture.java
+public class jpos.SignatureCapture extends java.lang.Object implements jpos.SignatureCaptureControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion12;
+    protected static final int deviceVersion13;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.SignatureCaptureService12 service12;
+    protected jpos.services.SignatureCaptureService13 service13;
+    protected jpos.services.SignatureCaptureService14 service14;
+    protected java.util.Vector dataListeners;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector errorListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.SignatureCapture();
+    public boolean getCapDisplay() throws jpos.JposException;
+    public boolean getCapRealTimeData() throws jpos.JposException;
+    public boolean getCapUserTerminated() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public boolean getAutoDisable() throws jpos.JposException;
+    public void setAutoDisable(boolean) throws jpos.JposException;
+    public int getDataCount() throws jpos.JposException;
+    public boolean getDataEventEnabled() throws jpos.JposException;
+    public void setDataEventEnabled(boolean) throws jpos.JposException;
+    public int getMaximumX() throws jpos.JposException;
+    public int getMaximumY() throws jpos.JposException;
+    public java.awt.Point getPointArray()[] throws jpos.JposException;
+    public byte getRawData()[] throws jpos.JposException;
+    public boolean getRealTimeDataEnabled() throws jpos.JposException;
+    public void setRealTimeDataEnabled(boolean) throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void beginCapture(java.lang.String) throws jpos.JposException;
+    public void clearInput() throws jpos.JposException;
+    public void endCapture() throws jpos.JposException;
+    public void addDataListener(jpos.events.DataListener);
+    public void removeDataListener(jpos.events.DataListener);
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addErrorListener(jpos.events.ErrorListener);
+    public void removeErrorListener(jpos.events.ErrorListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.SignatureCapture. SignatureCaptureCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.SignatureCapture.SignatureCaptureCallbacks(jpos.SignatureCapture);
+    }
+}
+Compiled from SignatureCaptureBeanInfo.java
+public class jpos.SignatureCaptureBeanInfo extends java.beans.SimpleBeanInfo {
+    static java.lang.Class class$jpos$SignatureCapture;
+    public java.beans.BeanDescriptor getBeanDescriptor();
+    public java.beans.PropertyDescriptor makeProperty(java.lang.String) throws java.beans.IntrospectionException;
+    public java.beans.PropertyDescriptor getPropertyDescriptors()[];
+    public java.beans.EventSetDescriptor makeEvent(java.lang.String) throws java.beans.IntrospectionException, java.lang.ClassNotFoundException;
+    public java.beans.EventSetDescriptor getEventSetDescriptors()[];
+    public jpos.SignatureCaptureBeanInfo();
+    static java.lang.Class class$(java.lang.String);
+}
+Compiled from SignatureCaptureConst.java
+public interface jpos.SignatureCaptureConst 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from SignatureCaptureControl12.java
+public interface jpos.SignatureCaptureControl12 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapDisplay() throws jpos.JposException;
+    public abstract boolean getCapRealTimeData() throws jpos.JposException;
+    public abstract boolean getCapUserTerminated() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract int getMaximumX() throws jpos.JposException;
+    public abstract int getMaximumY() throws jpos.JposException;
+    public abstract java.awt.Point getPointArray()[] throws jpos.JposException;
+    public abstract byte getRawData()[] throws jpos.JposException;
+    public abstract boolean getRealTimeDataEnabled() throws jpos.JposException;
+    public abstract void setRealTimeDataEnabled(boolean) throws jpos.JposException;
+    public abstract void beginCapture(java.lang.String) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void endCapture() throws jpos.JposException;
+    public abstract void addDataListener(jpos.events.DataListener);
+    public abstract void removeDataListener(jpos.events.DataListener);
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void addErrorListener(jpos.events.ErrorListener);
+    public abstract void removeErrorListener(jpos.events.ErrorListener);
+}
+Compiled from SignatureCaptureControl13.java
+public interface jpos.SignatureCaptureControl13 extends jpos.SignatureCaptureControl12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from SignatureCaptureControl14.java
+public interface jpos.SignatureCaptureControl14 extends jpos.SignatureCaptureControl13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from LineDisplay.java
+protected class jpos.LineDisplay. LineDisplayCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.LineDisplay.LineDisplayCallbacks(jpos.LineDisplay);
+}
+Compiled from LineDisplay.java
+public class jpos.LineDisplay extends java.lang.Object implements jpos.LineDisplayControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion12;
+    protected static final int deviceVersion13;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.LineDisplayService12 service12;
+    protected jpos.services.LineDisplayService13 service13;
+    protected jpos.services.LineDisplayService14 service14;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.LineDisplay();
+    public int getCapBlink() throws jpos.JposException;
+    public boolean getCapBrightness() throws jpos.JposException;
+    public int getCapCharacterSet() throws jpos.JposException;
+    public boolean getCapDescriptors() throws jpos.JposException;
+    public boolean getCapHMarquee() throws jpos.JposException;
+    public boolean getCapICharWait() throws jpos.JposException;
+    public boolean getCapVMarquee() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public int getCharacterSet() throws jpos.JposException;
+    public void setCharacterSet(int) throws jpos.JposException;
+    public java.lang.String getCharacterSetList() throws jpos.JposException;
+    public int getColumns() throws jpos.JposException;
+    public int getCurrentWindow() throws jpos.JposException;
+    public void setCurrentWindow(int) throws jpos.JposException;
+    public int getCursorColumn() throws jpos.JposException;
+    public void setCursorColumn(int) throws jpos.JposException;
+    public int getCursorRow() throws jpos.JposException;
+    public void setCursorRow(int) throws jpos.JposException;
+    public boolean getCursorUpdate() throws jpos.JposException;
+    public void setCursorUpdate(boolean) throws jpos.JposException;
+    public int getDeviceBrightness() throws jpos.JposException;
+    public void setDeviceBrightness(int) throws jpos.JposException;
+    public int getDeviceColumns() throws jpos.JposException;
+    public int getDeviceDescriptors() throws jpos.JposException;
+    public int getDeviceRows() throws jpos.JposException;
+    public int getDeviceWindows() throws jpos.JposException;
+    public int getInterCharacterWait() throws jpos.JposException;
+    public void setInterCharacterWait(int) throws jpos.JposException;
+    public int getMarqueeFormat() throws jpos.JposException;
+    public void setMarqueeFormat(int) throws jpos.JposException;
+    public int getMarqueeRepeatWait() throws jpos.JposException;
+    public void setMarqueeRepeatWait(int) throws jpos.JposException;
+    public int getMarqueeType() throws jpos.JposException;
+    public void setMarqueeType(int) throws jpos.JposException;
+    public int getMarqueeUnitWait() throws jpos.JposException;
+    public void setMarqueeUnitWait(int) throws jpos.JposException;
+    public int getRows() throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void clearDescriptors() throws jpos.JposException;
+    public void clearText() throws jpos.JposException;
+    public void createWindow(int, int, int, int, int, int) throws jpos.JposException;
+    public void destroyWindow() throws jpos.JposException;
+    public void displayText(java.lang.String, int) throws jpos.JposException;
+    public void displayTextAt(int, int, java.lang.String, int) throws jpos.JposException;
+    public void refreshWindow(int) throws jpos.JposException;
+    public void scrollText(int, int) throws jpos.JposException;
+    public void setDescriptor(int, int) throws jpos.JposException;
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.LineDisplay. LineDisplayCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.LineDisplay.LineDisplayCallbacks(jpos.LineDisplay);
+    }
+}
+Compiled from LineDisplayBeanInfo.java
+public class jpos.LineDisplayBeanInfo extends java.beans.SimpleBeanInfo {
+    static java.lang.Class class$jpos$LineDisplay;
+    public java.beans.BeanDescriptor getBeanDescriptor();
+    public java.beans.PropertyDescriptor makeProperty(java.lang.String) throws java.beans.IntrospectionException;
+    public java.beans.PropertyDescriptor getPropertyDescriptors()[];
+    public java.beans.EventSetDescriptor makeEvent(java.lang.String) throws java.beans.IntrospectionException, java.lang.ClassNotFoundException;
+    public java.beans.EventSetDescriptor getEventSetDescriptors()[];
+    public jpos.LineDisplayBeanInfo();
+    static java.lang.Class class$(java.lang.String);
+}
+Compiled from LineDisplayConst.java
+public interface jpos.LineDisplayConst 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int DISP_CB_NOBLINK;
+    public static final int DISP_CB_BLINKALL;
+    public static final int DISP_CB_BLINKEACH;
+    public static final int DISP_CCS_NUMERIC;
+    public static final int DISP_CCS_ALPHA;
+    public static final int DISP_CCS_ASCII;
+    public static final int DISP_CCS_KANA;
+    public static final int DISP_CCS_KANJI;
+    public static final int DISP_CS_ASCII;
+    public static final int DISP_CS_ANSI;
+    public static final int DISP_MT_NONE;
+    public static final int DISP_MT_UP;
+    public static final int DISP_MT_DOWN;
+    public static final int DISP_MT_LEFT;
+    public static final int DISP_MT_RIGHT;
+    public static final int DISP_MT_INIT;
+    public static final int DISP_MF_WALK;
+    public static final int DISP_MF_PLACE;
+    public static final int DISP_DT_NORMAL;
+    public static final int DISP_DT_BLINK;
+    public static final int DISP_ST_UP;
+    public static final int DISP_ST_DOWN;
+    public static final int DISP_ST_LEFT;
+    public static final int DISP_ST_RIGHT;
+    public static final int DISP_SD_OFF;
+    public static final int DISP_SD_ON;
+    public static final int DISP_SD_BLINK;
+}
+Compiled from LineDisplayControl12.java
+public interface jpos.LineDisplayControl12 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapBlink() throws jpos.JposException;
+    public abstract boolean getCapBrightness() throws jpos.JposException;
+    public abstract int getCapCharacterSet() throws jpos.JposException;
+    public abstract boolean getCapDescriptors() throws jpos.JposException;
+    public abstract boolean getCapHMarquee() throws jpos.JposException;
+    public abstract boolean getCapICharWait() throws jpos.JposException;
+    public abstract boolean getCapVMarquee() throws jpos.JposException;
+    public abstract int getCharacterSet() throws jpos.JposException;
+    public abstract void setCharacterSet(int) throws jpos.JposException;
+    public abstract java.lang.String getCharacterSetList() throws jpos.JposException;
+    public abstract int getColumns() throws jpos.JposException;
+    public abstract int getCurrentWindow() throws jpos.JposException;
+    public abstract void setCurrentWindow(int) throws jpos.JposException;
+    public abstract int getCursorColumn() throws jpos.JposException;
+    public abstract void setCursorColumn(int) throws jpos.JposException;
+    public abstract int getCursorRow() throws jpos.JposException;
+    public abstract void setCursorRow(int) throws jpos.JposException;
+    public abstract boolean getCursorUpdate() throws jpos.JposException;
+    public abstract void setCursorUpdate(boolean) throws jpos.JposException;
+    public abstract int getDeviceBrightness() throws jpos.JposException;
+    public abstract void setDeviceBrightness(int) throws jpos.JposException;
+    public abstract int getDeviceColumns() throws jpos.JposException;
+    public abstract int getDeviceDescriptors() throws jpos.JposException;
+    public abstract int getDeviceRows() throws jpos.JposException;
+    public abstract int getDeviceWindows() throws jpos.JposException;
+    public abstract int getInterCharacterWait() throws jpos.JposException;
+    public abstract void setInterCharacterWait(int) throws jpos.JposException;
+    public abstract int getMarqueeFormat() throws jpos.JposException;
+    public abstract void setMarqueeFormat(int) throws jpos.JposException;
+    public abstract int getMarqueeRepeatWait() throws jpos.JposException;
+    public abstract void setMarqueeRepeatWait(int) throws jpos.JposException;
+    public abstract int getMarqueeType() throws jpos.JposException;
+    public abstract void setMarqueeType(int) throws jpos.JposException;
+    public abstract int getMarqueeUnitWait() throws jpos.JposException;
+    public abstract void setMarqueeUnitWait(int) throws jpos.JposException;
+    public abstract int getRows() throws jpos.JposException;
+    public abstract void clearDescriptors() throws jpos.JposException;
+    public abstract void clearText() throws jpos.JposException;
+    public abstract void createWindow(int, int, int, int, int, int) throws jpos.JposException;
+    public abstract void destroyWindow() throws jpos.JposException;
+    public abstract void displayText(java.lang.String, int) throws jpos.JposException;
+    public abstract void displayTextAt(int, int, java.lang.String, int) throws jpos.JposException;
+    public abstract void refreshWindow(int) throws jpos.JposException;
+    public abstract void scrollText(int, int) throws jpos.JposException;
+    public abstract void setDescriptor(int, int) throws jpos.JposException;
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+}
+Compiled from LineDisplayControl13.java
+public interface jpos.LineDisplayControl13 extends jpos.LineDisplayControl12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from LineDisplayControl14.java
+public interface jpos.LineDisplayControl14 extends jpos.LineDisplayControl13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from MICR.java
+protected class jpos.MICR. MICRCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.MICR.MICRCallbacks(jpos.MICR);
+}
+Compiled from MICR.java
+public class jpos.MICR extends java.lang.Object implements jpos.MICRControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion12;
+    protected static final int deviceVersion13;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.MICRService12 service12;
+    protected jpos.services.MICRService13 service13;
+    protected jpos.services.MICRService14 service14;
+    protected java.util.Vector dataListeners;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector errorListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.MICR();
+    public boolean getCapValidationDevice() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public boolean getAutoDisable() throws jpos.JposException;
+    public void setAutoDisable(boolean) throws jpos.JposException;
+    public java.lang.String getAccountNumber() throws jpos.JposException;
+    public java.lang.String getAmount() throws jpos.JposException;
+    public java.lang.String getBankNumber() throws jpos.JposException;
+    public int getCheckType() throws jpos.JposException;
+    public int getCountryCode() throws jpos.JposException;
+    public int getDataCount() throws jpos.JposException;
+    public boolean getDataEventEnabled() throws jpos.JposException;
+    public void setDataEventEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getEPC() throws jpos.JposException;
+    public java.lang.String getRawData() throws jpos.JposException;
+    public java.lang.String getSerialNumber() throws jpos.JposException;
+    public java.lang.String getTransitNumber() throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void beginInsertion(int) throws jpos.JposException;
+    public void beginRemoval(int) throws jpos.JposException;
+    public void clearInput() throws jpos.JposException;
+    public void endInsertion() throws jpos.JposException;
+    public void endRemoval() throws jpos.JposException;
+    public void addDataListener(jpos.events.DataListener);
+    public void removeDataListener(jpos.events.DataListener);
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addErrorListener(jpos.events.ErrorListener);
+    public void removeErrorListener(jpos.events.ErrorListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.MICR. MICRCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.MICR.MICRCallbacks(jpos.MICR);
+    }
+}
+Compiled from MICRBeanInfo.java
+public class jpos.MICRBeanInfo extends java.beans.SimpleBeanInfo {
+    static java.lang.Class class$jpos$MICR;
+    public java.beans.BeanDescriptor getBeanDescriptor();
+    public java.beans.PropertyDescriptor makeProperty(java.lang.String) throws java.beans.IntrospectionException;
+    public java.beans.PropertyDescriptor getPropertyDescriptors()[];
+    public java.beans.EventSetDescriptor makeEvent(java.lang.String) throws java.beans.IntrospectionException, java.lang.ClassNotFoundException;
+    public java.beans.EventSetDescriptor getEventSetDescriptors()[];
+    public jpos.MICRBeanInfo();
+    static java.lang.Class class$(java.lang.String);
+}
+Compiled from MICRConst.java
+public interface jpos.MICRConst 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int MICR_CT_PERSONAL;
+    public static final int MICR_CT_BUSINESS;
+    public static final int MICR_CT_UNKNOWN;
+    public static final int MICR_CC_USA;
+    public static final int MICR_CC_CANADA;
+    public static final int MICR_CC_MEXICO;
+    public static final int MICR_CC_UNKNOWN;
+    public static final int JPOS_EMICR_NOCHECK;
+    public static final int JPOS_EMICR_CHECK;
+}
+Compiled from MICRControl12.java
+public interface jpos.MICRControl12 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapValidationDevice() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract java.lang.String getAccountNumber() throws jpos.JposException;
+    public abstract java.lang.String getAmount() throws jpos.JposException;
+    public abstract java.lang.String getBankNumber() throws jpos.JposException;
+    public abstract int getCheckType() throws jpos.JposException;
+    public abstract int getCountryCode() throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract java.lang.String getEPC() throws jpos.JposException;
+    public abstract java.lang.String getRawData() throws jpos.JposException;
+    public abstract java.lang.String getSerialNumber() throws jpos.JposException;
+    public abstract java.lang.String getTransitNumber() throws jpos.JposException;
+    public abstract void beginInsertion(int) throws jpos.JposException;
+    public abstract void beginRemoval(int) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void endInsertion() throws jpos.JposException;
+    public abstract void endRemoval() throws jpos.JposException;
+    public abstract void addDataListener(jpos.events.DataListener);
+    public abstract void removeDataListener(jpos.events.DataListener);
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void addErrorListener(jpos.events.ErrorListener);
+    public abstract void removeErrorListener(jpos.events.ErrorListener);
+}
+Compiled from MICRControl13.java
+public interface jpos.MICRControl13 extends jpos.MICRControl12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from MICRControl14.java
+public interface jpos.MICRControl14 extends jpos.MICRControl13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from POSKeyboard.java
+protected class jpos.POSKeyboard. POSKeyboardCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public jpos.BaseControl getEventSource();
+    public void fireDataEvent(jpos.events.DataEvent);
+    public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public void fireErrorEvent(jpos.events.ErrorEvent);
+    public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    protected jpos.POSKeyboard.POSKeyboardCallbacks(jpos.POSKeyboard);
+}
+Compiled from POSKeyboard.java
+public class jpos.POSKeyboard extends java.lang.Object implements jpos.POSKeyboardControl14, jpos.JposConst {
+    protected static final java.lang.String deviceControlDescription;
+    protected static final int deviceControlVersion;
+    protected static final int deviceVersion12;
+    protected static final int deviceVersion13;
+    protected static final int deviceVersion14;
+    protected icaframe.ServiceTracker serviceConnection;
+    protected int serviceVersion;
+    protected jpos.services.POSKeyboardService12 service12;
+    protected jpos.services.POSKeyboardService13 service13;
+    protected jpos.services.POSKeyboardService14 service14;
+    protected java.util.Vector dataListeners;
+    protected java.util.Vector directIOListeners;
+    protected java.util.Vector errorListeners;
+    protected java.util.Vector statusUpdateListeners;
+    public jpos.POSKeyboard();
+    public boolean getCapKeyUp() throws jpos.JposException;
+    public int getCapPowerReporting() throws jpos.JposException;
+    public java.lang.String getCheckHealthText() throws jpos.JposException;
+    public boolean getClaimed() throws jpos.JposException;
+    public java.lang.String getDeviceControlDescription();
+    public int getDeviceControlVersion();
+    public boolean getDeviceEnabled() throws jpos.JposException;
+    public void setDeviceEnabled(boolean) throws jpos.JposException;
+    public java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public int getDeviceServiceVersion() throws jpos.JposException;
+    public boolean getFreezeEvents() throws jpos.JposException;
+    public void setFreezeEvents(boolean) throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public int getState();
+    public boolean getAutoDisable() throws jpos.JposException;
+    public void setAutoDisable(boolean) throws jpos.JposException;
+    public int getDataCount() throws jpos.JposException;
+    public boolean getDataEventEnabled() throws jpos.JposException;
+    public void setDataEventEnabled(boolean) throws jpos.JposException;
+    public int getEventTypes() throws jpos.JposException;
+    public void setEventTypes(int) throws jpos.JposException;
+    public int getPOSKeyData() throws jpos.JposException;
+    public int getPOSKeyEventType() throws jpos.JposException;
+    public int getPowerNotify() throws jpos.JposException;
+    public void setPowerNotify(int) throws jpos.JposException;
+    public int getPowerState() throws jpos.JposException;
+    public void claim(int) throws jpos.JposException;
+    public synchronized void close() throws jpos.JposException;
+    public void checkHealth(int) throws jpos.JposException;
+    public void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public synchronized void open(java.lang.String) throws jpos.JposException;
+    public void release() throws jpos.JposException;
+    public void clearInput() throws jpos.JposException;
+    public void addDataListener(jpos.events.DataListener);
+    public void removeDataListener(jpos.events.DataListener);
+    public void addDirectIOListener(jpos.events.DirectIOListener);
+    public void removeDirectIOListener(jpos.events.DirectIOListener);
+    public void addErrorListener(jpos.events.ErrorListener);
+    public void removeErrorListener(jpos.events.ErrorListener);
+    public void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+    protected class jpos.POSKeyboard. POSKeyboardCallbacks extends java.lang.Object implements jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+        public jpos.BaseControl getEventSource();
+        public void fireDataEvent(jpos.events.DataEvent);
+        public void fireDirectIOEvent(jpos.events.DirectIOEvent);
+        public void fireErrorEvent(jpos.events.ErrorEvent);
+        public void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+        public void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+        protected jpos.POSKeyboard.POSKeyboardCallbacks(jpos.POSKeyboard);
+    }
+}
+Compiled from POSKeyboardBeanInfo.java
+public class jpos.POSKeyboardBeanInfo extends java.beans.SimpleBeanInfo {
+    static java.lang.Class class$jpos$POSKeyboard;
+    public java.beans.BeanDescriptor getBeanDescriptor();
+    public java.beans.PropertyDescriptor makeProperty(java.lang.String) throws java.beans.IntrospectionException;
+    public java.beans.PropertyDescriptor getPropertyDescriptors()[];
+    public java.beans.EventSetDescriptor makeEvent(java.lang.String) throws java.beans.IntrospectionException, java.lang.ClassNotFoundException;
+    public java.beans.EventSetDescriptor getEventSetDescriptors()[];
+    public jpos.POSKeyboardBeanInfo();
+    static java.lang.Class class$(java.lang.String);
+}
+Compiled from POSKeyboardConst.java
+public interface jpos.POSKeyboardConst 
+    /* ACC_SUPER bit NOT set */
+{
+    public static final int KBD_ET_DOWN;
+    public static final int KBD_ET_DOWN_UP;
+    public static final int KBD_KET_KEYDOWN;
+    public static final int KBD_KET_KEYUP;
+}
+Compiled from POSKeyboardControl12.java
+public interface jpos.POSKeyboardControl12 extends jpos.BaseControl 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapKeyUp() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract int getEventTypes() throws jpos.JposException;
+    public abstract void setEventTypes(int) throws jpos.JposException;
+    public abstract int getPOSKeyData() throws jpos.JposException;
+    public abstract int getPOSKeyEventType() throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void addDataListener(jpos.events.DataListener);
+    public abstract void removeDataListener(jpos.events.DataListener);
+    public abstract void addDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void removeDirectIOListener(jpos.events.DirectIOListener);
+    public abstract void addErrorListener(jpos.events.ErrorListener);
+    public abstract void removeErrorListener(jpos.events.ErrorListener);
+}
+Compiled from POSKeyboardControl13.java
+public interface jpos.POSKeyboardControl13 extends jpos.POSKeyboardControl12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract void addStatusUpdateListener(jpos.events.StatusUpdateListener);
+    public abstract void removeStatusUpdateListener(jpos.events.StatusUpdateListener);
+}
+Compiled from POSKeyboardControl14.java
+public interface jpos.POSKeyboardControl14 extends jpos.POSKeyboardControl13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from BaseService.java
+public interface jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract java.lang.String getCheckHealthText() throws jpos.JposException;
+    public abstract boolean getClaimed() throws jpos.JposException;
+    public abstract boolean getDeviceEnabled() throws jpos.JposException;
+    public abstract void setDeviceEnabled(boolean) throws jpos.JposException;
+    public abstract java.lang.String getDeviceServiceDescription() throws jpos.JposException;
+    public abstract int getDeviceServiceVersion() throws jpos.JposException;
+    public abstract boolean getFreezeEvents() throws jpos.JposException;
+    public abstract void setFreezeEvents(boolean) throws jpos.JposException;
+    public abstract java.lang.String getPhysicalDeviceDescription() throws jpos.JposException;
+    public abstract java.lang.String getPhysicalDeviceName() throws jpos.JposException;
+    public abstract int getState() throws jpos.JposException;
+    public abstract void claim(int) throws jpos.JposException;
+    public abstract void close() throws jpos.JposException;
+    public abstract void checkHealth(int) throws jpos.JposException;
+    public abstract void directIO(int, int[], java.lang.Object) throws jpos.JposException;
+    public abstract void open(java.lang.String, jpos.services.EventCallbacks) throws jpos.JposException;
+    public abstract void release() throws jpos.JposException;
+    public abstract void setTracker(icaframe.ServiceTracker);
+}
+Compiled from EventCallbacks.java
+public interface jpos.services.EventCallbacks 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract void fireDataEvent(jpos.events.DataEvent);
+    public abstract void fireDirectIOEvent(jpos.events.DirectIOEvent);
+    public abstract void fireErrorEvent(jpos.events.ErrorEvent);
+    public abstract void fireOutputCompleteEvent(jpos.events.OutputCompleteEvent);
+    public abstract void fireStatusUpdateEvent(jpos.events.StatusUpdateEvent);
+    public abstract jpos.BaseControl getEventSource();
+}
+Compiled from FormService14.java
+public interface jpos.services.FormService14 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapDisplay() throws jpos.JposException;
+    public abstract boolean getCapRealTimeData() throws jpos.JposException;
+    public abstract boolean getCapUserTerminated() throws jpos.JposException;
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract int getMaximumX() throws jpos.JposException;
+    public abstract int getMaximumY() throws jpos.JposException;
+    public abstract java.awt.Point getPointArray()[] throws jpos.JposException;
+    public abstract byte getRawData()[] throws jpos.JposException;
+    public abstract boolean getRealTimeDataEnabled() throws jpos.JposException;
+    public abstract void setRealTimeDataEnabled(boolean) throws jpos.JposException;
+    public abstract int getRows() throws jpos.JposException;
+    public abstract int getCols() throws jpos.JposException;
+    public abstract void setKeypadPrompts(java.lang.String, java.lang.String) throws jpos.JposException;
+    public abstract void setKeyboardPrompt(java.lang.String) throws jpos.JposException;
+    public abstract void displayKeyboard() throws jpos.JposException;
+    public abstract void displayKeypad() throws jpos.JposException;
+    public abstract java.lang.String getKeyedData() throws jpos.JposException;
+    public abstract void setFont(int, int) throws jpos.JposException;
+    public abstract void startForm(java.lang.String, boolean) throws jpos.JposException;
+    public abstract void storeForm(java.lang.String) throws jpos.JposException;
+    public abstract void clearFormInput() throws jpos.JposException;
+    public abstract void endForm() throws jpos.JposException;
+    public abstract byte getSurveyData()[] throws jpos.JposException;
+    public abstract byte getButtonData()[] throws jpos.JposException;
+    public abstract void displayTextAt(int, int, java.lang.String) throws jpos.JposException;
+}
+Compiled from MSRService12.java
+public interface jpos.services.MSRService12 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapISO() throws jpos.JposException;
+    public abstract boolean getCapJISOne() throws jpos.JposException;
+    public abstract boolean getCapJISTwo() throws jpos.JposException;
+    public abstract java.lang.String getAccountNumber() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract boolean getDecodeData() throws jpos.JposException;
+    public abstract void setDecodeData(boolean) throws jpos.JposException;
+    public abstract int getErrorReportingType() throws jpos.JposException;
+    public abstract void setErrorReportingType(int) throws jpos.JposException;
+    public abstract java.lang.String getExpirationDate() throws jpos.JposException;
+    public abstract java.lang.String getFirstName() throws jpos.JposException;
+    public abstract java.lang.String getMiddleInitial() throws jpos.JposException;
+    public abstract boolean getParseDecodeData() throws jpos.JposException;
+    public abstract void setParseDecodeData(boolean) throws jpos.JposException;
+    public abstract java.lang.String getServiceCode() throws jpos.JposException;
+    public abstract java.lang.String getSuffix() throws jpos.JposException;
+    public abstract java.lang.String getSurname() throws jpos.JposException;
+    public abstract java.lang.String getTitle() throws jpos.JposException;
+    public abstract byte getTrack1Data()[] throws jpos.JposException;
+    public abstract byte getTrack1DiscretionaryData()[] throws jpos.JposException;
+    public abstract byte getTrack2Data()[] throws jpos.JposException;
+    public abstract byte getTrack2DiscretionaryData()[] throws jpos.JposException;
+    public abstract byte getTrack3Data()[] throws jpos.JposException;
+    public abstract int getTracksToRead() throws jpos.JposException;
+    public abstract void setTracksToRead(int) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+}
+Compiled from MSRService13.java
+public interface jpos.services.MSRService13 extends jpos.services.MSRService12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+}
+Compiled from MSRService14.java
+public interface jpos.services.MSRService14 extends jpos.services.MSRService13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from PINPadService13.java
+public interface jpos.services.PINPadService13 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapDisplay() throws jpos.JposException;
+    public abstract int getCapLanguage() throws jpos.JposException;
+    public abstract boolean getCapKeyboard() throws jpos.JposException;
+    public abstract boolean getCapMACCalculation() throws jpos.JposException;
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract boolean getCapTone() throws jpos.JposException;
+    public abstract java.lang.String getAccountNumber() throws jpos.JposException;
+    public abstract void setAccountNumber(java.lang.String) throws jpos.JposException;
+    public abstract java.lang.String getAdditionalSecurityInformation() throws jpos.JposException;
+    public abstract long getAmount() throws jpos.JposException;
+    public abstract void setAmount(long) throws jpos.JposException;
+    public abstract java.lang.String getAvailableLanguagesList() throws jpos.JposException;
+    public abstract java.lang.String getAvailablePromptsList() throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract java.lang.String getEncryptedPIN() throws jpos.JposException;
+    public abstract int getMaximumPINLength() throws jpos.JposException;
+    public abstract void setMaximumPINLength(int) throws jpos.JposException;
+    public abstract java.lang.String getMerchantID() throws jpos.JposException;
+    public abstract void setMerchantID(java.lang.String) throws jpos.JposException;
+    public abstract int getMinimumPINLength() throws jpos.JposException;
+    public abstract void setMinimumPINLength(int) throws jpos.JposException;
+    public abstract boolean getPINEntryEnabled() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+    public abstract int getPrompt() throws jpos.JposException;
+    public abstract void setPrompt(int) throws jpos.JposException;
+    public abstract java.lang.String getPromptLanguage() throws jpos.JposException;
+    public abstract void setPromptLanguage(java.lang.String) throws jpos.JposException;
+    public abstract java.lang.String getTerminalID() throws jpos.JposException;
+    public abstract void setTerminalID(java.lang.String) throws jpos.JposException;
+    public abstract byte getTrack1Data()[] throws jpos.JposException;
+    public abstract void setTrack1Data(byte[]) throws jpos.JposException;
+    public abstract byte getTrack2Data()[] throws jpos.JposException;
+    public abstract void setTrack2Data(byte[]) throws jpos.JposException;
+    public abstract byte getTrack3Data()[] throws jpos.JposException;
+    public abstract void setTrack3Data(byte[]) throws jpos.JposException;
+    public abstract int getTransactionType() throws jpos.JposException;
+    public abstract void setTransactionType(int) throws jpos.JposException;
+    public abstract void beginEFTTransaction(java.lang.String, int) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void computeMAC(java.lang.String, java.lang.String[]) throws jpos.JposException;
+    public abstract void enablePINEntry() throws jpos.JposException;
+    public abstract void endEFTTransaction(int) throws jpos.JposException;
+    public abstract void updateKey(int, java.lang.String) throws jpos.JposException;
+    public abstract void verifyMAC(java.lang.String) throws jpos.JposException;
+}
+Compiled from PINPadService14.java
+public interface jpos.services.PINPadService14 extends jpos.services.PINPadService13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from SignatureCaptureService12.java
+public interface jpos.services.SignatureCaptureService12 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapDisplay() throws jpos.JposException;
+    public abstract boolean getCapRealTimeData() throws jpos.JposException;
+    public abstract boolean getCapUserTerminated() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract int getMaximumX() throws jpos.JposException;
+    public abstract int getMaximumY() throws jpos.JposException;
+    public abstract java.awt.Point getPointArray()[] throws jpos.JposException;
+    public abstract byte getRawData()[] throws jpos.JposException;
+    public abstract boolean getRealTimeDataEnabled() throws jpos.JposException;
+    public abstract void setRealTimeDataEnabled(boolean) throws jpos.JposException;
+    public abstract void beginCapture(java.lang.String) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void endCapture() throws jpos.JposException;
+}
+Compiled from SignatureCaptureService13.java
+public interface jpos.services.SignatureCaptureService13 extends jpos.services.SignatureCaptureService12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+}
+Compiled from SignatureCaptureService14.java
+public interface jpos.services.SignatureCaptureService14 extends jpos.services.SignatureCaptureService13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from LineDisplayService12.java
+public interface jpos.services.LineDisplayService12 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapBlink() throws jpos.JposException;
+    public abstract boolean getCapBrightness() throws jpos.JposException;
+    public abstract int getCapCharacterSet() throws jpos.JposException;
+    public abstract boolean getCapDescriptors() throws jpos.JposException;
+    public abstract boolean getCapHMarquee() throws jpos.JposException;
+    public abstract boolean getCapICharWait() throws jpos.JposException;
+    public abstract boolean getCapVMarquee() throws jpos.JposException;
+    public abstract int getCharacterSet() throws jpos.JposException;
+    public abstract void setCharacterSet(int) throws jpos.JposException;
+    public abstract java.lang.String getCharacterSetList() throws jpos.JposException;
+    public abstract int getColumns() throws jpos.JposException;
+    public abstract int getCurrentWindow() throws jpos.JposException;
+    public abstract void setCurrentWindow(int) throws jpos.JposException;
+    public abstract int getCursorColumn() throws jpos.JposException;
+    public abstract void setCursorColumn(int) throws jpos.JposException;
+    public abstract int getCursorRow() throws jpos.JposException;
+    public abstract void setCursorRow(int) throws jpos.JposException;
+    public abstract boolean getCursorUpdate() throws jpos.JposException;
+    public abstract void setCursorUpdate(boolean) throws jpos.JposException;
+    public abstract int getDeviceBrightness() throws jpos.JposException;
+    public abstract void setDeviceBrightness(int) throws jpos.JposException;
+    public abstract int getDeviceColumns() throws jpos.JposException;
+    public abstract int getDeviceDescriptors() throws jpos.JposException;
+    public abstract int getDeviceRows() throws jpos.JposException;
+    public abstract int getDeviceWindows() throws jpos.JposException;
+    public abstract int getInterCharacterWait() throws jpos.JposException;
+    public abstract void setInterCharacterWait(int) throws jpos.JposException;
+    public abstract int getMarqueeFormat() throws jpos.JposException;
+    public abstract void setMarqueeFormat(int) throws jpos.JposException;
+    public abstract int getMarqueeRepeatWait() throws jpos.JposException;
+    public abstract void setMarqueeRepeatWait(int) throws jpos.JposException;
+    public abstract int getMarqueeType() throws jpos.JposException;
+    public abstract void setMarqueeType(int) throws jpos.JposException;
+    public abstract int getMarqueeUnitWait() throws jpos.JposException;
+    public abstract void setMarqueeUnitWait(int) throws jpos.JposException;
+    public abstract int getRows() throws jpos.JposException;
+    public abstract void clearDescriptors() throws jpos.JposException;
+    public abstract void clearText() throws jpos.JposException;
+    public abstract void createWindow(int, int, int, int, int, int) throws jpos.JposException;
+    public abstract void destroyWindow() throws jpos.JposException;
+    public abstract void displayText(java.lang.String, int) throws jpos.JposException;
+    public abstract void displayTextAt(int, int, java.lang.String, int) throws jpos.JposException;
+    public abstract void refreshWindow(int) throws jpos.JposException;
+    public abstract void scrollText(int, int) throws jpos.JposException;
+    public abstract void setDescriptor(int, int) throws jpos.JposException;
+}
+Compiled from LineDisplayService13.java
+public interface jpos.services.LineDisplayService13 extends jpos.services.LineDisplayService12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+}
+Compiled from LineDisplayService14.java
+public interface jpos.services.LineDisplayService14 extends jpos.services.LineDisplayService13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from MICRService12.java
+public interface jpos.services.MICRService12 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapValidationDevice() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract java.lang.String getAccountNumber() throws jpos.JposException;
+    public abstract java.lang.String getAmount() throws jpos.JposException;
+    public abstract java.lang.String getBankNumber() throws jpos.JposException;
+    public abstract int getCheckType() throws jpos.JposException;
+    public abstract int getCountryCode() throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract java.lang.String getEPC() throws jpos.JposException;
+    public abstract java.lang.String getRawData() throws jpos.JposException;
+    public abstract java.lang.String getSerialNumber() throws jpos.JposException;
+    public abstract java.lang.String getTransitNumber() throws jpos.JposException;
+    public abstract void beginInsertion(int) throws jpos.JposException;
+    public abstract void beginRemoval(int) throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+    public abstract void endInsertion() throws jpos.JposException;
+    public abstract void endRemoval() throws jpos.JposException;
+}
+Compiled from MICRService13.java
+public interface jpos.services.MICRService13 extends jpos.services.MICRService12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+}
+Compiled from MICRService14.java
+public interface jpos.services.MICRService14 extends jpos.services.MICRService13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from POSKeyboardService12.java
+public interface jpos.services.POSKeyboardService12 extends jpos.services.BaseService 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract boolean getCapKeyUp() throws jpos.JposException;
+    public abstract boolean getAutoDisable() throws jpos.JposException;
+    public abstract void setAutoDisable(boolean) throws jpos.JposException;
+    public abstract int getDataCount() throws jpos.JposException;
+    public abstract boolean getDataEventEnabled() throws jpos.JposException;
+    public abstract void setDataEventEnabled(boolean) throws jpos.JposException;
+    public abstract int getEventTypes() throws jpos.JposException;
+    public abstract void setEventTypes(int) throws jpos.JposException;
+    public abstract int getPOSKeyData() throws jpos.JposException;
+    public abstract int getPOSKeyEventType() throws jpos.JposException;
+    public abstract void clearInput() throws jpos.JposException;
+}
+Compiled from POSKeyboardService13.java
+public interface jpos.services.POSKeyboardService13 extends jpos.services.POSKeyboardService12 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract int getCapPowerReporting() throws jpos.JposException;
+    public abstract int getPowerNotify() throws jpos.JposException;
+    public abstract void setPowerNotify(int) throws jpos.JposException;
+    public abstract int getPowerState() throws jpos.JposException;
+}
+Compiled from POSKeyboardService14.java
+public interface jpos.services.POSKeyboardService14 extends jpos.services.POSKeyboardService13 
+    /* ACC_SUPER bit NOT set */
+{
+}
+Compiled from DataEvent.java
+public class jpos.events.DataEvent extends jpos.events.JposEvent {
+    protected int status;
+    public jpos.events.DataEvent(java.lang.Object,int);
+    public int getStatus();
+}
+Compiled from DataListener.java
+public interface jpos.events.DataListener extends java.util.EventListener 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract void dataOccurred(jpos.events.DataEvent);
+}
+Compiled from DirectIOEvent.java
+public class jpos.events.DirectIOEvent extends jpos.events.JposEvent {
+    protected int eventNumber;
+    protected int data;
+    protected java.lang.Object object;
+    public jpos.events.DirectIOEvent(java.lang.Object,int,int,java.lang.Object);
+    public int getEventNumber();
+    public int getData();
+    public void setData(int);
+    public java.lang.Object getObject();
+    public void setObject(java.lang.Object);
+}
+Compiled from DirectIOListener.java
+public interface jpos.events.DirectIOListener extends java.util.EventListener 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract void directIOOccurred(jpos.events.DirectIOEvent);
+}
+Compiled from ErrorEvent.java
+public class jpos.events.ErrorEvent extends jpos.events.JposEvent {
+    protected int errorCode;
+    protected int errorCodeExtended;
+    protected int errorLocus;
+    protected int errorResponse;
+    public jpos.events.ErrorEvent(java.lang.Object,int,int,int,int);
+    public int getErrorCode();
+    public int getErrorCodeExtended();
+    public int getErrorLocus();
+    public int getErrorResponse();
+    public void setErrorResponse(int);
+}
+Compiled from ErrorListener.java
+public interface jpos.events.ErrorListener extends java.util.EventListener 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract void errorOccurred(jpos.events.ErrorEvent);
+}
+Compiled from JposEvent.java
+public abstract class jpos.events.JposEvent extends java.util.EventObject {
+    protected long sequenceNumber;
+    public jpos.events.JposEvent(java.lang.Object);
+    public final synchronized void updateSequenceNumber();
+    public static final synchronized long incrSequenceNumber();
+    public final long getSequenceNumber();
+    public long getWhen();
+}
+Compiled from OutputCompleteEvent.java
+public class jpos.events.OutputCompleteEvent extends jpos.events.JposEvent {
+    protected int outputID;
+    public jpos.events.OutputCompleteEvent(java.lang.Object,int);
+    public int getOutputID();
+}
+Compiled from OutputCompleteListener.java
+public interface jpos.events.OutputCompleteListener extends java.util.EventListener 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract void outputCompleteOccurred(jpos.events.OutputCompleteEvent);
+}
+Compiled from StatusUpdateEvent.java
+public class jpos.events.StatusUpdateEvent extends jpos.events.JposEvent {
+    protected int status;
+    public jpos.events.StatusUpdateEvent(java.lang.Object,int);
+    public int getStatus();
+}
+Compiled from StatusUpdateListener.java
+public interface jpos.events.StatusUpdateListener extends java.util.EventListener 
+    /* ACC_SUPER bit NOT set */
+{
+    public abstract void statusUpdateOccurred(jpos.events.StatusUpdateEvent);
+}
+ </pre>
+

@@ -1,0 +1,17 @@
+// CSVTransactionFormatEnum.Enum
+// put these in the order that you want the columns
+TimeCol
+//TermCol
+AssociateCol
+MerchRefCol // invoice number
+StanCol // this is the stan
+TraceCol // this is the txnid
+StatusCol
+ApprovalCol
+PayTypeCol
+InstitutionCol
+AcctNumCol
+SaleCol
+ReturnCol
+VoidChgCol
+NetCol

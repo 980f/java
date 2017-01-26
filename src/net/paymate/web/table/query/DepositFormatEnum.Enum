@@ -1,0 +1,11 @@
+// DepositFormatEnum.Enum
+// put these in the order that you want the columns
+terminalNameCol
+authorizerNameCol
+// next is TermAuthId
+tadCol
+authtermCol
+lastClosedTimeCol
+txnCountCol
+txnTotalCol
+CSVCol

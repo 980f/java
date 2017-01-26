@@ -1,0 +1,6 @@
+// EnterprisesFormatEnum.Enum
+// put these in the order that you want the columns
+EditCol
+EnterpriseNameCol
+StoreNameCol
+StorePhoneCol

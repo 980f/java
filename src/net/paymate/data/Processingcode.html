@@ -1,0 +1,807 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.78 [en] (Windows NT 5.0; U) [Netscape]">
+</head>
+<body>
+
+<h6>
+<tt>$Id: Processingcode.html,v 1.1 2003/10/25 20:34:20 mattm Exp $</tt></h6>
+&nbsp;
+<table BORDER >
+<caption>ISO Message Field [3], Processing Code&nbsp;</caption>
+
+<tr>
+<th ROWSPAN="2">TRANSACTION/MESSAGE&nbsp;</th>
+
+<th COLSPAN="2">normal tranny</th>
+
+<th>reversal</th>
+
+<th COLSPAN="3">paymate classes</th>
+</tr>
+
+<tr>
+<th>MESSAGE TYPE&nbsp;</th>
+
+<th>PROCESSING CODE&nbsp;</th>
+
+<th>PROCESSING CODE&nbsp;</th>
+
+<td><a href="#class Operation">Operation</a></td>
+
+<td><a href="#class PayType2">Paytype2</a></td>
+
+<td><a href="#class EBTType">EBTtype</a></td>
+</tr>
+
+<tr>
+<td>Check Sale&nbsp;</td>
+
+<td>100/110</td>
+
+<td>040000</td>
+
+<td>040000</td>
+
+<td>Sale</td>
+
+<td>Check</td>
+
+<td ROWSPAN="7">n/a</td>
+</tr>
+
+<tr>
+<td>Check Conversion&nbsp;</td>
+
+<td>100/110</td>
+
+<td>040090</td>
+
+<td>040090</td>
+
+<td>Sale</td>
+
+<td>&nbsp;???</td>
+</tr>
+
+<tr>
+<td>ACH Sale&nbsp;</td>
+
+<td>200/210</td>
+
+<td>040090</td>
+
+<td>040090</td>
+
+<td>Sale</td>
+
+<td>&nbsp;ACH</td>
+</tr>
+
+<tr>
+<td>Credit Sale&nbsp;</td>
+
+<td>200/210</td>
+
+<td>003000</td>
+
+<td>003000</td>
+
+<td>Sale</td>
+
+<td>&nbsp;Credit</td>
+</tr>
+
+<tr>
+<td>Debit Sale&nbsp;</td>
+
+<td>200/210</td>
+
+<td>000000</td>
+
+<td>000000</td>
+
+<td>Sale</td>
+
+<td>&nbsp;Debit</td>
+</tr>
+
+<tr>
+<td>Frequent Shopper Authorization&nbsp;</td>
+
+<td>100/110</td>
+
+<td>319999</td>
+
+<td>n/a</td>
+
+<td>&nbsp;FrequentShopper</td>
+
+<td>???&nbsp;</td>
+</tr>
+
+<tr>
+<td>Frequent Shopper Update&nbsp;</td>
+
+<td>100/110</td>
+
+<td>189999</td>
+
+<td>n/a</td>
+
+<td>&nbsp;FrequentShopper</td>
+
+<td>???&nbsp;</td>
+</tr>
+
+<tr>
+<th COLSPAN="7">Gift Certificate Transactions</th>
+</tr>
+
+<tr>
+<td>Issuance&nbsp;</td>
+
+<td VALIGN=TOP ROWSPAN="5">100/110</td>
+
+<td>480098</td>
+
+<td>480098</td>
+
+<td>GiftCertificate</td>
+
+<td>???&nbsp;</td>
+
+<td ROWSPAN="5">n/a&nbsp;</td>
+</tr>
+
+<tr>
+<td>Redemption&nbsp;</td>
+
+<td>190098</td>
+
+<td>190098</td>
+
+<td>GiftCertificate</td>
+
+<td>&nbsp;</td>
+</tr>
+
+<tr>
+<td>Refund&nbsp;</td>
+
+<td>290098</td>
+
+<td>290098</td>
+
+<td>GiftCertificate</td>
+
+<td>&nbsp;</td>
+</tr>
+
+<tr>
+<td>Balance Inquiry&nbsp;</td>
+
+<td>310098</td>
+
+<td>n/a</td>
+
+<td>GiftCertificate</td>
+
+<td>&nbsp;</td>
+</tr>
+
+<tr>
+<td>Re-issue&nbsp;</td>
+
+<td>490098&nbsp;</td>
+
+<td>490098</td>
+
+<td>GiftCertificate</td>
+
+<td>&nbsp;</td>
+</tr>
+
+<tr>
+<th COLSPAN="7">EBT Sales&nbsp;</th>
+</tr>
+
+<tr>
+<td>Food Stamp sale/purchase</td>
+
+<td VALIGN=TOP ROWSPAN="4">200/210</td>
+
+<td>009500</td>
+
+<td>009500</td>
+
+<td>Sale</td>
+
+<td>EBT</td>
+
+<td>FoodStamp</td>
+</tr>
+
+<tr>
+<td>Cash benefit purchase no cashback&nbsp;</td>
+
+<td>002000</td>
+
+<td>002000</td>
+
+<td>Sale</td>
+
+<td>EBT</td>
+
+<td>PurchaseSimple</td>
+</tr>
+
+<tr>
+<td>Cash benefit purchase w/ cashback&nbsp;</td>
+
+<td>092000</td>
+
+<td>092000</td>
+
+<td>Sale</td>
+
+<td>EBT</td>
+
+<td>PurchaseCashBack</td>
+</tr>
+
+<tr>
+<td>Cash benefit withdrawal&nbsp;</td>
+
+<td>012000&nbsp;</td>
+
+<td>012000</td>
+
+<td>Sale</td>
+
+<td>EBT</td>
+
+<td>Cash</td>
+</tr>
+
+<tr>
+<th COLSPAN="7">Returns</th>
+</tr>
+
+<tr>
+<td>ACH Return&nbsp;</td>
+
+<td>200/210</td>
+
+<td>200090</td>
+
+<td>200090</td>
+
+<td>&nbsp;Return</td>
+
+<td>ACH</td>
+
+<td ROWSPAN="4">&nbsp;n/a</td>
+</tr>
+
+<tr>
+<td>Credit Return&nbsp;</td>
+
+<td>200/210</td>
+
+<td>200030</td>
+
+<td>203000 &lt;&lt;&lt;&lt;</td>
+
+<td>&nbsp;Return</td>
+
+<td>Credit&nbsp;</td>
+</tr>
+
+<tr>
+<td>Debit Return&nbsp;</td>
+
+<td>200/210</td>
+
+<td>200000</td>
+
+<td>200000</td>
+
+<td>&nbsp;Return</td>
+
+<td>Debit</td>
+</tr>
+
+<tr>
+<td>EBT Return (Food Stamp only)&nbsp;</td>
+
+<td>200/210</td>
+
+<td>209500</td>
+
+<td>209500</td>
+
+<td>&nbsp;Return</td>
+
+<td>EBT</td>
+</tr>
+</table>
+
+<table BORDER COLS=3 >
+<caption>PayMate classes</caption>
+
+<tr>
+<td>
+<table BORDER >
+<caption><a NAME="class EBTType"></a>EBTType&nbsp;</caption>
+
+<tr>
+<td>FoodStamp</td>
+
+<td>0</td>
+</tr>
+
+<tr>
+<td>PurchaseSimple</td>
+
+<td>1</td>
+</tr>
+
+<tr>
+<td>PurchaseCashBack</td>
+
+<td>2</td>
+</tr>
+
+<tr>
+<td>Cash</td>
+
+<td>3</td>
+</tr>
+
+<tr>
+<td></td>
+
+<td></td>
+</tr>
+</table>
+</td>
+
+<td>
+<table BORDER >
+<caption><a NAME="class PayType2"></a>PayType2&nbsp;</caption>
+
+<tr>
+<td>Check</td>
+
+<td>0</td>
+</tr>
+
+<tr>
+<td>ACH</td>
+
+<td>1</td>
+</tr>
+
+<tr>
+<td>Credit</td>
+
+<td>2</td>
+</tr>
+
+<tr>
+<td>Debit</td>
+
+<td>3</td>
+</tr>
+
+<tr>
+<td>EBT</td>
+
+<td>4</td>
+</tr>
+</table>
+</td>
+
+<td>
+<table BORDER >
+<caption><a NAME="class Operation"></a>Operation&nbsp;</caption>
+
+<tr>
+<td>Sale</td>
+
+<td>0</td>
+</tr>
+
+<tr>
+<td>Return</td>
+
+<td>1</td>
+</tr>
+
+<tr>
+<td></td>
+
+<td></td>
+</tr>
+
+<tr>
+<td>GiftCertificate</td>
+
+<td>3</td>
+</tr>
+
+<tr>
+<td>FrequentShopper</td>
+
+<td>4</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+
+<hr>
+<br>
+<hr WIDTH="100%">
+<br>OLD STUFF:
+<h3>
+Processing Codes (ISO Field 3)</h3>
+
+<table BORDER >
+<caption>Sale</caption>
+
+<tr>
+<td COLSPAN="2">Check</td>
+
+<td>100</td>
+
+<td>040000</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">Check Conversion</td>
+
+<td>100</td>
+
+<td>040090</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">ACH</td>
+
+<td>200</td>
+
+<td>040090</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">Credit</td>
+
+<td>200</td>
+
+<td>003000</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">Debit</td>
+
+<td>200</td>
+
+<td>000000</td>
+</tr>
+
+<tr>
+<td ROWSPAN="4">EBT</td>
+
+<td>Food Stamp sale</td>
+
+<td>200</td>
+
+<td>009500</td>
+</tr>
+
+<tr>
+<td>Cash benefit purchase, no cashback</td>
+
+<td>200</td>
+
+<td>002000</td>
+</tr>
+
+<tr>
+<td>Cash benefit purchase w/ cashback</td>
+
+<td>200</td>
+
+<td>092000</td>
+</tr>
+
+<tr>
+<td>Cash benefit withdrawal</td>
+
+<td>200</td>
+
+<td>012000</td>
+</tr>
+</table>
+
+<table BORDER >
+<caption>Returns</caption>
+
+<tr>
+<td>ACH</td>
+
+<td>200</td>
+
+<td>200090</td>
+</tr>
+
+<tr>
+<td>Credit</td>
+
+<td>200</td>
+
+<td>200030</td>
+</tr>
+
+<tr>
+<td>Debit</td>
+
+<td>200</td>
+
+<td>200000</td>
+</tr>
+
+<tr>
+<td>EBT (Food Stamp only)</td>
+
+<td>200</td>
+
+<td>209500</td>
+</tr>
+</table>
+
+<table BORDER >
+<caption>Gift Certificate Transaction</caption>
+
+<tr>
+<td>Issuance</td>
+
+<td>100</td>
+
+<td>480098</td>
+</tr>
+
+<tr>
+<td>Redemption</td>
+
+<td>100</td>
+
+<td>190098</td>
+</tr>
+
+<tr>
+<td>Refund</td>
+
+<td>100</td>
+
+<td>290098</td>
+</tr>
+
+<tr>
+<td>Balance Inquiry</td>
+
+<td>100</td>
+
+<td>310098</td>
+</tr>
+
+<tr>
+<td>Re-issue</td>
+
+<td>100</td>
+
+<td>490098</td>
+</tr>
+</table>
+
+<table BORDER >
+<caption>Frequent Shopper</caption>
+
+<tr>
+<td>Authorization</td>
+
+<td>100</td>
+
+<td>319999</td>
+</tr>
+
+<tr>
+<td>Update</td>
+
+<td>100</td>
+
+<td>189999</td>
+</tr>
+</table>
+
+<hr>Decomposition:
+<br>Spec states that digits 3&amp;4 are from "Transactive" definitions.
+Here is an attempt to tabulate those:&nbsp;
+<hr>
+<table BORDER >
+<caption>Reversals</caption>
+
+<tr>
+<td>
+<table BORDER >
+<caption>Sales</caption>
+
+<tr>
+<td COLSPAN="2">Check&nbsp;</td>
+
+<td>400</td>
+
+<td>040000</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">Check Conversion</td>
+
+<td>400</td>
+
+<td>040090</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">ACH&nbsp;</td>
+
+<td>400</td>
+
+<td>040090</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">Credit&nbsp;</td>
+
+<td>400</td>
+
+<td>003000</td>
+</tr>
+
+<tr>
+<td COLSPAN="2">Debit&nbsp;</td>
+
+<td>400</td>
+
+<td>000000</td>
+</tr>
+
+<tr>
+<td ROWSPAN="4">EBT</td>
+
+<td>Food Stamp purchase</td>
+
+<td>400</td>
+
+<td>009500</td>
+</tr>
+
+<tr>
+<td>Cash benefit purchase, no cashback</td>
+
+<td>400</td>
+
+<td>002000</td>
+</tr>
+
+<tr>
+<td>Cash benefit purchase w/ cashback</td>
+
+<td>400</td>
+
+<td>092000</td>
+</tr>
+
+<tr>
+<td>Cash benefit withdrawal</td>
+
+<td>400</td>
+
+<td>012000</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td>
+<table BORDER >
+<caption>Gift Certificate</caption>
+
+<tr>
+<td>Issuance</td>
+
+<td>400</td>
+
+<td>480098</td>
+</tr>
+
+<tr>
+<td>Redemption</td>
+
+<td>400</td>
+
+<td>190098</td>
+</tr>
+
+<tr>
+<td>Refund</td>
+
+<td>400</td>
+
+<td>290098</td>
+</tr>
+
+<tr>
+<td>Re-issue</td>
+
+<td>400</td>
+
+<td>490098</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td>
+<table BORDER >
+<caption>Return</caption>
+
+<tr>
+<td>of ACH&nbsp;</td>
+
+<td>400</td>
+
+<td>200090</td>
+</tr>
+
+<tr>
+<td>of Credit&nbsp;</td>
+
+<td>400</td>
+
+<td>203000</td>
+</tr>
+
+<tr>
+<td>of Debit&nbsp;</td>
+
+<td>400</td>
+
+<td>200000</td>
+</tr>
+
+<tr>
+<td>of EBT&nbsp;</td>
+
+<td>400</td>
+
+<td>209500</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+
+<br>&nbsp;
+<p>PayMate.net &copy; 2000
+<h6>
+$Id: Processingcode.html,v 1.1 2003/10/25 20:34:20 mattm Exp $</h6>
+
+</body>
+</html>

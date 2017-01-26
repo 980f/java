@@ -1,0 +1,12 @@
+//$Source: /cvs/src/net/paymate/terminalClient/SpecialOp.Enum,v $
+//$Revision: 1.2 $
+List
+PreAuth
+Force
+Adjust
+//AddTip
+//Adjust_Tip
+//DoTips=>drawermenu
+
+//345678901234
+//$Id: SpecialOp.Enum,v 1.2 2003/11/17 21:58:09 andyh Exp $

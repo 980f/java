@@ -1,0 +1,47 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Script-Type" content="text/javascript">
+   <meta name="cvs" content="$Id: testingapplet.html,v 1.2 2000/06/06 03:58:59 alien Exp $">
+   <title>TESTING APPLET</title>
+<SCRIPT>
+function getid() {
+//  var checksuccess = 
+  document.testapplet.checkHardware();
+//  var System = java.lang.System;
+//  var outputStr = "MACID="+macid;
+//  System.out.println(outputStr);
+//  if(checksuccess) {
+//    // +++ don't post all inputs when not using pentest (when doing for real)
+//    var param = "username-"+document.loginform.userid.value+"%20password-";
+//    param+=document.loginform.password.value+"%20encryptedMACID-"+document.testapplet.enMacid;
+//    param+="%20encryptedKey-"+document.testapplet.enKey;
+//    document.loginform.set.value = param;
+//    document.loginform.submit();    
+//  } else {
+//    alert("Required hardware missing.");
+//  }
+}
+</SCRIPT>
+</head>
+<body>
+TESTING APPLET<BR><BR>
+
+<form NAME="loginform" ACTION="https://208.58.21.60:8443" METHOD="POST">
+
+<applet code="adminapplet.class" HEIGHT="30" WIDTH="30" name="testapplet">P</applet>ayMate.net<BR>
+<table><TR><TD>
+UserID:</TD><TD>
+<INPUT type="text"     name="userid"   value = ""></TD></TR><TR><TD>
+Password:</TD><TD>
+<INPUT type="password" name="password" value = ""></TD></TR><TR><TD COLSPAN="2" ALIGN=RIGHT>
+<INPUT type="button"   name="getit"    value="Login" onclick="getid()"></TD></TR></TABLE>
+<INPUT type="hidden"   name="set"       value="">
+
+
+</form>
+
+<br>&nbsp;
+<br>&nbsp;
+</body>
+</html>

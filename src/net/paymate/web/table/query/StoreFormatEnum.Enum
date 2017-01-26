@@ -1,0 +1,11 @@
+// StoreFormatEnum.Enum
+NameCol
+PhoneCol
+Address1Col
+Address2Col
+CityCol
+StateCol
+ZipcodeCol
+CountryCol
+TypeCol // should this be per-authorizer? eg: storeauth?
+TimeZoneCol

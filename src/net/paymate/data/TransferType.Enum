@@ -1,0 +1,12 @@
+/* $Id: TransferType.Enum,v 1.1 2003/10/25 20:34:21 mattm Exp $ */
+//types of POS transactions
+Unknown=U   //possibly useless selection, distinguishes not known from not initialized.
+Sale=S
+Return=R
+Reversal=V
+//re-entry replaced with modify and force
+Query=Q     //storedvalue cards//preview cardtype.
+Authonly=A  //added for paymentech gateway. get auth but don't submit.
+Modify=M    //added for tips
+Force=F     //added for completeness, all force's are sales of a sort...
+// $Id: TransferType.Enum,v 1.1 2003/10/25 20:34:21 mattm Exp $

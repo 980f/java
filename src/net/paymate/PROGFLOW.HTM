@@ -1,0 +1,532 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (Win98; U) [Netscape]">
+   <title>terminal Client program "flow"</title>
+</head>
+<body>
+
+<h6>
+&copy; Paymate.Net 2001 Proprietary and Confidential Material</h6>
+
+<h6>
+$Id: PROGFLOW.HTM,v 1.10 2001/03/28 05:57:23 andyh Exp $</h6>
+updated for release: prel870127
+<br>
+<hr WIDTH="100%">
+<h3>
+<a NAME="States"></a>States</h3>
+The client has the following state information: [[items parenthesized like
+this aren't implemented yet]]
+<ul>
+<li>
+terminal is Logged in</li>
+
+<li>
+clerk is Logged in</li>
+
+<li>
+payment data present</li>
+
+<ul>
+<li>
+card data present&nbsp; &lt;needs to reset check data></li>
+
+<ul>
+<li>
+card data usable</li>
+</ul>
+
+<li>
+check data present&nbsp; &lt;needs to reset card data></li>
+
+<ul>
+<li>
+check data usable (each component of the check also has a usable flag)</li>
+</ul>
+</ul>
+
+<li>
+sale amount is present</li>
+
+<li>
+transaction type is known {sale/return/void}</li>
+
+<li>
+transaction state, one of:</li>
+
+<ul>
+<li>
+not active</li>
+
+<li>
+transaction in process</li>
+
+<li>
+reply received</li>
+</ul>
+
+<li>
+signature present</li>
+
+<li>
+[[card is debit]]</li>
+
+<li>
+[[PIN has been entered]]</li>
+</ul>
+Each time any of the items that feed a transaction changes all of the state
+is reevaluated and a form is selected, a question for the CM3000 is selected,
+and potentially a transaction is sent off to the server. Some of the question
+sequencing of the CM3000 occurs "locally", i.e. without affecting the terminal
+state. Note that the check reader is quite separate from the CM3000, and
+activity between it and the CM3000 must be moderated by the terminal logic,
+just like for cards.
+<p>
+<hr WIDTH="100%">
+<h3>
+CM3000&nbsp;<a NAME="questions"></a>questions,</h3>
+when you see 'select' the logic looks no further
+<br>//// this section is WAY out of date ////
+<ul>
+<li>
+if terminal not logged in select "CONNECTING"</li>
+
+<li>
+if clerk not logged in select "Clerk ID"</li>
+
+<li>
+if transaction not active</li>
+
+<ul>
+<li>
+if sale amount not present select "Enter Amount"&nbsp; (can escape to get
+to special functions select)</li>
+
+<li>
+if no payment data is present then select "Swipe / Scan" (which allows
+manual data entry to be selected)</li>
+
+<li>
+if card is present</li>
+
+<ul>
+<li>
+if it is debit (set by the customer or by somehow pinging mainsail)</li>
+
+<ul>
+<li>
+if pin not present "PIN REQUIRED"</li>
+
+<li>
+! should be transacting!&nbsp; -->"APPROVING..."</li>
+</ul>
+</ul>
+
+<ul>
+<li>
+if&nbsp; is credit</li>
+
+<ul>
+<li>
+if no signature then select "SIG REQUIRED"</li>
+
+<li>
+! should be transacting!</li>
+</ul>
+</ul>
+
+<li>
+if check is present</li>
+
+<ul>
+<li>
+if defective then select the particular defect (3 questions)</li>
+
+<li>
+! should be transacting!</li>
+</ul>
+</ul>
+
+<li>
+if trans in process select "APPROVING..." (text depends upon type of transaction,
+i.e "Logging In..")</li>
+
+<li>
+if trans replied select "Approved: &lt;code>" or "Denied, see printer"</li>
+</ul>
+
+<hr WIDTH="100%">
+<h3>
+<a NAME="Forms"></a>Forms</h3>
+
+<table BORDER >
+<caption>transaction forms</caption>
+
+<tr>
+<td></td>
+
+<th>getting $$</th>
+
+<th>getting Ok</th>
+
+<th>getting approval</th>
+
+<th>got approval</th>
+</tr>
+
+<tr>
+<th>unknown</th>
+
+<td><font color="#FF0000">IdleAd</font>:
+<br>swipe
+<br>ad+coupon
+<br>[USE CHECK]</td>
+
+<td><font color="#FF0000">GetPayment</font>:
+<br>swipe
+<br>[USE CHECK]
+<br>[USE CASH]</td>
+
+<td>N/A</td>
+
+<td>N/A</td>
+</tr>
+
+<tr>
+<th>credit</th>
+
+<td>
+<br><font color="#FF0000">WaitClerkCredit</font>:
+<br>"Waiting onClerk"
+<br>[USE CHECK] (patron changes mind)
+<br><font color="#999999">[is DEBIT?]</font></td>
+
+<td><font color="#FF0000">WaitPatronCredit</font>:
+<br>"amount Ok?"
+<br>amount&nbsp;
+<br>[USE CHECK] (patron changes mind)
+<br><font color="#999999">[is DEBIT?]</font></td>
+
+<td>
+<table BORDER >
+<tr>
+<th>no signature yet&nbsp;</th>
+
+<th>sig acquired or&nbsp;
+<br>bypassed by clerk</th>
+</tr>
+
+<tr>
+<td><font color="#FF0000">SignCard</font>:
+<br>"sign ..."
+<br>signature box</td>
+
+<td><font color="#FF0000">WaitApproval</font>:
+<br>just advert</td>
+</tr>
+</table>
+</td>
+
+<td><font color="#FF0000">WaitReceipt</font>:
+<br>just advert</td>
+</tr>
+
+<tr>
+<th>debit</th>
+
+<td><font color="#FF0000">WaitClerkDebit</font><font color="#999999">:</font>
+<br><font color="#999999">[USE CHECK] (patron changes mind)</font></td>
+
+<td><font color="#FF0000">WaitPatronDebit:</font>
+<br><font color="#999999">pinpad</font>
+<br><font color="#999999">prompt = "$$ Ok?"</font></td>
+
+<td><font color="#FF0000">WaitApproval:</font>
+<br><font color="#999999">just advert</font></td>
+
+<td><font color="#FF0000">WaitReceipt</font>:
+<br><font color="#999999">just advert</font></td>
+</tr>
+
+<tr>
+<th>check</th>
+
+<td><font color="#FF0000">WaitClerkCheck</font><font color="#999999">:</font>
+<br>swipeID(patron changes mind)
+<br>display store name, date for filling out check</td>
+
+<td><font color="#FF0000">WaitPatronCheck</font>:
+<br>swipeID( patron changes mind)
+<br>amount $$
+<br>store name, date for filling out check</td>
+
+<td><font color="#FF0000">WaitApproval:</font>
+<br>just advert</td>
+
+<td>
+<table BORDER >
+<tr>
+<th>Approved</th>
+
+<th>server sez&nbsp;
+<br>'Need ID'</th>
+</tr>
+
+<tr>
+<td><font color="#FF0000">WaitReceipt</font>:
+<br>just advert</td>
+
+<td><font color="#FF0000">NeedID:</font>
+<br>possibly add swiping of DL or credit card&nbsp;</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+
+<p>The credit row is active after a card has been swiped or manually entered
+by clerk.
+<br>The debit row is active after a card has been swiped then [is DEBIT?]
+gets pressed, or SOMEHOW we get to the BIN tables.
+<br>The check row is active after [USE CHECK] gets pressed, or clerk scans
+or manually enters check numbers.
+<br>PROBLEM: what to do when pin entry fails...somehow back up to square
+2
+<br>&nbsp;
+<table BORDER >
+<caption>compltee list of&nbsp; Forms</caption>
+
+<tr>
+<th>form</th>
+
+<th></th>
+
+<th>clerk ID not logged in</th>
+</tr>
+
+<tr>
+<th>NotInService</th>
+
+<td>"NOT IN SERVICE"</td>
+
+<td>no text, just graphic</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<br>Selection Logic:
+<ul>
+<li>
+if terminal not logged in select "NOT IN SERVICE"</li>
+
+<li>
+if clerk not logged in select Wait(terminal Name)+coupon</li>
+
+<li>
+if approval NOT in progress</li>
+
+<ul>
+<li>
+if card is present</li>
+
+<ul>
+<li>
+if it is debit (set by the customer or by somehow pinging mainsail)</li>
+
+<ul>
+<li>
+if no amount select Wait("On Clerk")</li>
+
+<li>
+if not accepted select "PIN PAD"</li>
+
+<li>
+else error! select Wait("On Clerk")</li>
+</ul>
+</ul>
+
+<ul>
+<li>
+if&nbsp; is credit</li>
+
+<ul>
+<li>
+if no amount select "please wait"</li>
+
+<li>
+if not accepted select "getApproval"</li>
+
+<li>
+else error! select Wait("On Clerk")</li>
+</ul>
+</ul>
+
+<li>
+if check is selected</li>
+
+<ul>
+<li>
+if scanned and has defects then select "please wait"</li>
+
+<li>
+if no amount select "make payable to"</li>
+
+<li>
+else select "make payable showing amount"</li>
+</ul>
+
+<li>
+else select "Swipe" (IdleAd)</li>
+</ul>
+
+<li>
+if approval in process</li>
+
+<ul>
+<li>
+if credit</li>
+
+<ul>
+<li>
+if no signature then</li>
+
+<ul>
+<li>
+select "sign it"</li>
+</ul>
+</ul>
+
+<li>
+select Wait("APPROVING...", detailed text depends upon type of transaction,
+i.e "Logging In..")</li>
+</ul>
+
+<li>
+if conditional denial== need ID</li>
+
+<ul>
+<li>
+if credit must not have signature yet so select "signit"</li>
+
+<li>
+if check must need some ID , select "GetID"</li>
+</ul>
+
+<li>
+else select Wait("Receipt printing")</li>
+</ul>
+
+<table BORDER >
+<caption>Loose description of forms/components thereof</caption>
+
+<tr>
+<td>Not In Service</td>
+
+<td>a place where we could advertise Paymate itself, however no graphics
+is available as we aren't allowed to access terminal configuration yet,
+or we would be accessing potentially stale cached info.</td>
+</tr>
+
+<tr>
+<td>Wait(some text)</td>
+
+<td>no swipes, "some text" in BannerLine, no buttons other than MAYBE Print
+Coupon</td>
+</tr>
+
+<tr>
+<td>Swipe</td>
+
+<td>prompts for swiping, has: advertisement, Print Coupon button and Pay
+By Check button to get the info for filling out a check</td>
+</tr>
+
+<tr>
+<td>PIN PAD</td>
+
+<td>defined by the enTouch itself, we get to poke a little bit of text
+into it, like the sale amount.</td>
+</tr>
+
+<tr>
+<td>Make Payable ...</td>
+
+<td>Info for filling out a check.</td>
+</tr>
+</table>
+
+<hr WIDTH="100%">
+<h3>
+Majic sale amount triggers</h3>
+Certain amounts entered as a Sale Amount trigger the following actions,
+rather than a transaction. You will have to press CLEAR to get back to
+normal operation. None of these are "normal" system operations, they are
+for diagnostic use only.
+<br>&nbsp;
+<br>&nbsp;
+<table BORDER >
+<caption><b>Majic codes</b></caption>
+
+<tr>
+<th>as entered</th>
+
+<th>terminal command code</th>
+
+<th>what it does</th>
+</tr>
+
+<tr>
+<td>$151241803.40
+<br>(paymate phone number)</td>
+
+<td>shutdown</td>
+
+<td>terminal program quits gracefully,
+<br>good to do if you want to reboot the computer and still have the entouch
+work without power cycling it as well.</td>
+</tr>
+
+<tr>
+<td>$171372399.85</td>
+
+<td>clear</td>
+
+<td>cancel transaction.&nbsp;
+<br>Pretty much the same thing as the CLEAR key does, but without any context
+considerations.</td>
+</tr>
+
+<tr>
+<td>$748869668.84
+<br>"shutmymouth"</td>
+
+<td>thumperoff</td>
+
+<td>stops the diagnostic program described below</td>
+</tr>
+
+<tr>
+<td>$180022737.97
+<br>(1-800 CARDSYS)</td>
+
+<td>thumperon</td>
+
+<td>starts a diagnostic program that send status data over the internet
+<br>useful in determining where in the system a terminal's transactions
+are failing. Should only be invoked under request of a service person,
+do NOT put this in user documentation.</td>
+</tr>
+</table>
+
+<p>
+<hr WIDTH="100%">
+<h6>
+&copy; Paymate.Net 2001 Proprietary and Confidential Material</h6>
+
+<h6>
+$Id: PROGFLOW.HTM,v 1.10 2001/03/28 05:57:23 andyh Exp $</h6>
+
+</body>
+</html>

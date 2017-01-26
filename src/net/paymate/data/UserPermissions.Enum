@@ -1,0 +1,7 @@
+// user permissions, may be combined in cases
+canvoid
+canreturn
+canweb
+cansale
+candatabase
+canclose

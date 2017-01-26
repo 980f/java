@@ -1,0 +1,8 @@
+// TerminalsFormatEnum.Enum
+// put these in the order that you want the columns
+TermAuthidCol
+TerminalidCol
+AuthidCol
+AuthTermidCol
+AuthSeqCol
+TermBatchnumCol

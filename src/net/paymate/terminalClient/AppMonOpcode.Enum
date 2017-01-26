@@ -1,0 +1,7 @@
+//Appliance Monitor Commands
+terminalOp    // makes each terminal show its name on its output devices.
+standin    // force standin on all terminals
+statusclient // modify status client activity
+logging    // setting and displaying (dumps) the log levels
+alarms      // trigger then dump
+shell     //link telnet streams to an exec of ""

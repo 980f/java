@@ -1,0 +1,13 @@
+// ServicesFormatEnum.Enum
+// put these in the order that you want the columns
+nameCol
+statusCol      // up/down, etc.
+connectionsCol
+txnsCol
+pendCol
+timeOutsCol
+avgTimeCol
+writeCol
+readCol
+logFileCol
+notesCol

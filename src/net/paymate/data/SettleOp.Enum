@@ -1,0 +1,10 @@
+/* $Source: /cvs/src/net/paymate/data/SettleOp.Enum,v $ */
+/* $Revision: 1.4 $ */
+//types of settlements
+Unknown=U // possibly useless selection, distinguishes not known from not initialized.
+Sale=S    //merchandise sale
+Return=R  //merchandise return
+Void=V    //cancel some txn
+Query=Q   //balance or other account related query
+Modify=M //change amount
+// $Id: SettleOp.Enum,v 1.4 2003/08/14 02:13:05 mattm Exp $

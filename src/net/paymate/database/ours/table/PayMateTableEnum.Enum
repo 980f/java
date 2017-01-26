@@ -1,0 +1,18 @@
+// PayMateTableEnum.Enum
+appliance
+applnetstatus
+applpgmstatus
+associate
+authattempt
+authorizer
+batch
+card
+drawer
+enterprise
+servicecfg
+storeaccess
+storeauth
+store
+termauth
+terminal
+txn

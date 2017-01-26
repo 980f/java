@@ -1,0 +1,9 @@
+// Business rule classes for siNET 2.0
+// in no specific order
+Enterprise
+Store
+Associate
+Appliance
+Terminal
+ApplPgmStatus
+ApplNetStatus

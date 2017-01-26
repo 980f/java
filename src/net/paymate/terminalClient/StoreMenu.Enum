@@ -1,0 +1,8 @@
+//$Source: /cvs/src/net/paymate/terminalClient/StoreMenu.Enum,v $
+//$Revision: 1.3 $
+// operations that apply to a store, or all terminals within a store
+PrintOptions
+Deposit
+CloseDrawers
+
+//$Id: StoreMenu.Enum,v 1.3 2003/10/01 04:23:45 andyh Exp $

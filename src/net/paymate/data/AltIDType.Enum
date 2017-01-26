@@ -1,0 +1,12 @@
+/* $Id: AltIDType.Enum,v 1.1 2003/10/25 20:34:19 mattm Exp $ */
+/* 170 Identification Type
+Attributes: a 2
+Description: Two characters that identify the type of ID represented by the value in field 169,
+Other Card Number.
+*/
+
+AL //Alternate ID
+OT //Other ID
+PN //Phone Number
+MR //MicR data per dwalzer. (since when is a check is own ID??sheesh!)
+//$Id: AltIDType.Enum,v 1.1 2003/10/25 20:34:19 mattm Exp $

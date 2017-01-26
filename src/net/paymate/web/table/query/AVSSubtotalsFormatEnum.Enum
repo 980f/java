@@ -1,0 +1,7 @@
+// AVSSubtotalsFormatEnum.Enum
+// put these in the order that you want the columns
+InstitutionCol
+AVSCodeCol
+AVSDescriptionCol
+CountCol
+SumCol

@@ -1,0 +1,7 @@
+// (extended) enumeration of Discover AVS codes
+ZIP_and_address_both_match=A
+Neither_the_ZIP_nor_the_address_matches=N
+Unable_to_verify_address=U
+Cardholder_not_found_or_the_ZIPAddress_file_not_available=W
+Only_Address_matches=Y
+Only_ZIP_matches=Z

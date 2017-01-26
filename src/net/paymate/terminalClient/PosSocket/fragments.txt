@@ -1,0 +1,54 @@
+//////////
+  // data request for original hypercom application
+    if(rqtoken.equalsIgnoreCase("Data")){
+      return DataRequest(fields);
+    }
+
+  protected TextList binEntryDatum(int index,BinEntry be,TextList hresponse){
+    TextList oneline=new TextList();
+    oneline.add(index);
+    oneline.add(be.low);
+    oneline.add(be.high>0?be.high:be.low);//undo singlet flag
+    oneline.add(be.act.Image());
+    oneline.add(be.issuer.Abbreviation());
+
+    hresponse.add(csvLine(oneline));
+    return hresponse;
+  }
+
+  TextList binEntryList(TextList hresponse){
+    if(hresponse==null){
+      hresponse= new TextList();
+    }
+    int i=BinEntry.guesser.length;
+    hresponse.add(ACK+",Data,BinEntry,"+i+beFormat+csvend);
+    while(i-->0){
+      BinEntry possible= BinEntry.guesser[i];
+      switch(possible.act.Value()){
+      case PayType.Credit:
+      case PayType.Debit:
+      case PayType.GiftCard:{
+        binEntryDatum(i,possible,hresponse);
+      } break;
+    //receiver is wimpy, doesn't have room for all that we know so
+    //do not emit unknowns,
+    //do not emit singletons
+      }
+    }
+    hresponse.add("BinEntry");
+
+    return hresponse;
+  }
+
+  private final static String beFormat=",1";
+  protected ActionRequest DataRequest(TextListIterator fields){
+    String classclue=fields.next();
+    TextList hresponse= new TextList();
+    if(classclue.equals("BinEntry")){//card range data
+      return BypassRequest.New(binEntryList(hresponse).asParagraph(""));
+    } else {
+      return Nak("Data,unknown category "+classclue);
+    }
+  }
+// end DataRequest
+///////

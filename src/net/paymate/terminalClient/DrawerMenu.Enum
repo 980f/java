@@ -1,0 +1,9 @@
+/* $Source: /cvs/src/net/paymate/terminalClient/DrawerMenu.Enum,v $ */
+PrintOptions
+Totals
+Detail
+Close_w_Totals
+Close_w_Detail
+
+
+//$Id: DrawerMenu.Enum,v 1.3 2002/12/10 17:00:02 andyh Exp $

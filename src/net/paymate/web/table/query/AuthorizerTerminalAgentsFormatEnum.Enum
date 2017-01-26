@@ -1,0 +1,8 @@
+// AuthorizerTerminalAgentsFormatEnum.Enum
+// put these in the order that you want the columns
+terminalidCol
+centsCountCol
+centsTotalCol
+termBatchNumCol
+agentStatus
+standinStatus
